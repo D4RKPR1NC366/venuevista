@@ -24,7 +24,11 @@ scheduleConnection.on('error', err => console.error('MongoDB scheduleCalendar co
 // Load Schedule model using the new connection
 const scheduleSchema = require('./models/Schedule').schema;
 const Schedule = scheduleConnection.model('Schedule', scheduleSchema);
+const { SupplierAcceptedSchedule, SupplierDeclinedSchedule } = require('./models/SupplierSchedule');
 
+// Initialize models for accepted and declined schedules
+const SupplierAccepted = scheduleConnection.model('SupplierAcceptedSchedule', require('./models/SupplierSchedule').SupplierAcceptedSchedule.schema);
+const SupplierDeclined = scheduleConnection.model('SupplierDeclinedSchedule', require('./models/SupplierSchedule').SupplierDeclinedSchedule.schema);
 
 // Schedules API endpoints now use the scheduleConnection
 app.get('/api/schedules', async (req, res) => {
@@ -55,6 +59,80 @@ app.delete('/api/schedules/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete schedule' });
+  }
+});
+
+// Update schedule status (accept/decline)
+app.put('/api/schedules/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, supplierId, supplierName } = req.body;
+
+    // Find the original schedule
+    const schedule = await Schedule.findById(id);
+    if (!schedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+
+    // Create the schedule entry in the appropriate collection
+    const scheduleData = {
+      ...schedule.toObject(),
+      supplierId,
+      supplierName,
+      status,
+      actionDate: new Date(),
+      _id: undefined // Allow MongoDB to generate a new ID
+    };
+
+    if (status === 'accepted') {
+      await SupplierAccepted.create(scheduleData);
+    } else if (status === 'declined') {
+      await SupplierDeclined.create(scheduleData);
+    } else {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    // Delete from original schedules
+    await Schedule.findByIdAndDelete(id);
+
+    res.json({ success: true, message: `Schedule ${status} successfully` });
+  } catch (err) {
+    console.error('Error updating schedule status:', err);
+    res.status(500).json({ error: 'Failed to update schedule status' });
+  }
+});
+
+// Move these routes before the generic schedules/:id route to prevent path conflicts
+
+// Get accepted schedules for a supplier
+app.get('/api/schedules/status/accepted', async (req, res) => {
+  try {
+    const { supplierId } = req.query;
+    console.log('Fetching accepted schedules for supplier:', supplierId);
+    const schedules = supplierId 
+      ? await SupplierAccepted.find({ supplierId })
+      : await SupplierAccepted.find();
+    console.log('Found accepted schedules:', schedules);
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching accepted schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch accepted schedules' });
+  }
+});
+
+// Get declined schedules for a supplier
+app.get('/api/schedules/status/declined', async (req, res) => {
+  try {
+    const { supplierId } = req.query;
+    console.log('Fetching declined schedules for supplier:', supplierId);
+    const schedules = supplierId 
+      ? await SupplierDeclined.find({ supplierId })
+      : await SupplierDeclined.find();
+    console.log('Found declined schedules:', schedules);
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching declined schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch declined schedules' });
   }
 });
 

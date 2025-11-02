@@ -82,33 +82,56 @@ const BookingInformation = () => {
         )}
         {/* Modal */}
         {showModal && selectedBooking && (
-          <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <div style={{background: '#fff', borderRadius: 10, padding: 32, maxWidth: 800, width: '90%', boxShadow: '0 2px 16px rgba(0,0,0,0.15)', position: 'relative'}}>
+          <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
+            <div style={{
+              background: '#fff', 
+              borderRadius: 10, 
+              padding: 32, 
+              maxWidth: 1000, 
+              width: '95%', 
+              maxHeight: '90vh',
+              boxShadow: '0 2px 16px rgba(0,0,0,0.15)', 
+              position: 'relative',
+              overflow: 'auto',
+              msOverflowStyle: 'none', /* Hide scrollbar for IE and Edge */
+              scrollbarWidth: 'none', /* Hide scrollbar for Firefox */
+              '&::-webkit-scrollbar': {
+                display: 'none' /* Hide scrollbar for Chrome, Safari and Opera */
+              }
+            }}>
               <button onClick={handleCloseModal} style={{position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 28, cursor: 'pointer'}}>&times;</button>
-              <h2 style={{fontWeight: 800, fontSize: '2rem', marginBottom: 24}}>Booking Details</h2>
-              <div style={{background: '#ffe066', borderRadius: 24, padding: 24, marginBottom: 32, display: 'flex', flexWrap: 'wrap', gap: 32}}>
-                <div style={{flex: 1, minWidth: 220}}>
-                  <div><b>Name:</b> {selectedBooking.name}</div>
-                  <div><b>Contact Number:</b> {selectedBooking.contact}</div>
-                  <div><b>Email Address:</b> {selectedBooking.email}</div>
-                  <div><b>Total Price:</b> {selectedBooking.totalPrice || selectedBooking.price}</div>
-                </div>
-                <div style={{flex: 1, minWidth: 220}}>
-                  <div><b>Event Type:</b> {selectedBooking.eventType}</div>
-                  <div><b>Event Date:</b> {selectedBooking.date ? new Date(selectedBooking.date).toLocaleDateString() : ''}</div>
-                  <div><b>Event Venue:</b> {selectedBooking.eventVenue}</div>
-                  <div><b>Guest Count:</b> {selectedBooking.guestCount}</div>
+              <h2 style={{fontWeight: 800, fontSize: '1.8rem', marginBottom: 24}}>Booking Details</h2>
+              <div style={{background: '#ffe066', borderRadius: 12, padding: 20, marginBottom: 24}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+                  <div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Contact Number:</strong> {selectedBooking.contact}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Email Address:</strong> {selectedBooking.email}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Total Price:</strong> PHP {selectedBooking.totalPrice}</div>
+                  </div>
+                  <div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Date:</strong> {selectedBooking.date ? new Date(selectedBooking.date).toLocaleDateString() : ''}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Venue:</strong> {selectedBooking.eventVenue}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Guest Count:</strong> {selectedBooking.guestCount}</div>
+                  </div>
                 </div>
               </div>
-              <h3 style={{fontWeight: 700, marginBottom: 16}}>Services and Products Availed</h3>
-              <div style={{display: 'flex', gap: 18, marginBottom: 32}}>
+              <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Services and Products Availed</h3>
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: 24}}>
                 {selectedBooking.products && selectedBooking.products.length > 0 ? (
                   selectedBooking.products.map((prod, i) => (
-                    <div key={i} style={{background: '#ffe066', borderRadius: 16, padding: 16, minWidth: 180, display: 'flex', alignItems: 'center', gap: 12}}>
-                      {prod.image && <img src={prod.image} alt={prod.title} style={{width: 60, height: 60, borderRadius: 8, objectFit: 'cover'}} />}
+                    <div key={i} style={{
+                      background: '#ffe066', 
+                      borderRadius: 12, 
+                      padding: '12px 16px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 12,
+                      height: '60px'
+                    }}>
+                      {prod.image && <img src={prod.image} alt={prod.title} style={{width: 40, height: 40, borderRadius: 6, objectFit: 'cover'}} />}
                       <div>
-                        <div style={{fontWeight: 700}}>{prod.title}</div>
-                        <div>PHP {prod.price}</div>
+                        <div style={{fontWeight: 700, fontSize: '0.95rem'}}>{prod.title}</div>
+                        <div style={{fontSize: '0.95rem'}}>PHP {prod.price}</div>
                       </div>
                     </div>
                   ))
@@ -116,7 +139,37 @@ const BookingInformation = () => {
                   <div>No products/services listed.</div>
                 )}
               </div>
-              <h3 style={{fontWeight: 700, marginBottom: 10}}>Special Request</h3>
+              <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Selected Additionals</h3>
+              <div style={{background: '#fff', borderRadius: 12, marginBottom: 24}}>
+                {selectedBooking.products && selectedBooking.products.some(p => p.additionals?.length > 0) ? (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px',
+                    padding: '8px',
+                  }}>
+                    {selectedBooking.products.map(prod => 
+                      prod.additionals?.map((additional, idx) => (
+                        <div key={`${prod.title}-${idx}`} 
+                             style={{
+                               display: 'flex', 
+                               justifyContent: 'space-between',
+                               padding: '12px 24px',
+                               border: '1px solid #ddd',
+                               borderRadius: '8px',
+                               fontSize: '0.95rem'
+                             }}>
+                          <span>{additional.title}</span>
+                          <span style={{color: '#666'}}>PHP {additional.price}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div style={{fontSize: '0.95rem', padding: '16px 24px'}}>No additionals selected</div>
+                )}
+              </div>
+              <h3 style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 10}}>Special Request</h3>
               <div style={{background: '#fffbe6', borderRadius: 12, padding: 16, border: '1px solid #ffe066', minHeight: 60}}>
                 {selectedBooking.specialRequest || 'None'}
               </div>
