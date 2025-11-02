@@ -69,6 +69,7 @@ const TopBar = () => {
         <a href="/?scroll=services" className="topbar-link">Services</a>
         <a href="/booking" className="topbar-link">Book Now</a>
         <a href="/policy" className="topbar-link">Policy</a>
+        <a href="/reviews" className="topbar-link">Reviews</a>
       </nav>
 
       <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 32 }}>

@@ -30,6 +30,8 @@ import Notification from "./Client/Notification";
 import ClientSidebar from "./Client/ClientSidebar";
 import UserCalendar from "./Client/UserCalendar";
 
+import Reviews from "./Home/Reviews";
+
 import { Navigate } from "react-router-dom";
 
 function App() {
@@ -46,6 +48,7 @@ function App() {
     <Route path="/policy" element={<Policy />} />
     <Route path="/pns-details" element={<PnSDetails />} />
     <Route path="/event-cart" element={<EventCart />} />
+  <Route path="/reviews" element={<Reviews />} />
     {/* Admin routes */}
     <Route path="/admin/dashboard" element={<Dashboard />} />
     <Route path="/admin/booking" element={<AdminBooking />} />
