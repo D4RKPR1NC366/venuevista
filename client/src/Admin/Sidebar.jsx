@@ -24,6 +24,7 @@ const navItems = [
   { label: 'Suppliers', path: '/admin/suppliers', icon: <LocalShippingIcon fontSize="small" /> },
   { label: 'Users / Clients', path: '/admin/user-clients', icon: <GroupIcon fontSize="small" /> },
   { label: 'Background Gallery', path: '/admin/background-gallery', icon: <PhotoLibraryIcon fontSize="small" /> },
+  { label: 'Supplier Schedules', path: '/admin/supplier-schedules', icon: <AlarmIcon fontSize="small" /> },
   { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
 ];
 

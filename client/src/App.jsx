@@ -21,6 +21,7 @@ import Calendars from "./Admin/Calendars";
 import Suppliers from "./Admin/Suppliers";
 import UserClients from "./Admin/UserClients";
 import BackgroundGallery from "./Admin/BackgroundGallery";
+import AdminSupplierSchedules from "./Admin/AdminSupplierSchedules";
 import Policy from "./Home/Policy";
 import "./App.css";
 
@@ -54,7 +55,8 @@ function App() {
     <Route path="/admin/calendars" element={<Calendars />} />
     <Route path="/admin/suppliers" element={<Suppliers />} />
     <Route path="/admin/user-clients" element={<UserClients />} />
-    <Route path="/admin/background-gallery" element={<BackgroundGallery />} />
+  <Route path="/admin/background-gallery" element={<BackgroundGallery />} />
+  <Route path="/admin/supplier-schedules" element={<AdminSupplierSchedules />} />
     <Route path="/forgot-password" element={<ForgotPasswordFlow />} />
     {/* Client routes */}
     <Route path="/client/home" element={<Home />} />

@@ -234,12 +234,15 @@ const Notification = () => {
                 background: '#fff',
                 padding: '16px 20px',
                 borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                 marginBottom: '12px'
               }}>
                 <div>
                   <h4 style={{marginBottom: '8px'}}>{notif.title}</h4>
-                  <p style={{color: '#666', marginBottom: '4px'}}>{notif.description || notif.location || ''}</p>
+                  <p style={{color: '#666', marginBottom: '4px'}}>{notif.description}</p>
+                  {notif.location && (
+                    <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
+                  )}
                   <div style={{fontSize: '0.9rem', color: '#888'}}>{notif.date}</div>
                 </div>
                 {userRole === 'supplier' && (
@@ -299,7 +302,10 @@ const Notification = () => {
                 }}>
                   <div>
                     <h4 style={{marginBottom: '8px'}}>{notif.title}</h4>
-                    <p style={{color: '#666', marginBottom: '4px'}}>{notif.description || notif.location || ''}</p>
+                    <p style={{color: '#666', marginBottom: '4px'}}>{notif.description}</p>
+                    {notif.location && (
+                      <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
+                    )}
                     <div style={{fontSize: '0.9rem', color: '#888'}}>{notif.date}</div>
                   </div>
                   <div style={{color: '#4CAF50', fontWeight: '500'}}>Accepted</div>
@@ -329,7 +335,10 @@ const Notification = () => {
                 }}>
                   <div>
                     <h4 style={{marginBottom: '8px'}}>{notif.title}</h4>
-                    <p style={{color: '#666', marginBottom: '4px'}}>{notif.description || notif.location || ''}</p>
+                    <p style={{color: '#666', marginBottom: '4px'}}>{notif.description}</p>
+                    {notif.location && (
+                      <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
+                    )}
                     <div style={{fontSize: '0.9rem', color: '#888'}}>{notif.date}</div>
                   </div>
                   <div style={{color: '#f44336', fontWeight: '500'}}>Declined</div>

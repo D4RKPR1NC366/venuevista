@@ -67,6 +67,11 @@ const BookingInformation = () => {
                   key={booking._id || idx}
                   className="booking-card"
                   onClick={() => handleCardClick(booking)}
+                  style={{
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+                  }}
+                  
                 >
                   <div style={{display: 'flex', flexDirection: 'column'}}>
                     <h4>{booking.eventType || booking.title}</h4>
@@ -85,12 +90,12 @@ const BookingInformation = () => {
           <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
             <div style={{
               background: '#fff', 
-              borderRadius: 10, 
+              borderRadius: 8, 
               padding: 32, 
               maxWidth: 1000, 
               width: '95%', 
               maxHeight: '90vh',
-              boxShadow: '0 2px 16px rgba(0,0,0,0.15)', 
+              boxShadow: '0 2px 10px rgba(0,0,0,0.15)', 
               position: 'relative',
               overflow: 'auto',
               msOverflowStyle: 'none', /* Hide scrollbar for IE and Edge */
