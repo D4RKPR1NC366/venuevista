@@ -1,9 +1,12 @@
 
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+// ...existing code...
 import TopBar from "./TopBar";
 import "./home.css";
 import "../Authentication/auth.css";
+import { reviews } from "./Reviews"; // Corrected import statement
+import { useNavigate } from "react-router-dom";
+// ...existing code...
 
 
 const API_BASE = 'http://localhost:5051/api';
@@ -12,6 +15,8 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [bgImages, setBgImages] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
+  const [reviewIndex, setReviewIndex] = useState(0); // no longer used for scrolling
+  const reviewsContainerRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -110,6 +115,48 @@ const Home = () => {
               ))}
             </div>
           ))}
+        </div>
+      </section>
+      {/* Review Section */}
+      <section className="home-reviews-section">
+        <div className="home-reviews-header-row">
+          <h2 className="home-reviews-title">Customer Reviews</h2>
+          <button className="home-reviews-see-more" onClick={() => navigate('/reviews')}>See more</button>
+        </div>
+        <div className="home-reviews-carousel-wrapper">
+          <button
+            className="home-reviews-arrow left"
+            onClick={() => {
+              if (reviewsContainerRef.current) {
+                reviewsContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+              }
+            }}
+            aria-label="Scroll left"
+          >&#8592;</button>
+          <div className="home-reviews-carousel" ref={reviewsContainerRef} style={{ overflowX: 'auto', scrollBehavior: 'smooth' }}>
+            {reviews.map((review, idx) => (
+              <div className="home-review-card" key={idx}>
+                <div className="home-review-header">
+                  <span className="home-review-name">{review.name}</span>
+                  <span className="home-review-rating">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
+                </div>
+                <div className="home-review-date-source">
+                  <span className="home-review-date">{review.date}</span>
+                  <span className="home-review-source">Review from {review.source}</span>
+                </div>
+                <span className="home-review-comment" title={review.comment}>{review.comment}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            className="home-reviews-arrow right"
+            onClick={() => {
+              if (reviewsContainerRef.current) {
+                reviewsContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+              }
+            }}
+            aria-label="Scroll right"
+          >&#8594;</button>
         </div>
       </section>
     </div>

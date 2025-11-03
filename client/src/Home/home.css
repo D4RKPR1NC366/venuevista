@@ -1,3 +1,108 @@
+/* Review Section Styles */
+.home-reviews-section {
+  margin: 48px auto 0 auto;
+  max-width: 1200px;
+  padding: 0 24px 32px 24px;
+}
+.home-reviews-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.home-reviews-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0;
+}
+.home-reviews-see-more {
+  background: #e6c06b;
+  color: #222;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.home-reviews-see-more:hover {
+  background: #d4b15a;
+}
+.home-reviews-carousel-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-reviews-arrow {
+  font-size: 2rem;
+  background: none;
+  border: none;
+  color: #e6c06b;
+  cursor: pointer;
+  padding: 0 12px;
+  transition: color 0.2s;
+}
+.home-reviews-arrow:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+.home-reviews-carousel {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1 1 auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+.home-reviews-carousel::-webkit-scrollbar {
+  display: none;
+}
+.home-review-card {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #222;
+  padding: 22px 20px 18px 20px;
+  min-width: 290px;
+  max-width: 320px;
+  height: 170px;
+  flex: 0 0 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border 0.2s;
+}
+
+.home-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.home-review-rating {
+  color: #e6c06b;
+  font-size: 1.1rem;
+}
+.home-review-date-source {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #888;
+}
+.home-review-comment {
+  font-size: 1rem;
+  color: #222;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
+  min-height: 3.6em;
+}
 .home-services-row {
   display: flex;
   flex-direction: row;

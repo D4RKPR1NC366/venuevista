@@ -3,7 +3,7 @@ import TopBar from "./TopBar";
 import "./review.css";
 
 
-const reviews = [
+export const reviews = [
   {
     name: "graham User",
     rating: 5,
