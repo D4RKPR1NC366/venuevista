@@ -155,6 +155,7 @@ const Booking = () => {
       ...form,
       totalPrice: computeTotalPrice(),
       eventVenue: getEventVenue(),
+      outsidePH: form.outsidePH || '',
     };
     navigate('/booking-summary', { state: { booking } });
   };

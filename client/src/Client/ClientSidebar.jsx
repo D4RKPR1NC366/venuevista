@@ -22,7 +22,7 @@ const ClientSidebar = () => {
   return (
     <div className="client-sidebar">
       <div className="client-sidebar-header">
-        <h2 className="profile-title">Goldust</h2>
+        <h2 className="profile-title">Goldust Creations</h2>
       </div>
       <ul>
         {/* Render all links except Home and Log out */}

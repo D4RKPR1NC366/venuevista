@@ -36,7 +36,7 @@ export default function Sidebar() {
   };
   return (
     <aside className="admin-sidebar">
-      <div className="admin-sidebar-title">GOLDUST CREATION</div>
+      <div className="admin-sidebar-title">GOLDUST CREATIONS</div>
       <nav>
         <ul>
           {navItems.map(item => (
