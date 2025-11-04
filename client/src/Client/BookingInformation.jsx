@@ -11,6 +11,9 @@ import './BookingInformation.css';
 const BookingInformation = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,9 +43,51 @@ const BookingInformation = () => {
     if (userEmail) fetchBookings();
   }, [userEmail]);
 
+
   const handleCardClick = (booking) => {
+    // Only open booking details if not currently opening review modal
+    if (!showReviewModal) {
+      setSelectedBooking(booking);
+      setShowModal(true);
+    }
+  };
+
+  const handleReviewClick = (booking, e) => {
+    e.stopPropagation();
     setSelectedBooking(booking);
-    setShowModal(true);
+    setReviewRating(0);
+    setReviewText('');
+    setShowReviewModal(true);
+  };
+
+  const handleCloseReviewModal = () => {
+    setShowReviewModal(false);
+    setReviewRating(0);
+    setReviewText('');
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewRating || !reviewText.trim()) return;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const newReview = {
+      name: user.name || 'Anonymous',
+      rating: reviewRating,
+      comment: reviewText,
+      date: new Date().toISOString().slice(0, 10),
+      source: 'Customer',
+      logo: null,
+      bookingId: selectedBooking?._id || null,
+      userId: user._id || null
+    };
+    try {
+      await api.post('/reviews', newReview);
+      setShowReviewModal(false);
+      setReviewRating(0);
+      setReviewText('');
+      alert('Thank you for your review!');
+    } catch (err) {
+      alert('Failed to submit review. Please try again.');
+    }
   };
 
   const handleCloseModal = () => {
@@ -69,17 +114,96 @@ const BookingInformation = () => {
                   onClick={() => handleCardClick(booking)}
                   style={{
                     borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                    position: 'relative'
                   }}
-                  
                 >
                   <div style={{display: 'flex', flexDirection: 'column'}}>
                     <h4>{booking.eventType || booking.title}</h4>
                     <div style={{fontSize: '1.05rem', color: '#666'}}>{booking.date ? new Date(booking.date).toLocaleDateString() : ''}</div>
                   </div>
-                  <span className="status">
-                    Status: {booking.status}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 8}}>
+                    <span className="status">
+                      Status: {booking.status}
+                    </span>
+                    {booking.status === 'Finished' && (
+                      <button
+                        style={{
+                          background: '#ffe066',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '6px 16px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+                        }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedBooking(booking);
+                          setShowModal(false); // Ensure booking modal is closed
+                          setReviewRating(0);
+                          setReviewText('');
+                          setShowReviewModal(true);
+                        }}
+                      >
+                        Write a Review
+                      </button>
+                    )}
+        {/* Review Modal */}
+        {showReviewModal && (
+          <div style={{
+            position: 'fixed',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 2147483647,
+          }}>
+            <div className="modal-content modal-review-content" style={{boxShadow: '0 2px 10px rgba(0,0,0,0.18)'}}>
+              <button onClick={handleCloseReviewModal} style={{position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 28, cursor: 'pointer'}}>&times;</button>
+              <h2 style={{fontWeight: 800, fontSize: '1.3rem', marginBottom: 18}}>Write a Review</h2>
+              <div style={{marginBottom: 18, display: 'flex', gap: 4}}>
+                {[1,2,3,4,5].map(star => (
+                  <span
+                    key={star}
+                    style={{
+                      fontSize: 32,
+                      color: star <= reviewRating ? '#ffc107' : '#e4e5e9',
+                      cursor: 'pointer',
+                      transition: 'color 0.2s'
+                    }}
+                    onClick={() => setReviewRating(star)}
+                  >
+                    ★
                   </span>
+                ))}
+              </div>
+              <textarea
+                value={reviewText}
+                onChange={e => setReviewText(e.target.value)}
+                placeholder="Share your experience..."
+                rows={4}
+                style={{width: '100%', borderRadius: 6, border: '1px solid #ccc', padding: 10, marginBottom: 18, resize: 'none', background: '#fff'}}
+              />
+              <button
+                style={{
+                  background: '#ffe066',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '8px 24px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: reviewRating && reviewText.trim() ? 'pointer' : 'not-allowed',
+                  opacity: reviewRating && reviewText.trim() ? 1 : 0.6
+                }}
+                disabled={!reviewRating || !reviewText.trim()}
+                onClick={handleSubmitReview}
+              >
+                Submit Review
+              </button>
+            </div>
+          </div>
+        )}
+                  </div>
                 </div>
               ))
             )}

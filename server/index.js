@@ -2,8 +2,14 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
 const { sendOTP } = require('./services/emailService');
 const otpStore = {};
+
+// Reviews route
+const reviewsRouter = require('./routes/reviews');
+// Register reviews API
+app.use('/api/reviews', reviewsRouter);
 
 
 const app = express();

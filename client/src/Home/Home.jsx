@@ -1,29 +1,37 @@
 
+
 import React, { useEffect, useState, useRef } from "react";
-// ...existing code...
 import TopBar from "./TopBar";
 import "./home.css";
 import "../Authentication/auth.css";
-import { reviews } from "./Reviews"; // Corrected import statement
 import { useNavigate } from "react-router-dom";
-// ...existing code...
+import api from '../services/api';
 
 
-const API_BASE = 'http://localhost:5051/api';
+
 
 const Home = () => {
   const [categories, setCategories] = useState([]);
   const [bgImages, setBgImages] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
   const [reviewIndex, setReviewIndex] = useState(0); // no longer used for scrolling
+  const [userReviews, setUserReviews] = useState([]);
   const reviewsContainerRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Fetch reviews from backend
+    api.get('/reviews')
+      .then(res => setUserReviews(res.data))
+      .catch(() => setUserReviews([]));
+  }, []);
+
+  const allReviews = userReviews;
+
+  useEffect(() => {
     // Fetch categories from API
-    fetch(`${API_BASE}/categories`)
-      .then(res => res.json())
-      .then(data => setCategories(Array.isArray(data) ? data : []))
+    api.get('/categories')
+      .then(res => setCategories(Array.isArray(res.data) ? res.data : []))
       .catch(() => setCategories([]));
 
     // Scroll to services if ?scroll=services is in the URL
@@ -34,10 +42,10 @@ const Home = () => {
       }, 100);
     }
     // Fetch background images from backend
-    fetch(`${API_BASE}/background-images`)
-      .then(res => res.json())
-      .then(imgs => {
-        setBgImages(imgs.map(img => img.url));
+    api.get('/background-images')
+      .then(res => {
+        const imgs = res.data;
+        setBgImages(Array.isArray(imgs) ? imgs.map(img => img.url) : []);
         setBgIndex(0);
       })
       .catch(() => {
@@ -134,7 +142,7 @@ const Home = () => {
             aria-label="Scroll left"
           >&#8592;</button>
           <div className="home-reviews-carousel" ref={reviewsContainerRef} style={{ overflowX: 'auto', scrollBehavior: 'smooth' }}>
-            {reviews.map((review, idx) => (
+            {allReviews.map((review, idx) => (
               <div className="home-review-card" key={idx}>
                 <div className="home-review-header">
                   <span className="home-review-name">{review.name}</span>
