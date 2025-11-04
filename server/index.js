@@ -387,6 +387,7 @@ const bookingBaseSchema = new mongoose.Schema({
   specialRequest: String,
   service: String,
   details: Object,
+  outsidePH: String, // Face to Face or Virtual/Online
   createdAt: { type: Date, default: Date.now }
 });
 const PendingBooking = bookingConnection.model('PendingBooking', bookingBaseSchema);

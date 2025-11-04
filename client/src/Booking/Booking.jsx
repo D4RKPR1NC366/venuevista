@@ -284,7 +284,7 @@ const Booking = () => {
             <div className="booking-field" style={{ marginBottom: 0 }}>
               <FormControl component="fieldset" fullWidth>
                 <label style={{ fontWeight: 500, color: '#222', marginBottom: 8, display: 'block', fontSize: '1rem', textAlign: 'left' }}>
-                  Are you booking from outside the Philippines?
+                  Choose your Appointment/ Meeting Method
                 </label>
                 <RadioGroup
                   row
@@ -294,8 +294,8 @@ const Booking = () => {
                   onChange={e => setForm(f => ({ ...f, outsidePH: e.target.value }))}
                   style={{ justifyContent: 'flex-start' }}
                 >
-                  <FormControlLabel value="yes" control={<Radio color="primary" />} label="Yes" />
-                  <FormControlLabel value="no" control={<Radio color="primary" />} label="No" />
+                  <FormControlLabel value="yes" control={<Radio color="primary" />} label="Face to Face" />
+                  <FormControlLabel value="no" control={<Radio color="primary" />} label="Virtual/Online" />
                 </RadioGroup>
               </FormControl>
             </div>

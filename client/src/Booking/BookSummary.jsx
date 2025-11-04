@@ -47,6 +47,7 @@ const BookSummary = () => {
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Date :</span> <span style={{ color: '#111' }}>{booking?.date ? (typeof booking.date === 'string' ? booking.date : booking.date?.$d ? new Date(booking.date.$d).toLocaleDateString() : booking.date.toString()) : ""}</span></div>
               {/* Event Location removed as per request */}
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Venue :</span> <span style={{ color: '#111' }}>{booking?.eventVenue || ""}</span></div>
+              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Appointment Method :</span> <span style={{ color: '#111' }}>{booking?.outsidePH === 'yes' ? 'Face to Face' : booking?.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
             </div>
             <div className="booking-summary-col">
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Guest Count :</span> <span style={{ color: '#111' }}>{booking?.guestCount || ""}</span></div>
@@ -166,6 +167,7 @@ const BookSummary = () => {
                     totalPrice: booking.totalPrice || 0,
                     products: productsWithAdd,
                     specialRequest: booking.specialRequest || '',
+                    outsidePH: booking.outsidePH || '',
                   };
                   await fetch('http://localhost:5051/api/bookings/pending', {
                     method: 'POST',

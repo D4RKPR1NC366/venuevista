@@ -243,6 +243,9 @@ const BookingInformation = () => {
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Guest Count:</strong> {selectedBooking.guestCount}</div>
                   </div>
                 </div>
+                <div style={{marginTop: 10, fontSize: '0.95rem'}}>
+                  <strong>Appointment Method:</strong> {selectedBooking.outsidePH === 'yes' ? 'Face to Face' : selectedBooking.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}
+                </div>
               </div>
               <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Services and Products Availed</h3>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: 24}}>
