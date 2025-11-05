@@ -7,6 +7,7 @@ import Home from "./Home/Home";
 import EventCart from "./Home/EventCart";
 import PnSDetails from "./Home/PnSDetails";
 import ForgotPasswordFlow from "./Authentication/ForgotPasswordFlow";
+import ResetPassword from "./Authentication/ResetPassword";
 import BookingInformation from "./Client/BookingInformation";
 import BookSummary from "./Booking/BookSummary";
 import BookAppointment from "./Booking/BookAppointment";
@@ -61,6 +62,7 @@ function App() {
   <Route path="/admin/background-gallery" element={<BackgroundGallery />} />
   <Route path="/admin/supplier-schedules" element={<AdminSupplierSchedules />} />
     <Route path="/forgot-password" element={<ForgotPasswordFlow />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     {/* Client routes */}
     <Route path="/client/home" element={<Home />} />
     <Route path="/client/personal-information" element={<PersonalInformation />} />

@@ -1,46 +1,30 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
-        user: process.env.EMAIL_USER || 'your-email@gmail.com',
-        pass: process.env.EMAIL_PASS || 'your-app-specific-password'
+        user: process.env.EMAIL_USER || 'truegoldustcreation@gmail.com',
+        pass: process.env.EMAIL_PASS || 'epvs rstu cjvq wohu'
+    },
+    tls: {
+        rejectUnauthorized: false
     }
 });
 
 const sendOTP = async (email, otp) => {
     try {
         await transporter.sendMail({
-            from: process.env.EMAIL_USER || 'your-email@gmail.com',
+            from: process.env.EMAIL_USER || 'truegoldustcreation@gmail.com',
             to: email,
-            subject: 'Your OTP Code',
+            subject: 'Password Reset Verification Code',
             html: `
-                <h1>Verification Code</h1>
-                <p>Your OTP code is: <strong>${otp}</strong></p>
+                <h1>Password Reset Verification Code</h1>
+                <p>Your verification code is: <strong>${otp}</strong></p>
                 <p>This code will expire in 10 minutes.</p>
-            `
-        });
-        return true;
-    } catch (error) {
-        console.error('Email send error:', error);
-        return false;
-    }
-};
-
-const sendPasswordResetEmail = async (email, resetToken) => {
-    try {
-        const resetLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
-        
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER || 'your-email@gmail.com',
-            to: email,
-            subject: 'Password Reset Request',
-            html: `
-                <h1>Password Reset Request</h1>
-                <p>Click the link below to reset your password:</p>
-                <a href="${resetLink}">Reset Password</a>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you didn't request this, please ignore this email.</p>
+                <p>If you didn't request this code, please ignore this email.</p>
+                <p>For your security, never share this code with anyone.</p>
             `
         });
         return true;

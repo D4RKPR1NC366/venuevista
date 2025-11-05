@@ -18,6 +18,9 @@ app.use('/api/reviews', reviewsRouter);
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
 
+const passwordResetRouter = require('./routes/passwordReset');
+app.use('/api/auth', passwordResetRouter);
+
 
 
 // Create a separate connection for schedules/calendar
@@ -144,94 +147,14 @@ app.get('/api/schedules/status/declined', async (req, res) => {
 });
 
 
-const authConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/authentication', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+// Import database configuration
+const { authConnection, Customer, Supplier } = require('./config/database');
+
 authConnection.on('connected', () => console.log('MongoDB authentication connected!'));
 authConnection.on('error', err => console.error('MongoDB authentication connection error:', err));
 
 
-const supplierSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  companyName: String,
-  firstName: String,
-  lastName: String,
-  middleName: String,
-  phone: String,
-  contact: String,
-  createdAt: { type: Date, default: Date.now }
-});
-const Supplier = authConnection.model('Supplier', supplierSchema);
-
-
-const customerSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  firstName: String,
-  lastName: String,
-  middleName: String,
-  phone: String,
-  contact: String,
-  createdAt: { type: Date, default: Date.now }
-});
-const Customer = authConnection.model('Customer', customerSchema);
-
-
-app.post('/api/auth/send-otp', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Missing email' });
-
-
-  const user = await Customer.findOne({ email }) || await Supplier.findOne({ email });
-  if (!user) return res.status(404).json({ error: 'No account with that email' });
-
-  
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore[email] = { otp, expires: Date.now() + 10 * 60 * 1000 }; // 10 min expiry
-
-  const sent = await sendOTP(email, otp);
-  if (!sent) return res.status(500).json({ error: 'Failed to send email' });
-  res.json({ message: 'OTP sent' });
-});
-
-
-app.post('/api/auth/verify-otp', (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) return res.status(400).json({ error: 'Missing email or otp' });
-  const record = otpStore[email];
-  if (!record || record.otp !== otp) return res.status(400).json({ error: 'Invalid code' });
-  if (Date.now() > record.expires) return res.status(400).json({ error: 'Code expired' });
-  res.json({ message: 'OTP verified' });
-});
-
-
-app.post('/api/auth/reset-password', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
- 
-  const record = otpStore[email];
-  if (!record) return res.status(400).json({ error: 'OTP not requested' });
-  if (Date.now() > record.expires) return res.status(400).json({ error: 'OTP expired' });
-
-
-  let user = await Customer.findOne({ email });
-  if (user) {
-    user.password = password;
-    await user.save();
-    delete otpStore[email];
-    return res.json({ message: 'Password reset successful' });
-  }
-  user = await Supplier.findOne({ email });
-  if (user) {
-    user.password = password;
-    await user.save();
-    delete otpStore[email];
-    return res.json({ message: 'Password reset successful' });
-  }
-  res.status(404).json({ error: 'User not found' });
-});
+// Password reset routes are now handled in passwordReset.js
 
 
 app.get('/api/background-images', async (req, res) => {

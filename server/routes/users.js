@@ -1,11 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const mongoose = require('mongoose');
-
-// Get the models from the authentication connection
-const Customer = mongoose.model('Customer');
-const Supplier = mongoose.model('Supplier');
+const { Customer, Supplier } = require('../config/database');
 
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
