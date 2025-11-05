@@ -2,6 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const { sendOTP } = require('./services/emailService');
 const otpStore = {};
@@ -13,6 +14,9 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const reviewsRouter = require('./routes/reviews');
 app.use('/api/reviews', reviewsRouter);
+
+const usersRouter = require('./routes/users');
+app.use('/api/users', usersRouter);
 
 
 
@@ -280,7 +284,15 @@ app.post('/api/auth/login-supplier', async (req, res) => {
     if (!supplier || supplier.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    res.json({ message: 'Login successful', user: supplier });
+    const token = jwt.sign(
+      { id: supplier._id, email: supplier.email, role: 'supplier' },
+      process.env.JWT_SECRET || 'your-secret-key'
+    );
+    res.json({ 
+      message: 'Login successful', 
+      user: supplier,
+      token 
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -297,7 +309,15 @@ app.post('/api/auth/login-customer', async (req, res) => {
     if (!customer || customer.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    res.json({ message: 'Login successful', user: customer });
+    const token = jwt.sign(
+      { id: customer._id, email: customer.email, role: 'customer' },
+      process.env.JWT_SECRET || 'your-secret-key'
+    );
+    res.json({ 
+      message: 'Login successful', 
+      user: customer,
+      token 
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

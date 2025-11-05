@@ -43,9 +43,12 @@
   padding: 32px 24px;
   width: 260px;
   height: 100vh;
-  position: relative;
+  position: fixed;
+  left: 0;
+  top: 0;
   display: flex;
   flex-direction: column;
+  z-index: 1000;
 }
 
 

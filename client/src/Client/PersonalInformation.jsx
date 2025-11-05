@@ -1,6 +1,8 @@
 import React from 'react';
 import ClientSidebar from './ClientSidebar';
 import { TextField, Button } from '@mui/material';
+import { users } from '../services/api';
+import { toast } from 'react-toastify';
 
 import './personal-information.css';
 
@@ -21,21 +23,97 @@ const PersonalInformation = () => {
     setUser((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
-  React.useEffect(() => {
+  const fetchUserProfile = async () => {
     try {
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (storedUser) {
-        setUser({
-          firstName: storedUser.firstName || '',
-          middleName: storedUser.middleName || '',
-          lastName: storedUser.lastName || '',
-          email: storedUser.email || '',
-          phone: storedUser.phone || '',
-          contact: storedUser.contact || '',
-          password: storedUser.password || ''
-        });
+      // Get current user from localStorage
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (!currentUser) {
+        console.error('No user found in localStorage');
+        toast.error('Please log in again');
+        return;
       }
-    } catch {}
+
+      // If we have a user in localStorage, use that data initially
+      setUser({
+        firstName: currentUser.firstName || '',
+        middleName: currentUser.middleName || '',
+        lastName: currentUser.lastName || '',
+        email: currentUser.email || '',
+        phone: currentUser.phone || '',
+        contact: currentUser.contact || '',
+        password: '********' // We don't show the actual password
+      });
+
+      // Then try to fetch from API
+      const response = await users.getProfile();
+      if (response && response.data) {
+        const userData = response.data;
+        setUser(prev => ({
+          ...prev,
+          firstName: userData.firstName || prev.firstName,
+          middleName: userData.middleName || prev.middleName,
+          lastName: userData.lastName || prev.lastName,
+          email: userData.email || prev.email,
+          phone: userData.phone || prev.phone,
+          contact: userData.contact || prev.contact
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      toast.error('Failed to update profile from server');
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Basic validation
+    if (!user.firstName || !user.lastName || !user.email || !user.phone) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(user.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      const response = await users.updateProfile({
+        firstName: user.firstName,
+        middleName: user.middleName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        contact: user.contact
+      });
+      
+      if (response && response.data) {
+        setUser(prev => ({
+          ...prev,
+          ...response.data,
+          password: '********' // Keep password hidden
+        }));
+        
+        // Update localStorage with new data
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        localStorage.setItem('user', JSON.stringify({
+          ...storedUser,
+          ...response.data,
+          password: storedUser.password // Keep original password in localStorage
+        }));
+
+        setEditMode(false);
+        toast.success('Profile updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    }
+  };
+
+  React.useEffect(() => {
+    fetchUserProfile();
   }, []);
 
   return (
@@ -44,12 +122,68 @@ const PersonalInformation = () => {
   <div className="client-main-content client-personal-info" style={{ background: '#fff', border: 'none', boxShadow: 'none', borderRadius: 0 }}>
         <div className="personal-info-header">
           <span className="personal-info-title" style={{ fontSize: '1.7rem', fontWeight: 800, marginBottom: 18, color: '#333', display: 'block', marginLeft: -25, marginTop: -20 }}>Profile</span>
-          <div className="personal-info-buttons">
-            {!editMode && (
-              <Button className="personal-info-btn" variant="contained" style={{ background: '#F3C13A', color: '#222', width: 90, fontWeight: 'bold', fontSize: 16, height: 28, minHeight: 28, padding: '8px 0', borderRadius: 8, transition: 'width 0.2s' }} onClick={() => setEditMode(true)}>Edit</Button>
-            )}
-            {editMode && (
-              <Button className="personal-info-btn" variant="contained" style={{ background: '#F3C13A', color: '#222', width: 90, fontWeight: 'bold', fontSize: 16, height: 28, minHeight: 28, padding: '8px 0', borderRadius: 8, transition: 'width 0.2s' }} type="submit">Save</Button>
+          <div className="personal-info-buttons" style={{ display: 'flex', gap: '10px' }}>
+            {!editMode ? (
+              <Button 
+                className="personal-info-btn" 
+                variant="contained" 
+                style={{ 
+                  background: '#F3C13A', 
+                  color: '#222', 
+                  width: 90, 
+                  fontWeight: 'bold', 
+                  fontSize: 16, 
+                  height: 28, 
+                  minHeight: 28, 
+                  padding: '8px 0', 
+                  borderRadius: 8 
+                }} 
+                onClick={() => setEditMode(true)}
+              >
+                Edit
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  className="personal-info-btn" 
+                  variant="contained" 
+                  style={{ 
+                    background: '#F3C13A', 
+                    color: '#222', 
+                    width: 90, 
+                    fontWeight: 'bold', 
+                    fontSize: 16, 
+                    height: 28, 
+                    minHeight: 28, 
+                    padding: '8px 0', 
+                    borderRadius: 8 
+                  }} 
+                  onClick={handleSubmit}
+                >
+                  Save
+                </Button>
+                <Button 
+                  className="personal-info-btn" 
+                  variant="outlined" 
+                  style={{ 
+                    borderColor: '#F3C13A', 
+                    color: '#222', 
+                    width: 90, 
+                    fontWeight: 'bold', 
+                    fontSize: 16, 
+                    height: 28, 
+                    minHeight: 28, 
+                    padding: '8px 0', 
+                    borderRadius: 8 
+                  }} 
+                  onClick={() => {
+                    setEditMode(false);
+                    fetchUserProfile(); // Reset to original data
+                  }}
+                >
+                  Cancel
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -114,7 +248,7 @@ const PersonalInformation = () => {
                     <TextField 
                       id="firstName"
                       className="personal-info-field"
-                      value={user.firstName}
+                      value={user.firstName || ''}
                       placeholder="Enter your first name"
                       margin="normal"
                       variant="outlined"

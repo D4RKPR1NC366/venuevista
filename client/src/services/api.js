@@ -23,4 +23,9 @@ export const auth = {
     resendOTP: (email) => api.post('/auth/resend-otp', { email })
 };
 
+export const users = {
+    getProfile: () => api.get('/users/profile'),
+    updateProfile: (userData) => api.put('/users/profile', userData)
+};
+
 export default api;
