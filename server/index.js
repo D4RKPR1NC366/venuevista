@@ -11,9 +11,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Reviews route
 const reviewsRouter = require('./routes/reviews');
-// Register reviews API
 app.use('/api/reviews', reviewsRouter);
 
 
@@ -158,7 +156,7 @@ const supplierSchema = new mongoose.Schema({
   lastName: String,
   middleName: String,
   phone: String,
-  contact: String, // keep for backward compatibility
+  contact: String,
   createdAt: { type: Date, default: Date.now }
 });
 const Supplier = authConnection.model('Supplier', supplierSchema);
@@ -244,7 +242,7 @@ app.get('/api/background-images', async (req, res) => {
 
 app.post('/api/background-images', async (req, res) => {
   try {
-    const { images } = req.body; // [{ url, name }]
+    const { images } = req.body;
     if (!Array.isArray(images) || images.length === 0) {
       return res.status(400).json({ error: 'No images provided' });
     }
@@ -387,7 +385,7 @@ const bookingBaseSchema = new mongoose.Schema({
   specialRequest: String,
   service: String,
   details: Object,
-  outsidePH: String, // Face to Face or Virtual/Online
+  outsidePH: String,
   createdAt: { type: Date, default: Date.now }
 });
 const PendingBooking = bookingConnection.model('PendingBooking', bookingBaseSchema);
@@ -586,6 +584,84 @@ app.get('/api/customers', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// Revenue endpoint
+app.get('/api/revenue', async (req, res) => {
+  try {
+    const filter = req.query.filter || 'thisMonth';
+    const now = new Date();
+    let startDate;
+
+    // Determine start date based on filter
+    switch (filter) {
+      case 'thisWeek':
+        const day = now.getDay();
+        const diff = now.getDate() - day;
+        startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+        break;
+      case 'thisMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'this6Months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+        break;
+      case 'thisYear':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    // Get all relevant bookings
+    const [finishedBookings, approvedBookings] = await Promise.all([
+      FinishedBooking.find({
+        createdAt: { $gte: startDate }
+      }),
+      ApprovedBooking.find({
+        createdAt: { $gte: startDate }
+      })
+    ]);
+
+    // Combine and process bookings
+    const allBookings = [...finishedBookings, ...approvedBookings];
+    
+    // Initialize array for all months
+    const revenueData = Array(12).fill(0).map((_, i) => ({
+      month: i,
+      value: 0
+    }));
+
+    // Calculate revenue for each month
+    allBookings.forEach(booking => {
+      if (booking.totalPrice && booking.createdAt) {
+        const month = booking.createdAt.getMonth();
+        revenueData[month].value += booking.totalPrice;
+      }
+    });
+
+    res.json(revenueData);
+  } catch (err) {
+    console.error('Revenue calculation error:', err);
+    // Return empty data instead of error
+    const emptyData = Array(12).fill(0).map((_, i) => ({
+      month: i,
+      value: 0
+    }));
+    res.json(emptyData);
+  }
+});
+
+// Centralize MongoDB connections
+Promise.all([
+  mongoose.connect('mongodb://127.0.0.1:27017/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
+  authConnection.asPromise(),
+  scheduleConnection.asPromise(),
+  bgImageConnection.asPromise(),
+  bookingConnection.asPromise()
+]).then(() => {
+  console.log('All MongoDB connections established');
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
 });

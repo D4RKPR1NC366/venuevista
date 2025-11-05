@@ -1,4 +1,3 @@
-/* Center icons horizontally when sidebar is shrunk */
 .client-sidebar.shrunk ul {
   display: flex;
   flex-direction: column;
@@ -11,7 +10,6 @@
   justify-content: center;
   width: 100%;
 }
-/* Highlight active link when sidebar is shrunk */
 .client-sidebar.shrunk li.active {
   background: #fff3cd;
   border-radius: 10%;
@@ -44,11 +42,10 @@
   border-radius: 5px;
   padding: 32px 24px;
   width: 260px;
-  height: calc(95vh - 32px * 2);
-  position: fixed;
-  left: 20px;
-  top: 20px;
-  bottom: 20px;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 
@@ -92,13 +89,13 @@
   color: #ffffff;
   font-size: 1.2rem;
   border-radius: 10%;
-  width: 10px !important; /* Make width change obvious */
+  width: 10px !important;
   min-width: 10px !important;
   height: 24px;
   cursor: pointer;
   position: absolute;
-  top: 50px; /* adjust vertical position */
-  right: -10px; /* adjust horizontal position */
+  top: 50px;
+  right: -10px;
   transition: background 0.2s;
   display: flex;
   align-items: center;
@@ -112,7 +109,6 @@
   font-weight: 800;
   color: #000000;
   margin-bottom: 18px;
-  /* border-bottom removed */
   padding-bottom: 8px;
 }
 
@@ -123,6 +119,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  height: 100%;
+  position: relative;
 }
 
 
@@ -180,8 +178,6 @@
 }
 
   
-/* Remove previous hover color overrides to allow background highlight to show */
-
 .client-sidebar .icon {
   width: 22px;
   height: 22px;

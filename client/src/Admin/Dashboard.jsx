@@ -79,10 +79,18 @@ export default function Dashboard() {
     fetch(`http://localhost:5051/api/revenue?filter=${filter}`)
       .then(res => res.json())
       .then(data => {
-        // data should be an array of { month: 0-11, value: number }
-        setRevenueData(data);
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setRevenueData(data);
+        } else {
+          console.error('Revenue data is not an array:', data);
+          setRevenueData([]);
+        }
       })
-      .catch(() => setRevenueData([]));
+      .catch((error) => {
+        console.error('Error fetching revenue data:', error);
+        setRevenueData([]);
+      });
     // Fetch pending events
     fetch('http://localhost:5051/api/bookings/pending')
       .then(res => res.json())
@@ -212,15 +220,20 @@ export default function Dashboard() {
             <svg width="100%" height="140" viewBox="0 0 400 140">
               {/* Calculate points for polyline */}
               {(() => {
-                if (!revenueData || revenueData.length === 0) return null;
-                // Normalize values for chart height
-                const maxValue = Math.max(...revenueData.map(d => d.value), 1);
-                const points = revenueData.map((d, i) => {
-                  const x = i * (400 / (months.length - 1));
-                  const y = 120 - (d.value / maxValue) * 100;
-                  return `${x},${y}`;
-                }).join(' ');
-                return <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={points} />;
+                if (!Array.isArray(revenueData) || revenueData.length === 0) return null;
+                try {
+                  // Normalize values for chart height
+                  const maxValue = Math.max(...revenueData.map(d => d.value || 0), 1);
+                  const points = revenueData.map((d, i) => {
+                    const x = i * (400 / (months.length - 1));
+                    const y = 120 - ((d.value || 0) / maxValue) * 100;
+                    return `${x},${y}`;
+                  }).join(' ');
+                  return <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={points} />;
+                } catch (error) {
+                  console.error('Error rendering revenue chart:', error);
+                  return null;
+                }
               })()}
               {/* Month labels */}
               <g fontSize="10" fill="#888">

@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Review = require('../models/Review');
 
-// Get all reviews
 router.get('/', async (req, res) => {
   try {
     const reviews = await Review.find().sort({ date: -1 });
@@ -12,7 +11,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Add a new review
 router.post('/', async (req, res) => {
   try {
     const { name, rating, comment, date, source, logo, bookingId, userId } = req.body;

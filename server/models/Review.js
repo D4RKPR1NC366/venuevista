@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// Create a separate connection for the reviews database
 const reviewsConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/reviews', {
   useNewUrlParser: true,
   useUnifiedTopology: true
