@@ -1,6 +1,9 @@
 
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, IconButton, Paper, Typography } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import CloseIcon from '@mui/icons-material/Close';
 import './booking-description.css';
 
@@ -43,7 +46,9 @@ export default function BookingDescription({ open, onClose, booking }) {
   // Effect to log state changes (for debugging)
   React.useEffect(() => {
     console.log('Current editData:', editData);
-  }, [editData]);
+    console.log('Is editing:', isEditing);
+    console.log('Formatted date for input:', formatDateForInput(editData.date));
+  }, [editData, isEditing]);
 
   // Load cities when province changes
   React.useEffect(() => {
@@ -307,18 +312,42 @@ export default function BookingDescription({ open, onClose, booking }) {
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Event Date:</span>
-                    <input 
-                      type="date" 
-                      style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} 
-                      value={formatDateForInput(editData.date)} 
-                      onChange={(e) => {
-                        const inputDate = e.target.value; // YYYY-MM-DD format
-                        const [year, month, day] = inputDate.split('-').map(Number);
-                        // Create the date string in DD/MM/YYYY format
-                        const formattedDate = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
-                        setEditData(prev => ({ ...prev, date: formattedDate }));
-                      }} 
-                    />
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                      <DatePicker
+                        value={parseDateString(editData.date)}
+                        format="dd/MM/yyyy"
+                        onChange={(newDate) => {
+                          if (newDate) {
+                            const day = newDate.getDate().toString().padStart(2, '0');
+                            const month = (newDate.getMonth() + 1).toString().padStart(2, '0');
+                            const year = newDate.getFullYear();
+                            const formattedDate = `${day}/${month}/${year}`;
+                            setEditData(prev => ({ ...prev, date: formattedDate }));
+                          }
+                        }}
+                        sx={{
+                          marginLeft: 1,
+                          '& .MuiInputBase-root': {
+                            height: '32px',
+                            fontSize: '15px',
+                            backgroundColor: 'transparent',
+                            '& fieldset': {
+                              borderColor: '#ccc',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: '#fedb71',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: '#fedb71',
+                            }
+                          },
+                          '& .MuiInputBase-input': {
+                            padding: '4px 8px',
+                            color: '#222',
+                          }
+                        }}
+                      />
+                    </LocalizationProvider>
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Appointment Method:</span>
