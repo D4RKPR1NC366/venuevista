@@ -56,32 +56,67 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Reset error state
+    setError("");
+
+    // Validate passwords
     if (form.password !== form.confirmPassword) {
       setError("Passwords don't match!");
       return;
     }
+
+    // Validate terms agreement
     if (!form.agree) {
       setError("Please agree to the terms and policy");
       return;
     }
-    setError("");
+
+    // Validate required fields
+    const requiredFields = {
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      phone: "Phone Number",
+      password: "Password"
+    };
+
+    if (type === "supplier") {
+      requiredFields.companyName = "Company Name";
+    }
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!form[field]?.trim()) {
+        setError(`${label} is required`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      // Clean and prepare payload
       const payload = {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        middleName: form.middleName,
-        email: form.email,
-        phone: form.phone,
-        password: form.password,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        middleName: form.middleName.trim(),
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(),
+        password: form.password
       };
+
       let endpoint = '';
       if (type === "supplier") {
-        payload.companyName = form.companyName;
+        payload.companyName = form.companyName.trim();
         endpoint = 'http://localhost:5051/api/auth/register-supplier';
       } else {
         endpoint = 'http://localhost:5051/api/auth/register-customer';
       }
+
+      console.log('Attempting registration with:', {
+        ...payload,
+        password: '[HIDDEN]'
+      });
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -89,15 +124,20 @@ const SignUp = () => {
         },
         body: JSON.stringify(payload),
       });
+
       const data = await response.json();
+
       if (response.ok) {
-        // Show popup notification
+        // Show success message
         window.alert('Sign up successful! Please log in.');
-        navigate('/login'); // Redirect to login page after signup
+        navigate('/login');
       } else {
-        setError(data.message || 'Registration failed');
+        // Show specific error from server
+        setError(data.error || data.message || 'Registration failed');
+        console.error('Registration failed:', data);
       }
     } catch (error) {
+      console.error('Registration error:', error);
       setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -112,6 +152,11 @@ const SignUp = () => {
             <Typography variant="h5" align="left" gutterBottom className="auth-title">
               {type === 'supplier' ? 'Supplier Sign Up' : 'Customer Sign Up'}
             </Typography>
+            {error && (
+              <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+                {error}
+              </Typography>
+            )}
             <form onSubmit={handleSubmit}>
               <Box className="auth-signup-grid">
                 <TextField

@@ -13,10 +13,19 @@ import { Link, useNavigate } from "react-router-dom";
 import "./auth.css";
 import SignUpModal from "./SignUpModal";
 import ForgotPasswordFlow from "./ForgotPasswordFlow";
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Alert from '@mui/material/Alert';
 
 const Login = () => {
   const [form, setForm] = useState({ emailOrPhone: "", password: "" });
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [showMFADialog, setShowMFADialog] = useState(false);
+  const [mfaCode, setMFACode] = useState("");
+  const [tempUserData, setTempUserData] = useState(null);
+  const [loginType, setLoginType] = useState(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -25,6 +34,76 @@ const Login = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const loginAttempt = async (endpoint, credentials) => {
+    const response = await fetch(`/api/auth/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Login failed');
+    }
+    return data;
+  };
+
+  const tryLogin = async (type) => {
+    try {
+      // If we have tempUserData and mfaCode, use those for MFA verification
+      if (tempUserData && mfaCode) {
+        const credentials = {
+          email: tempUserData.email,
+          password: tempUserData.password,
+          mfaCode
+        };
+
+        console.log('Verifying MFA for:', tempUserData.type);
+        const data = await loginAttempt(`login-${tempUserData.type}`, credentials);
+
+        if (data.requireMFA) {
+          return { success: false, requireMFA: true };
+        }
+
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userEmail', data.user.email);
+        return { success: true };
+      }
+
+      // For initial login, determine type based on email
+      const email = form.emailOrPhone.toLowerCase();
+      const actualType = email.includes('yahoo.com') ? 'supplier' : 'customer';
+      
+      if (actualType !== type) {
+        // Skip if trying wrong type
+        return { success: false, error: new Error('Invalid credentials') };
+      }
+
+      const credentials = {
+        email: form.emailOrPhone,
+        password: form.password
+      };
+
+      console.log('Attempting login as:', type);
+      const data = await loginAttempt(`login-${type}`, credentials);
+
+      if (data.requireMFA) {
+        setTempUserData({ type, email: form.emailOrPhone, password: form.password });
+        setLoginType(type);
+        setShowMFADialog(true);
+        return { success: false, requireMFA: true };
+      }
+
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userEmail', data.user.email);
+      return { success: true };
+    } catch (error) {
+      console.log('Login failed:', error);
+      return { success: false, error };
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,28 +126,32 @@ const Login = () => {
         navigate('/admin/dashboard');
         return;
       }
-      // ...existing supplier/customer login logic...
-      let response = await fetch('http://localhost:5051/api/auth/login-supplier', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.emailOrPhone, password: form.password })
-      });
-      let data = await response.json();
-      if (!response.ok) {
-        // If not supplier, try customer
-        response = await fetch('http://localhost:5051/api/auth/login-customer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.emailOrPhone, password: form.password })
-        });
-        data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Login failed. Please try again.');
-        }
+
+      // Get the login type from localStorage or default to customer
+      const savedLoginType = localStorage.getItem('lastLoginType') || 'customer';
+      console.log('Attempting login as:', savedLoginType);
+      
+      // Try the saved type first
+      const loginResult = await tryLogin(savedLoginType);
+      if (loginResult.success) {
+        localStorage.setItem('lastLoginType', savedLoginType);
+        navigate('/');
+        return;
       }
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      navigate('/');
+      if (loginResult.requireMFA) return;
+      
+      // If that fails, try the other type
+      const otherType = savedLoginType === 'customer' ? 'supplier' : 'customer';
+      const otherResult = await tryLogin(otherType);
+      if (otherResult.success) {
+        localStorage.setItem('lastLoginType', otherType);
+        navigate('/');
+        return;
+      }
+      if (otherResult.requireMFA) return;
+
+      // If both failed and no MFA required, show error
+      throw new Error('Invalid credentials');
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
@@ -152,6 +235,64 @@ const Login = () => {
           
         </Box>
       </Box>
+
+      {/* MFA Dialog */}
+      <Dialog open={showMFADialog} onClose={() => setShowMFADialog(false)}>
+        <DialogTitle>Two-Factor Authentication Required</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Please enter the verification code sent to your email.
+          </Typography>
+          <TextField
+            autoFocus
+            label="Verification Code"
+            fullWidth
+            value={mfaCode}
+            onChange={(e) => setMFACode(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowMFADialog(false);
+            setMFACode('');
+            setTempUserData(null);
+          }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              // Only try the login type that triggered MFA
+              if (loginType) {
+                const result = await tryLogin(loginType);
+                if (result.success) {
+                  setShowMFADialog(false);
+                  setMFACode('');
+                  setTempUserData(null);
+                  setLoginType(null);
+                  navigate('/');
+                } else {
+                  setError('Invalid verification code');
+                }
+              }
+            }}
+            sx={{ 
+              backgroundColor: '#F7C04A',
+              color: '#111',
+              '&:hover': {
+                backgroundColor: '#e6b13d'
+              }
+            }}
+          >
+            Verify
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

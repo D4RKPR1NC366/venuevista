@@ -8,7 +8,9 @@ const customerSchema = new mongoose.Schema({
     phoneNumber: { type: String, required: true },
     contact: { type: String },
     password: { type: String, required: true },
-    role: { type: String, default: 'customer' }
+    role: { type: String, default: 'customer' },
+    mfaEnabled: { type: Boolean, default: false },
+    mfaSecret: { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Customer', customerSchema);

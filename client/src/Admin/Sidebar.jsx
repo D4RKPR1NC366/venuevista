@@ -31,7 +31,10 @@ const navItems = [
 export default function Sidebar() {
   const location = useLocation();
   const handleLogout = () => {
-    // Clear any authentication tokens here if needed
+    // Clear all auth data
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
     window.location.href = '/login';
   };
   return (

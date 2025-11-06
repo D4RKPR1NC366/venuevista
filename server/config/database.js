@@ -15,6 +15,7 @@ const customerSchema = new mongoose.Schema({
     middleName: String,
     phone: String,
     contact: String,
+    mfaEnabled: { type: Boolean, required: true, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -27,6 +28,7 @@ const supplierSchema = new mongoose.Schema({
     middleName: String,
     phone: String,
     contact: String,
+    mfaEnabled: { type: Boolean, required: true, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 

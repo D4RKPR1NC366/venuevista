@@ -6,21 +6,39 @@ import api from '../services/api';
 
 export default function UserClients() {
   const [customers, setCustomers] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
+  
   useEffect(() => {
-    api.get('/customers')
-      .then(res => setCustomers(res.data))
-      .catch(() => setCustomers([]));
+    // Fetch both customers and suppliers
+    Promise.all([
+      api.get('/customers'),
+      api.get('/suppliers')
+    ])
+      .then(([customerRes, supplierRes]) => {
+        setCustomers(customerRes.data);
+        setSuppliers(supplierRes.data);
+        console.log('Loaded data:', {
+          customers: customerRes.data,
+          suppliers: supplierRes.data
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching data:', error);
+        setCustomers([]);
+        setSuppliers([]);
+      });
   }, []);
 
-  // Filter customers by search
-  const filteredCustomers = customers.filter(customer => {
+  // Filter both customers and suppliers by search
+  const filteredUsers = [...customers, ...suppliers].filter(user => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (
-      (customer.firstName || '').toLowerCase().includes(q) ||
-      (customer.lastName || '').toLowerCase().includes(q) ||
-      (customer.middleName || '').toLowerCase().includes(q)
+      (user.firstName || '').toLowerCase().includes(q) ||
+      (user.lastName || '').toLowerCase().includes(q) ||
+      (user.middleName || '').toLowerCase().includes(q) ||
+      (user.email || '').toLowerCase().includes(q)
     );
   });
 
@@ -62,20 +80,23 @@ export default function UserClients() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredCustomers.length > 0 ? (
-                  filteredCustomers.map((customer) => (
-                    <TableRow key={customer._id}>
-                      <TableCell>{customer.firstName}</TableCell>
-                      <TableCell>{customer.lastName}</TableCell>
-                      <TableCell>{customer.middleName || ''}</TableCell>
-                      <TableCell>{customer.contact || customer.phone || ''}</TableCell>
-                      <TableCell>{customer.email}</TableCell>
-                      <TableCell>{customer.password}</TableCell>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user._id}>
+                      <TableCell>{user.firstName}</TableCell>
+                      <TableCell>{user.lastName}</TableCell>
+                      <TableCell>{user.middleName || ''}</TableCell>
+                      <TableCell>{user.contact || user.phone || user.phoneNumber || ''}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        {user.password}
+                        {user.businessName && ` (Supplier - ${user.businessName})`}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">No customers found.</TableCell>
+                    <TableCell colSpan={6} align="center">No users found.</TableCell>
                   </TableRow>
                 )}
               </TableBody>

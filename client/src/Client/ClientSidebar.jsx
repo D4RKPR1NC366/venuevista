@@ -14,7 +14,13 @@ const navLinks = [
   { label: 'Calendar', icon: <InfoIcon />, to: '/client/calendar' }, // Calendar link for both users
   { label: 'Notification', icon: <NotificationsIcon />, to: '/client/notification' },
   { label: 'Home', icon: <HomeIcon />, to: '/client/home' },
-  { label: 'Log out', icon: <LogoutIcon />, to: '/logout' },
+  { label: 'Log out', icon: <LogoutIcon />, onClick: () => {
+    // Clear all auth data
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    window.location.href = '/login';
+  }},
 ];
 
 const ClientSidebar = () => {
@@ -51,11 +57,22 @@ const ClientSidebar = () => {
         {/* Log out link at the bottom */}
         {(() => {
           const logoutLink = navLinks.find(link => link.label === 'Log out');
-          const isActive = location.pathname === logoutLink.to;
           return (
-            <li key={logoutLink.label} className={isActive ? 'active' : ''}>
+            <li key={logoutLink.label}>
               <span className="icon">{logoutLink.icon}</span>
-              <Link to={logoutLink.to} style={{ textDecoration: 'none', color: 'inherit' }}>{logoutLink.label}</Link>
+              <button 
+                onClick={logoutLink.onClick}
+                style={{ 
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  font: 'inherit',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                {logoutLink.label}
+              </button>
             </li>
           );
         })()}

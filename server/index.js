@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const { sendMFACode, verifyMFACode } = require('./services/mfaService');
 
 const { sendOTP } = require('./services/emailService');
 const otpStore = {};
@@ -19,7 +20,9 @@ const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
 
 const passwordResetRouter = require('./routes/passwordReset');
+const mfaRouter = require('./routes/mfa');
 app.use('/api/auth', passwordResetRouter);
+app.use('/api/mfa', mfaRouter);
 
 
 
@@ -199,7 +202,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.post('/api/auth/login-supplier', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, mfaCode } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Missing email or password' });
     }
@@ -207,6 +210,26 @@ app.post('/api/auth/login-supplier', async (req, res) => {
     if (!supplier || supplier.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // If MFA is enabled, handle MFA verification
+    if (supplier.mfaEnabled) {
+      if (!mfaCode) {
+        // First login attempt without MFA code
+        await sendMFACode(email);
+        return res.json({
+          requireMFA: true,
+          message: 'MFA code sent to email'
+        });
+      } else {
+        // Verify MFA code
+        const isValid = verifyMFACode(email, mfaCode);
+        if (!isValid) {
+          return res.status(401).json({ error: 'Invalid MFA code' });
+        }
+      }
+    }
+
+    // If we get here, either MFA is not enabled or it was validated successfully
     const token = jwt.sign(
       { id: supplier._id, email: supplier.email, role: 'supplier' },
       process.env.JWT_SECRET || 'your-secret-key'
@@ -224,7 +247,7 @@ app.post('/api/auth/login-supplier', async (req, res) => {
 
 app.post('/api/auth/login-customer', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, mfaCode } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Missing email or password' });
     }
@@ -232,6 +255,26 @@ app.post('/api/auth/login-customer', async (req, res) => {
     if (!customer || customer.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // If MFA is enabled, handle MFA verification
+    if (customer.mfaEnabled) {
+      if (!mfaCode) {
+        // First login attempt without MFA code
+        await sendMFACode(email);
+        return res.json({
+          requireMFA: true,
+          message: 'MFA code sent to email'
+        });
+      } else {
+        // Verify MFA code
+        const isValid = verifyMFACode(email, mfaCode);
+        if (!isValid) {
+          return res.status(401).json({ error: 'Invalid MFA code' });
+        }
+      }
+    }
+
+    // If we get here, either MFA is not enabled or it was validated successfully
     const token = jwt.sign(
       { id: customer._id, email: customer.email, role: 'customer' },
       process.env.JWT_SECRET || 'your-secret-key'
@@ -469,29 +512,87 @@ app.delete('/api/products/:id', async (req, res) => {
 app.get('/api/suppliers', async (req, res) => {
   try {
     const suppliers = await Supplier.find();
+    console.log('Found suppliers:', suppliers);
     res.json(suppliers);
   } catch (err) {
+    console.error('Error fetching suppliers:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.post('/api/auth/register-supplier', async (req, res) => {
   try {
+    console.log('Supplier registration request:', req.body);
+    
     const { email, password, companyName, firstName, lastName, middleName, phone } = req.body;
-    if (!email || !password || !companyName || !firstName || !lastName) {
+    
+    // Validate required fields
+    if (!email || !password || !companyName || !firstName || !lastName || !phone) {
+      console.log('Missing fields:', { 
+        hasEmail: !!email, 
+        hasPassword: !!password, 
+        hasCompanyName: !!companyName,
+        hasFirstName: !!firstName,
+        hasLastName: !!lastName,
+        hasPhone: !!phone
+      });
       return res.status(400).json({ error: 'Missing required fields' });
     }
  
+    // Check for existing supplier
     const existing = await Supplier.findOne({ email });
     if (existing) {
-      return res.status(409).json({ error: 'Supplier already exists' });
+      console.log('Supplier already exists:', email);
+      return res.status(409).json({ error: 'Email address is already registered' });
     }
   
-    const supplier = new Supplier({ email, password, companyName, firstName, lastName, middleName, phone, contact: phone });
+    // Create new supplier with correct field mappings
+    const supplier = new Supplier({ 
+      email, 
+      password, 
+      businessName: companyName,  // Map companyName to businessName
+      firstName, 
+      lastName, 
+      middleName, 
+      phoneNumber: phone,  // Map phone to phoneNumber
+      contact: phone,
+      mfaEnabled: false,
+      role: 'supplier'
+    });
+    
+    console.log('Attempting to save supplier:', {
+      email: supplier.email,
+      businessName: supplier.businessName,
+      phoneNumber: supplier.phoneNumber
+    });
+
     await supplier.save();
-    res.status(201).json({ message: 'Supplier registered successfully', user: supplier });
+    
+    console.log('Supplier registered successfully:', {
+      id: supplier._id,
+      email: supplier.email
+    });
+    
+    res.status(201).json({ 
+      message: 'Supplier registered successfully', 
+      user: {
+        ...supplier.toObject(),
+        password: undefined // Don't send password back
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Supplier registration error:', err);
+    // Send more descriptive error message
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ 
+        error: 'Validation error',
+        details: Object.values(err.errors).map(e => e.message)
+      });
+    }
+    res.status(500).json({ 
+      error: 'Server error',
+      message: err.message 
+    });
   }
 });
 

@@ -1,8 +1,9 @@
 import React from 'react';
 import ClientSidebar from './ClientSidebar';
-import { TextField, Button } from '@mui/material';
+import { TextField, Button, Divider } from '@mui/material';
 import { users } from '../services/api';
 import { toast } from 'react-toastify';
+import MFASettings from '../Authentication/MFASettings';
 
 import './personal-information.css';
 
@@ -498,6 +499,13 @@ const PersonalInformation = () => {
             </div>
           )}
         </form>
+        
+        <Divider sx={{ my: 4 }} />
+        
+        {/* MFA Settings Section */}
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <MFASettings />
+        </div>
       </div>
     </div>
   );

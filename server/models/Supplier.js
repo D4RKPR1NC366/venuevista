@@ -9,6 +9,8 @@ const supplierSchema = new mongoose.Schema({
     contact: { type: String },
     password: { type: String, required: true },
     role: { type: String, default: 'supplier' },
+    mfaEnabled: { type: Boolean, default: false },
+    mfaSecret: { type: String, default: null },
     businessName: { type: String },
     businessAddress: { type: String }
 }, { timestamps: true });
