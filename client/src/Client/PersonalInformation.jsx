@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ClientSidebar from './ClientSidebar';
 import { TextField, Button, Divider } from '@mui/material';
 import { users } from '../services/api';
 import { toast } from 'react-toastify';
 import MFASettings from '../Authentication/MFASettings';
+import PasswordConfirmationModal from './PasswordConfirmationModal';
 
 import './personal-information.css';
 
 const PersonalInformation = () => {
+  const navigate = useNavigate();
   const [editMode, setEditMode] = React.useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [user, setUser] = React.useState({
     firstName: '',
     middleName: '',
@@ -354,39 +358,21 @@ const PersonalInformation = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
                     <label htmlFor="password" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Password:</label>
-                    <TextField 
-                      id="password"
-                      className="personal-info-field"
-                      value={user.password}
-                      placeholder="Enter your password"
-                      margin="normal"
-                      variant="outlined"
-                      type="password"
-                      size="small"
-                      fullWidth
-                      onChange={handleChange('password')}
+                    <Button
+                      variant="contained"
+                      onClick={() => setShowConfirmationModal(true)}
                       sx={{
                         marginLeft: 1.5,
-                        background: '#fff',
-                        borderRadius: 2,
-                        fontSize: '1.1rem',
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          fontSize: '1.1rem',
-                          height: 40,
-                          '& fieldset': {
-                            borderColor: '#ccc',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#F3C13A',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#F3C13A',
-                            borderWidth: 2,
-                          },
+                        backgroundColor: '#F3C13A',
+                        color: '#222',
+                        '&:hover': {
+                          backgroundColor: '#daa520',
                         },
+                        width: '200px'
                       }}
-                    />
+                    >
+                      Change Password
+                    </Button>
                   </div>
                 </div>
                 {/* Column 2 */}
@@ -509,6 +495,17 @@ const PersonalInformation = () => {
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <MFASettings />
         </div>
+
+        {/* Password Confirmation Modal */}
+        <PasswordConfirmationModal
+          open={showConfirmationModal}
+          onClose={() => setShowConfirmationModal(false)}
+          onSuccess={() => {
+            setShowConfirmationModal(false);
+            navigate('/forgot-password');
+          }}
+          email={user.email}
+        />
       </div>
     </div>
   );
