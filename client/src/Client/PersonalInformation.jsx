@@ -258,24 +258,27 @@ const PersonalInformation = () => {
                       onChange={handleChange('firstName')}
                       sx={{
                         marginLeft: 1.5,
-                        background: '#fff',
-                        borderRadius: 2,
-                        fontSize: '1.1rem',
+                        width: '100%',
                         '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          fontSize: '1.1rem',
-                          height: 40,
+                          backgroundColor: '#ffffff',
+                          height: '40px',
+                          '& input': {
+                            padding: '8px 12px',
+                            fontSize: '1rem',
+                            backgroundColor: '#ffffff',
+                          },
                           '& fieldset': {
                             borderColor: '#ccc',
+                            borderWidth: '1px',
                           },
                           '&:hover fieldset': {
                             borderColor: '#F3C13A',
                           },
                           '&.Mui-focused fieldset': {
                             borderColor: '#F3C13A',
-                            borderWidth: 2,
-                          },
-                        },
+                            borderWidth: '2px',
+                          }
+                        }
                       }}
                     />
                   </div>

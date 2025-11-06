@@ -52,4 +52,40 @@
   gap: 16px;
 }
 
+.personal-info-field {
+  background-color: #ffffff !important;
+  width: 100% !important;
+  min-width: 200px !important;
+}
 
+.personal-info-field input {
+  background-color: #ffffff !important;
+  padding: 8px 12px !important;
+}
+
+/* Style for the text fields */
+.MuiTextField-root {
+  background-color: #ffffff !important;
+}
+
+/* Style for the text field container */
+.MuiOutlinedInput-root {
+  background-color: #ffffff !important;
+}
+
+/* Style for the actual input element */
+.MuiOutlinedInput-input {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Hover state for the text fields */
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #F3C13A !important;
+}
+
+/* Focused state for the text fields */
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #F3C13A !important;
+  border-width: 2px !important;
+}
