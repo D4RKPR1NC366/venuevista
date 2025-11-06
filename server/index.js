@@ -21,8 +21,10 @@ app.use('/api/users', usersRouter);
 
 const passwordResetRouter = require('./routes/passwordReset');
 const mfaRouter = require('./routes/mfa');
+const bookingsRouter = require('./routes/bookings');
 app.use('/api/auth', passwordResetRouter);
 app.use('/api/mfa', mfaRouter);
+app.use('/api/bookings', bookingsRouter);
 
 
 

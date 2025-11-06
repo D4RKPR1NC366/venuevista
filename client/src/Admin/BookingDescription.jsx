@@ -7,46 +7,133 @@ import './booking-description.css';
 export default function BookingDescription({ open, onClose, booking }) {
   const [editData, setEditData] = React.useState(booking || {});
   const [isEditing, setIsEditing] = React.useState(false);
-  const [locations, setLocations] = React.useState([]);
+  const [provinces, setProvinces] = React.useState([]);
+  const [cities, setCities] = React.useState([]);
+  const [barangays, setBarangays] = React.useState([]);
   const [venueDropdown, setVenueDropdown] = React.useState({ province: '', city: '', barangay: '' });
+  const [loading, setLoading] = React.useState({ provinces: false, cities: false, barangays: false });
   const eventTypes = ['Birthday', 'Wedding', 'Corporate', 'Anniversary', 'Other'];
 
+  // PSGC API endpoints
+  const PSGC_API = 'https://psgc.gitlab.io/api';
+
+  // Load provinces on mount
   React.useEffect(() => {
-    // Load locations from local JSON
-    import('../data/ph_locations.json').then(mod => setLocations(mod.default || mod));
+    setLoading(l => ({ ...l, provinces: true }));
+    fetch(`${PSGC_API}/provinces/`)
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .finally(() => setLoading(l => ({ ...l, provinces: false })))
+      .catch(console.error);
   }, []);
 
+  // Handle booking data updates
   React.useEffect(() => {
-    setEditData(booking || {});
-    setIsEditing(false);
+    if (booking) {
+      setEditData(prev => ({
+        ...prev,
+        ...booking,
+        date: formatDate(booking.date),
+        eventVenue: booking.eventVenue || prev.eventVenue,
+        products: booking.products || prev.products
+      }));
+    }
   }, [booking]);
 
-  // Update venueDropdown when editData changes (for edit mode)
+  // Effect to log state changes (for debugging)
+  React.useEffect(() => {
+    console.log('Current editData:', editData);
+  }, [editData]);
+
+  // Load cities when province changes
+  React.useEffect(() => {
+    if (venueDropdown.province) {
+      setLoading(l => ({ ...l, cities: true }));
+      setCities([]);
+      setBarangays([]);
+      setVenueDropdown(prev => ({ ...prev, city: '', barangay: '' }));
+      fetch(`${PSGC_API}/provinces/${venueDropdown.province}/cities-municipalities/`)
+        .then(res => res.json())
+        .then(data => setCities(data))
+        .finally(() => setLoading(l => ({ ...l, cities: false })));
+    }
+  }, [venueDropdown.province]);
+
+  // Load barangays when city changes
+  React.useEffect(() => {
+    if (venueDropdown.city) {
+      setLoading(l => ({ ...l, barangays: true }));
+      setBarangays([]);
+      setVenueDropdown(prev => ({ ...prev, barangay: '' }));
+      fetch(`${PSGC_API}/cities-municipalities/${venueDropdown.city}/barangays/`)
+        .then(res => res.json())
+        .then(data => setBarangays(data))
+        .finally(() => setLoading(l => ({ ...l, barangays: false })));
+    }
+  }, [venueDropdown.city]);
+
+  // Parse and set initial venue data when editing starts
   React.useEffect(() => {
     if (isEditing && editData.eventVenue) {
-      // Try to parse venue string: "General Prim East, Bangar, La Union"
+      // Try to parse venue string: "Barangay, City/Municipality, Province"
       const parts = editData.eventVenue.split(',').map(s => s.trim());
-      setVenueDropdown({
-        barangay: parts[0] || '',
-        city: parts[1] || '',
-        province: parts[2] || '',
-      });
+      
+      if (parts.length >= 3) {
+        // First, find the province
+        const province = provinces.find(p => p.name === parts[2]);
+        if (province) {
+          setVenueDropdown(prev => ({ ...prev, province: province.code }));
+          
+          // Load cities for this province
+          fetch(`${PSGC_API}/provinces/${province.code}/cities-municipalities/`)
+            .then(res => res.json())
+            .then(cityData => {
+              setCities(cityData);
+              const city = cityData.find(c => c.name === parts[1]);
+              if (city) {
+                setVenueDropdown(prev => ({ ...prev, city: city.code }));
+                
+                // Load barangays for this city
+                fetch(`${PSGC_API}/cities-municipalities/${city.code}/barangays/`)
+                  .then(res => res.json())
+                  .then(barangayData => {
+                    setBarangays(barangayData);
+                    const barangay = barangayData.find(b => b.name === parts[0]);
+                    if (barangay) {
+                      setVenueDropdown(prev => ({ ...prev, barangay: barangay.code }));
+                    }
+                  });
+              }
+            });
+        }
+      }
     }
-  }, [isEditing, editData.eventVenue]);
+  }, [isEditing, editData.eventVenue, provinces]);
 
   // Handle dropdown changes
   const handleVenueChange = (field) => (e) => {
     const value = e.target.value;
     setVenueDropdown(prev => ({ ...prev, [field]: value }));
-    // Update eventVenue string in editData
-    let newVenue = '';
+    
+    // Get the display names for the selected values
+    const province = provinces.find(p => p.code === venueDropdown.province)?.name || venueDropdown.province;
+    const city = cities.find(c => c.code === venueDropdown.city)?.name || venueDropdown.city;
+    const barangay = barangays.find(b => b.code === value)?.name || value;
+
+    // Update eventVenue string in editData based on what's selected
+    let parts = [];
     if (field === 'province') {
-      newVenue = `${venueDropdown.barangay}, ${venueDropdown.city}, ${value}`;
+      const provinceName = provinces.find(p => p.code === value)?.name || value;
+      parts = [venueDropdown.barangay, venueDropdown.city, provinceName].filter(Boolean);
     } else if (field === 'city') {
-      newVenue = `${venueDropdown.barangay}, ${value}, ${venueDropdown.province}`;
+      const cityName = cities.find(c => c.code === value)?.name || value;
+      parts = [venueDropdown.barangay, cityName, province].filter(Boolean);
     } else {
-      newVenue = `${value}, ${venueDropdown.city}, ${venueDropdown.province}`;
+      const barangayName = barangays.find(b => b.code === value)?.name || value;
+      parts = [barangayName, city, province].filter(Boolean);
     }
+
+    const newVenue = parts.join(', ');
     setEditData({ ...editData, eventVenue: newVenue });
   };
 
@@ -54,16 +141,43 @@ export default function BookingDescription({ open, onClose, booking }) {
     setEditData({ ...editData, eventType: e.target.value });
   };
 
-  // Helper for date formatting
+  // Helper to parse date considering different formats
+  const parseDateString = (dateStr) => {
+    if (!dateStr) return null;
+    
+    // If the date is already in DD/MM/YYYY format
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      // Note: month - 1 because JavaScript months are 0-based
+      return new Date(year, month - 1, day, 12, 0, 0);
+    }
+    
+    // For ISO format or other formats, use standard parsing
+    return new Date(dateStr);
+  };
+
+  // Helper for date formatting to ensure consistent DD/MM/YYYY format
   const formatDate = (date) => {
     if (!date) return '';
-    if (typeof date === 'string') {
-      // Try to format ISO string
-      const d = new Date(date);
-      return isNaN(d) ? date : d.toLocaleDateString();
-    }
-    if (date.$d) return new Date(date.$d).toLocaleDateString();
-    return new Date(date).toLocaleDateString();
+    const d = parseDateString(date);
+    if (!d || isNaN(d)) return '';
+    
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Helper to format date for input type="date" (YYYY-MM-DD)
+  const formatDateForInput = (date) => {
+    if (!date) return '';
+    const d = parseDateString(date);
+    if (!d || isNaN(d)) return '';
+    
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const handleChange = (field) => (e) => {
@@ -72,20 +186,59 @@ export default function BookingDescription({ open, onClose, booking }) {
 
   const handleSave = async () => {
     try {
-      // Replace URL with your actual backend endpoint
-      const response = await fetch(`/api/bookings/${editData._id || editData.id}`, {
+      // Ensure we have an ID to work with
+      const bookingId = editData._id || editData.id;
+      if (!bookingId) {
+        throw new Error('No booking ID found');
+      }
+
+      // Prepare the data for saving
+      const dataToSave = {
+        ...editData,
+        eventVenue: editData.eventVenue || `${editData.barangayValue || ''}, ${editData.cityValue || ''}, ${editData.provinceValue || ''}`.trim(),
+        date: editData.date ? new Date(editData.date).toISOString() : editData.date,
+      };
+
+      console.log('Saving booking:', dataToSave);
+
+      const response = await fetch(`http://localhost:5051/api/bookings/${bookingId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editData),
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSave),
       });
+
       if (response.ok) {
+        const updatedBooking = await response.json();
+        
+        // Deep merge the updated data with current state
+        const mergedData = {
+          ...editData,
+          ...updatedBooking,
+          eventVenue: updatedBooking.eventVenue || editData.eventVenue,
+          // Preserve any products and additionals data structure
+          products: updatedBooking.products || editData.products,
+        };
+
+        // Update our local state
+        setEditData(mergedData);
+        
+        // Exit edit mode
         setIsEditing(false);
-        onClose();
+
+        // Force the parent to update with the latest data
+        if (onClose) {
+          // Pass the updated data back
+          onClose(mergedData);
+        }
       } else {
-        alert('Failed to save changes');
+        const errorData = await response.json().catch(() => null);
+        alert(errorData?.message || 'Failed to save changes');
       }
     } catch (err) {
-      alert('Error saving changes');
+      console.error('Save error:', err);
+      alert('Error saving changes. Please try again.');
     }
   };
   return (
@@ -97,7 +250,7 @@ export default function BookingDescription({ open, onClose, booking }) {
       fullWidth={false}
       className="booking-description-modal"
     >
-  <DialogTitle sx={{ m: 0, pt: 2, pb: 2, pl: 4, pr: 2, fontWeight: 800, fontSize: 26, letterSpacing: 1, color: '#222', textAlign: 'left', position: 'relative' }}>
+      <DialogTitle sx={{ m: 0, pt: 2, pb: 2, pl: 4, pr: 2, fontWeight: 800, fontSize: 26, letterSpacing: 1, color: '#222', textAlign: 'left', position: 'relative' }}>
         Booking Details
         <IconButton
           aria-label="close"
@@ -154,38 +307,66 @@ export default function BookingDescription({ open, onClose, booking }) {
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Event Date:</span>
-                    <input type="date" style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.date ? (editData.date.length === 10 ? editData.date : new Date(editData.date).toISOString().slice(0,10)) : ''} onChange={handleChange('date')} />
+                    <input 
+                      type="date" 
+                      style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} 
+                      value={formatDateForInput(editData.date)} 
+                      onChange={(e) => {
+                        const inputDate = e.target.value; // YYYY-MM-DD format
+                        const [year, month, day] = inputDate.split('-').map(Number);
+                        // Create the date string in DD/MM/YYYY format
+                        const formattedDate = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
+                        setEditData(prev => ({ ...prev, date: formattedDate }));
+                      }} 
+                    />
+                  </div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Appointment Method:</span>
+                    <select 
+                      style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }}
+                      value={editData.outsidePH || ''}
+                      onChange={(e) => setEditData(prev => ({ ...prev, outsidePH: e.target.value }))}
+                    >
+                      <option value="">Select Method</option>
+                      <option value="yes">Face to Face</option>
+                      <option value="no">Virtual/Online</option>
+                    </select>
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Event Venue:</span>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                      <select style={{ color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={venueDropdown.province} onChange={handleVenueChange('province')}>
+                      <select 
+                        style={{ color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} 
+                        value={venueDropdown.province} 
+                        onChange={handleVenueChange('province')}
+                        disabled={loading.provinces}
+                      >
                         <option value="">Province</option>
-                        {locations.map(loc => (
-                          <option key={loc.province_name} value={loc.province_name}>{loc.province_name}</option>
+                        {provinces.map(p => (
+                          <option key={p.code} value={p.code}>{p.name}</option>
                         ))}
                       </select>
-                      <select style={{ color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={venueDropdown.city} onChange={handleVenueChange('city')}>
+                      <select 
+                        style={{ color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} 
+                        value={venueDropdown.city} 
+                        onChange={handleVenueChange('city')}
+                        disabled={!venueDropdown.province || loading.cities}
+                      >
                         <option value="">City/Municipality</option>
-                        {locations
-                          .filter(l => Array.isArray(l.municipalities))
-                          .flatMap(l => l.municipalities)
-                          .filter(m => m && m.municipality_name)
-                          .map(m => (
-                            <option key={m.municipality_name} value={m.municipality_name}>{m.municipality_name}</option>
-                          ))}
+                        {cities.map(c => (
+                          <option key={c.code} value={c.code}>{c.name}</option>
+                        ))}
                       </select>
-                      <select style={{ color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={venueDropdown.barangay} onChange={handleVenueChange('barangay')}>
+                      <select 
+                        style={{ color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} 
+                        value={venueDropdown.barangay} 
+                        onChange={handleVenueChange('barangay')}
+                        disabled={!venueDropdown.city || loading.barangays}
+                      >
                         <option value="">Barangay</option>
-                        {locations
-                          .filter(l => Array.isArray(l.municipalities))
-                          .flatMap(l => l.municipalities)
-                          .filter(m => Array.isArray(m.barangays))
-                          .flatMap(m => m.barangays)
-                          .filter(b => b)
-                          .map(b => (
-                            <option key={b} value={b}>{b}</option>
-                          ))}
+                        {barangays.map(b => (
+                          <option key={b.code} value={b.code}>{b.name}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -287,14 +468,80 @@ export default function BookingDescription({ open, onClose, booking }) {
               <div style={{ color: '#222', background: '#fff', borderRadius: 10, padding: 12, minHeight: 100, border: '1px solid #fedb71' }}>{editData.specialRequest || ''}</div>
             )}
           </div>
-          {/* Edit/Save Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, gap: 12 }}>
+          {/* Edit/Save/Cancel/Payment Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, gap: 12, alignItems: 'center' }}>
             {isEditing ? (
-              <button onClick={handleSave} style={{ background: '#fedb71', color: '#222', fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, padding: '10px 32px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                Save
-              </button>
+              <>
+                <button 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditData(booking || {}); // Reset changes
+                  }} 
+                  style={{ 
+                    background: '#fff', 
+                    color: '#222', 
+                    fontWeight: 700, 
+                    fontSize: 16, 
+                    border: '2px solid #fedb71', 
+                    borderRadius: 8, 
+                    padding: '8px 32px', 
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    // Add your payment details logic here
+                    console.log('Add payment details clicked');
+                  }}
+                  style={{ 
+                    background: '#fff', 
+                    color: '#222', 
+                    fontWeight: 700, 
+                    fontSize: 16, 
+                    border: '2px solid #4CAF50', 
+                    borderRadius: 8, 
+                    padding: '8px 32px', 
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  Add Payment Details
+                </button>
+                <button 
+                  onClick={handleSave} 
+                  style={{ 
+                    background: '#fedb71', 
+                    color: '#222', 
+                    fontWeight: 700, 
+                    fontSize: 16, 
+                    border: 'none', 
+                    borderRadius: 8, 
+                    padding: '10px 32px', 
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)' 
+                  }}
+                >
+                  Save
+                </button>
+              </>
             ) : (
-              <button onClick={() => setIsEditing(true)} style={{ background: '#fedb71', color: '#222', fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, padding: '10px 32px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <button 
+                onClick={() => setIsEditing(true)} 
+                style={{ 
+                  background: '#fedb71', 
+                  color: '#222', 
+                  fontWeight: 700, 
+                  fontSize: 16, 
+                  border: 'none', 
+                  borderRadius: 8, 
+                  padding: '10px 32px', 
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)' 
+                }}
+              >
                 Edit
               </button>
             )}
