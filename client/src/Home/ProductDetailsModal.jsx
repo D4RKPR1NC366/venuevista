@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -6,6 +6,7 @@ import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 
 export default function ProductDetailsModal({ open, onClose, product, onEdit }) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   if (!product) return null;
 
   // Extract fields
@@ -14,12 +15,145 @@ export default function ProductDetailsModal({ open, onClose, product, onEdit }) 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogContent style={{ background: '#f3f3f1', padding: 0 }}>
-        {/* Image */}
-        {image && (
-          <div style={{ width: '100%', height: 400, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <img src={image} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
-        )}
+        {/* Images Carousel */}
+        <div style={{ width: '100%', height: 400, background: '#fff', position: 'relative' }}>
+          {((product.images && product.images.length > 0) || image) ? (
+            <>
+              <div style={{ 
+                width: '100%', 
+                height: '100%', 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                padding: '20px'
+              }}>
+                <img 
+                  src={product.images ? product.images[currentImageIndex || 0] : image} 
+                  alt={title} 
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '100%', 
+                    objectFit: 'contain',
+                    width: 'auto',
+                    height: 'auto'
+                  }} 
+                />
+                
+                {/* Navigation arrows if multiple images */}
+                {product.images && product.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentImageIndex(prev => prev === 0 ? product.images.length - 1 : prev - 1);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: 16,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255,255,255,0.9)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 40,
+                        height: 40,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        zIndex: 2
+                      }}
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentImageIndex(prev => prev === product.images.length - 1 ? 0 : prev + 1);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 16,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255,255,255,0.9)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 40,
+                        height: 40,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        zIndex: 2
+                      }}
+                    >
+                      →
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              {/* Thumbnails */}
+              {product.images && product.images.length > 1 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 16,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  gap: 8,
+                  background: 'rgba(255,255,255,0.9)',
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  zIndex: 2
+                }}>
+                  {product.images.map((img, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: currentImageIndex === idx ? '2px solid #e6b800' : '2px solid transparent',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <img
+                        src={img}
+                        alt={`${title} ${idx + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ 
+              width: '100%', 
+              height: '100%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              color: '#888'
+            }}>
+              No Images Available
+            </div>
+          )}
+        </div>
         {/* Title, Price, Description Row */}
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ width: '100%', maxWidth: 1100, padding: '32px 32px 0 32px', boxSizing: 'border-box' }}>

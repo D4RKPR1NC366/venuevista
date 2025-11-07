@@ -30,12 +30,13 @@ export default function ProductsAndServices() {
   const navigate = useNavigate();
   // State for Add Product/Service modal
   const [showProductModal, setShowProductModal] = useState(false);
-  const [productImage, setProductImage] = useState("");
+  const [productImages, setProductImages] = useState([]);
   const [productTitle, setProductTitle] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [showAdditionals, setShowAdditionals] = useState(false);
   const [additionals, setAdditionals] = useState([{ title: '', price: '', description: '' }]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   // State for products/services added in the selected category
   const PRODUCTS_LOCAL_KEY = 'gd_products_by_category';
   const [products, setProducts] = useState([]);
@@ -44,7 +45,13 @@ export default function ProductsAndServices() {
   // Edit modal state
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [editProductIdx, setEditProductIdx] = useState(null);
-  const [editProductData, setEditProductData] = useState({ image: '', title: '', price: '', description: '', additionals: [] });
+  const [editProductData, setEditProductData] = useState({ 
+    images: [], 
+    title: '', 
+    price: '', 
+    description: '', 
+    additionals: [] 
+  });
 
 
   // Fetch categories from API
@@ -456,13 +463,25 @@ export default function ProductsAndServices() {
                 </div>
               </div>
               {/* Product/Service Modal */}
-              <Dialog open={showProductModal} onClose={() => setShowProductModal(false)} maxWidth="sm" fullWidth>
+              <Dialog 
+                open={showProductModal} 
+                onClose={() => setShowProductModal(false)} 
+                maxWidth="md" 
+                fullWidth
+                PaperProps={{
+                  sx: {
+                    minWidth: '600px',
+                    maxWidth: '900px',
+                    margin: '16px'
+                  }
+                }}
+              >
                 <DialogTitle>Add Product/Service</DialogTitle>
                 <form onSubmit={async e => {
                   e.preventDefault();
                   if (!productTitle.trim() || !productDescription.trim() || !productPrice.trim()) return;
                   const newProduct = {
-                    image: productImage,
+                    images: productImages,
                     title: productTitle,
                     description: productDescription,
                     price: productPrice,
@@ -488,15 +507,147 @@ export default function ProductsAndServices() {
                 }}>
                   <DialogContent>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
-                      {productImage ? (
-                        <img
-                          src={productImage}
-                          alt="Preview"
-                          style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8, border: '1px solid #ccc' }}
-                        />
+                      {productImages.length > 0 ? (
+                        <div style={{ position: 'relative', width: '100%', marginBottom: 16 }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            position: 'relative'
+                          }}>
+                            <img
+                              src={productImages[currentImageIndex]}
+                              alt={`Preview ${currentImageIndex + 1}`}
+                              style={{ 
+                                width: 200, 
+                                height: 200, 
+                                objectFit: 'cover', 
+                                borderRadius: 8, 
+                                border: '1px solid #ccc' 
+                              }}
+                            />
+                            {productImages.length > 1 && (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentImageIndex((prev) => 
+                                      prev === 0 ? productImages.length - 1 : prev - 1
+                                    );
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'rgba(255,255,255,0.8)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: 36,
+                                    height: 36,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: -18
+                                  }}
+                                >
+                                  ←
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentImageIndex((prev) => 
+                                      prev === productImages.length - 1 ? 0 : prev + 1
+                                    );
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'rgba(255,255,255,0.8)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: 36,
+                                    height: 36,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginRight: -18
+                                  }}
+                                >
+                                  →
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: 8, 
+                            marginTop: 8, 
+                            justifyContent: 'center',
+                            flexWrap: 'wrap'
+                          }}>
+                            {productImages.map((img, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => setCurrentImageIndex(idx)}
+                                style={{
+                                  width: 50,
+                                  height: 50,
+                                  border: currentImageIndex === idx ? '2px solid #e6b800' : '1px solid #ccc',
+                                  borderRadius: 4,
+                                  overflow: 'hidden',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <img
+                                  src={img}
+                                  alt={`Thumbnail ${idx + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            gap: 8, 
+                            marginTop: 8 
+                          }}>
+                            {productImages.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setProductImages(prev => prev.filter((_, i) => i !== idx));
+                                  if (currentImageIndex >= idx) {
+                                    setCurrentImageIndex(prev => Math.max(0, prev - 1));
+                                  }
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  background: '#e53935',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: 4,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Remove {idx + 1}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       ) : (
-                        <div style={{ width: 120, height: 120, background: '#eee', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', border: '1px solid #ccc' }}>
-                          No Image
+                        <div style={{ width: 200, height: 200, background: '#eee', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', border: '1px solid #ccc' }}>
+                          No Images
                         </div>
                       )}
                       <Button
@@ -504,7 +655,7 @@ export default function ProductsAndServices() {
                         component="label"
                         sx={{ mb: 1 }}
                       >
-                        Upload Picture
+                        Add Picture
                         <input
                           type="file"
                           accept="image/*"
@@ -513,7 +664,9 @@ export default function ProductsAndServices() {
                             const file = e.target.files[0];
                             if (!file) return;
                             const reader = new FileReader();
-                            reader.onloadend = () => setProductImage(reader.result);
+                            reader.onloadend = () => {
+                              setProductImages(prev => [...prev, reader.result]);
+                            };
                             reader.readAsDataURL(file);
                           }}
                         />
@@ -639,28 +792,50 @@ export default function ProductsAndServices() {
                           >
                             <DeleteIcon style={{ color: '#e53935' }} fontSize="small" />
                           </IconButton>
-                          {prod.image ? (
-                            <img src={prod.image} alt={prod.title} style={{
-                              display: 'block',
-                              width: '100%',
-                              height: 220,
-                              objectFit: 'cover',
-                              borderRadius: 0,
-                              margin: 0,
-                            }} />
-                          ) : (
-                            <div style={{
-                              width: '100%',
-                              height: 220,
-                              background: '#eee',
-                              borderRadius: 0,
-                              margin: 0,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#888'
-                            }}>No Image</div>
-                          )}
+                          <div style={{ position: 'relative' }}>
+                            {prod.images && prod.images.length > 0 ? (
+                              <>
+                                <img 
+                                  src={prod.images[0]} 
+                                  alt={prod.title} 
+                                  style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    height: 220,
+                                    objectFit: 'cover',
+                                    borderRadius: 0,
+                                    margin: 0,
+                                  }} 
+                                />
+                                {prod.images.length > 1 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: 8,
+                                    right: 8,
+                                    background: 'rgba(0,0,0,0.6)',
+                                    color: '#fff',
+                                    padding: '4px 8px',
+                                    borderRadius: 4,
+                                    fontSize: 12
+                                  }}>
+                                    +{prod.images.length - 1} more
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div style={{
+                                width: '100%',
+                                height: 220,
+                                background: '#eee',
+                                borderRadius: 0,
+                                margin: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#888'
+                              }}>No Image</div>
+                            )}
+                          </div>
                           <div style={{ padding: 24, paddingTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                             <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 6, textAlign: 'left', width: '100%' }}>{prod.title}</div>
                             {prod.price && (
@@ -685,33 +860,147 @@ export default function ProductsAndServices() {
                       onEdit={handleEditProduct}
                     />
                     {/* Edit Product Modal */}
-                    <Dialog open={showEditProductModal} onClose={() => setShowEditProductModal(false)} maxWidth="sm" fullWidth>
+                    <Dialog 
+                        open={showEditProductModal} 
+                        onClose={() => setShowEditProductModal(false)} 
+                        maxWidth={false}
+                        PaperProps={{
+                          sx: {
+                            width: '90vw',
+                            maxWidth: '800px',
+                            margin: '16px',
+                            '& .MuiDialogContent-root': {
+                              overflow: 'hidden'
+                            }
+                          }
+                        }}
+                      >
                       <DialogTitle>Edit Product/Service</DialogTitle>
                       <form onSubmit={async e => {
                         e.preventDefault();
                         if (!editProductData.title.trim() || !editProductData.description.trim() || !editProductData.price.trim()) return;
+                        
+                        // Ensure we have the images array
+                        const dataToSave = {
+                          ...editProductData,
+                          images: editProductData.images || [],
+                        };
+                        // If there's a legacy image field, convert it to images array
+                        if (editProductData.image && !editProductData.images) {
+                          dataToSave.images = [editProductData.image];
+                          delete dataToSave.image;
+                        }
+
                         try {
                           const res = await fetch(`${API_BASE}/products/${editProductData._id}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(editProductData),
+                            body: JSON.stringify(dataToSave),
                           });
                           const updated = await res.json();
                           setProducts(products.map((p, i) => i === editProductIdx ? updated : p));
-                        } catch {}
+                        } catch (error) {
+                          console.error('Error updating product:', error);
+                        }
                         setShowEditProductModal(false);
                       }}>
-                        <DialogContent>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
-                            {editProductData.image ? (
-                              <img
-                                src={editProductData.image}
-                                alt="Preview"
-                                style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8, border: '1px solid #ccc' }}
-                              />
+                        <DialogContent 
+                          sx={{ 
+                            padding: '24px !important',
+                            overflowX: 'hidden',
+                            overflowY: 'auto',
+                            '&::-webkit-scrollbar': {
+                              width: '8px'
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                              backgroundColor: '#888',
+                              borderRadius: '4px'
+                            }
+                          }}
+                        >
+                          <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            marginBottom: 24,
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            {editProductData.images?.length > 0 ? (
+                              <div style={{ width: '100%', marginBottom: 16, padding: '0 16px' }}>
+                                <div style={{ 
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: 12,
+                                  justifyContent: 'flex-start',
+                                  alignItems: 'center',
+                                  width: '100%',
+                                  maxWidth: '100%',
+                                  boxSizing: 'border-box'
+                                }}>
+                                  {editProductData.images.map((img, idx) => (
+                                    <div 
+                                      key={idx}
+                                      style={{
+                                        position: 'relative',
+                                        width: 120,
+                                        height: 120,
+                                        overflow: 'hidden',
+                                        backgroundColor: '#f5f5f5'
+                                      }}
+                                    >
+                                      <img
+                                        src={img}
+                                        alt={`Preview ${idx + 1}`}
+                                        style={{ 
+                                          width: 'auto', 
+                                          height: 'auto', 
+                                          maxWidth: '100%',
+                                          maxHeight: '100%',
+                                          objectFit: 'contain', 
+                                          borderRadius: 8,
+                                          border: '1px solid #ccc',
+                                          position: 'absolute',
+                                          top: '50%',
+                                          left: '50%',
+                                          transform: 'translate(-50%, -50%)'
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          setEditProductData({
+                                            ...editProductData,
+                                            images: editProductData.images.filter((_, i) => i !== idx)
+                                          });
+                                        }}
+                                        style={{
+                                          position: 'absolute',
+                                          top: -8,
+                                          right: -8,
+                                          width: 24,
+                                          height: 24,
+                                          borderRadius: '50%',
+                                          background: '#e53935',
+                                          color: 'white',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: '18px',
+                                          lineHeight: 1
+                                        }}
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             ) : (
                               <div style={{ width: 120, height: 120, background: '#eee', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', border: '1px solid #ccc' }}>
-                                No Image
+                                No Images
                               </div>
                             )}
                             <Button
@@ -719,7 +1008,7 @@ export default function ProductsAndServices() {
                               component="label"
                               sx={{ mb: 1 }}
                             >
-                              Upload Picture
+                              Add Picture
                               <input
                                 type="file"
                                 accept="image/*"
@@ -729,7 +1018,10 @@ export default function ProductsAndServices() {
                                   if (!file) return;
                                   const reader = new FileReader();
                                   reader.onloadend = () => {
-                                    setEditProductData({ ...editProductData, image: reader.result });
+                                    setEditProductData({ 
+                                      ...editProductData, 
+                                      images: [...(editProductData.images || []), reader.result]
+                                    });
                                   };
                                   reader.readAsDataURL(file);
                                 }}

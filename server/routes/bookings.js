@@ -18,6 +18,11 @@ const bookingBaseSchema = new mongoose.Schema({
     date: Date,
     eventVenue: String,
     guestCount: Number,
+    // Payment related fields
+    paymentMode: String,
+    discountType: String,
+    discount: { type: Number, default: 0 },
+    subTotal: { type: Number, default: 0 },
     totalPrice: Number,
     products: [
         {
@@ -45,11 +50,28 @@ router.put('/:id', async (req, res) => {
         const bookingId = req.params.id;
         const updateData = req.body;
 
+        // Ensure payment fields are properly formatted
+        if (updateData.paymentMode !== undefined) {
+            updateData.paymentMode = String(updateData.paymentMode);
+        }
+        if (updateData.discountType !== undefined) {
+            updateData.discountType = String(updateData.discountType);
+        }
+        if (updateData.discount !== undefined) {
+            updateData.discount = Number(updateData.discount) || 0;
+        }
+        if (updateData.subTotal !== undefined) {
+            updateData.subTotal = Number(updateData.subTotal) || 0;
+        }
+        if (updateData.totalPrice !== undefined) {
+            updateData.totalPrice = Number(updateData.totalPrice) || 0;
+        }
+
         // Try to find and update the booking in all collections
         let updatedBooking = await PendingBooking.findByIdAndUpdate(
             bookingId,
             updateData,
-            { new: true }
+            { new: true, runValidators: true }
         );
 
         if (!updatedBooking) {

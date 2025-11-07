@@ -15,7 +15,16 @@ export default function BookingDescription({ open, onClose, booking }) {
   const [barangays, setBarangays] = React.useState([]);
   const [venueDropdown, setVenueDropdown] = React.useState({ province: '', city: '', barangay: '' });
   const [loading, setLoading] = React.useState({ provinces: false, cities: false, barangays: false });
+  const [paymentDetails, setPaymentDetails] = React.useState({
+    modeOfPayment: '',
+    discountType: '',
+    subTotal: 0,
+    discount: 0,
+    finalTotal: 0
+  });
+  const [showPaymentModal, setShowPaymentModal] = React.useState(false);
   const eventTypes = ['Birthday', 'Wedding', 'Corporate', 'Anniversary', 'Other'];
+  const paymentModes = ['Cash', 'Bank Transfer', 'GCash'];
 
   // PSGC API endpoints
   const PSGC_API = 'https://psgc.gitlab.io/api';
@@ -33,12 +42,26 @@ export default function BookingDescription({ open, onClose, booking }) {
   // Handle booking data updates
   React.useEffect(() => {
     if (booking) {
+      // Initialize payment details from booking data
+      setPaymentDetails(prev => ({
+        ...prev,
+        modeOfPayment: booking.paymentMode || '',
+        discountType: booking.discountType || '',
+        subTotal: booking.subTotal || 0,
+        discount: booking.discount || 0,
+        finalTotal: booking.totalPrice || 0
+      }));
+
       setEditData(prev => ({
         ...prev,
         ...booking,
         date: formatDate(booking.date),
         eventVenue: booking.eventVenue || prev.eventVenue,
-        products: booking.products || prev.products
+        products: booking.products || prev.products,
+        paymentMode: booking.paymentMode || prev.paymentMode,
+        discountType: booking.discountType || prev.discountType,
+        discount: booking.discount || prev.discount,
+        totalPrice: booking.totalPrice || prev.totalPrice
       }));
     }
   }, [booking]);
@@ -146,6 +169,44 @@ export default function BookingDescription({ open, onClose, booking }) {
     setEditData({ ...editData, eventType: e.target.value });
   };
 
+  const calculateTotal = (products, additionals, discountType) => {
+    // Calculate products total
+    const productsTotal = products?.reduce((sum, item) => sum + (Number(item.price) || 0), 0) || 0;
+    
+    // Calculate additionals total
+    const additionalsTotal = products?.reduce((sum, product) => {
+      const productAdditionals = product.__cart_additionals || product.additionals || [];
+      return sum + productAdditionals.reduce((addSum, add) => addSum + (Number(add.price) || 0), 0);
+    }, 0) || 0;
+
+    const subTotal = productsTotal + additionalsTotal;
+    const discountPercentage = discountType === '10' ? 0.10 : discountType === '20' ? 0.20 : 0;
+    const discountAmount = subTotal * discountPercentage;
+    const finalTotal = subTotal - discountAmount;
+
+    return {
+      subTotal,
+      discount: discountAmount,
+      finalTotal
+    };
+  };
+
+  const handlePaymentDetailsSubmit = () => {
+    const totals = calculateTotal(editData.products, null, paymentDetails.discountType);
+    setPaymentDetails(prev => ({
+      ...prev,
+      ...totals
+    }));
+    setEditData(prev => ({
+      ...prev,
+      totalPrice: totals.finalTotal,
+      paymentMode: paymentDetails.modeOfPayment,
+      discount: totals.discount,
+      discountType: paymentDetails.discountType
+    }));
+    setShowPaymentModal(false);
+  };
+
   // Helper to parse date considering different formats
   const parseDateString = (dateStr) => {
     if (!dateStr) return null;
@@ -197,11 +258,46 @@ export default function BookingDescription({ open, onClose, booking }) {
         throw new Error('No booking ID found');
       }
 
+      // Parse and format the date properly
+      let formattedDate;
+      if (editData.date) {
+        // If date is in DD/MM/YYYY format, parse it correctly
+        if (editData.date.includes('/')) {
+          const [day, month, year] = editData.date.split('/').map(Number);
+          const dateObj = new Date(year, month - 1, day, 12, 0, 0); // Set to noon to avoid timezone issues
+          formattedDate = dateObj.toISOString();
+        } else {
+          // Try to parse as is if it's in a different format
+          const dateObj = new Date(editData.date);
+          if (!isNaN(dateObj)) {
+            formattedDate = dateObj.toISOString();
+          }
+        }
+      }
+
+      // Recalculate totals based on current products and discount
+      const totals = calculateTotal(editData.products, null, editData.discountType || '');
+
       // Prepare the data for saving
       const dataToSave = {
         ...editData,
         eventVenue: editData.eventVenue || `${editData.barangayValue || ''}, ${editData.cityValue || ''}, ${editData.provinceValue || ''}`.trim(),
-        date: editData.date ? new Date(editData.date).toISOString() : editData.date,
+        date: formattedDate || editData.date,
+        // Payment related fields
+        paymentMode: editData.paymentMode || '',
+        discountType: editData.discountType || '',
+        discount: totals.discount || 0,
+        subTotal: totals.subTotal || 0,
+        totalPrice: totals.finalTotal || 0,
+        // Ensure other fields have fallback values
+        name: editData.name || '',
+        contact: editData.contact || '',
+        email: editData.email || '',
+        eventType: editData.eventType || '',
+        guestCount: editData.guestCount || 0,
+        products: editData.products || [],
+        specialRequest: editData.specialRequest || '',
+        outsidePH: editData.outsidePH || ''
       };
 
       console.log('Saving booking:', dataToSave);
@@ -221,10 +317,26 @@ export default function BookingDescription({ open, onClose, booking }) {
         const mergedData = {
           ...editData,
           ...updatedBooking,
+          // Preserve payment-related data
+          paymentMode: dataToSave.paymentMode,
+          discountType: dataToSave.discountType,
+          discount: dataToSave.discount,
+          subTotal: dataToSave.subTotal,
+          totalPrice: dataToSave.totalPrice,
+          // Preserve other important data
           eventVenue: updatedBooking.eventVenue || editData.eventVenue,
-          // Preserve any products and additionals data structure
           products: updatedBooking.products || editData.products,
         };
+
+        // Update payment details state
+        setPaymentDetails(prev => ({
+          ...prev,
+          modeOfPayment: mergedData.paymentMode,
+          discountType: mergedData.discountType,
+          discount: mergedData.discount,
+          subTotal: mergedData.subTotal,
+          finalTotal: mergedData.totalPrice
+        }));
 
         // Update our local state
         setEditData(mergedData);
@@ -237,8 +349,12 @@ export default function BookingDescription({ open, onClose, booking }) {
           // Pass the updated data back
           onClose(mergedData);
         }
+
+        // Show success message
+        alert('Changes saved successfully!');
       } else {
         const errorData = await response.json().catch(() => null);
+        console.error('Save error response:', errorData);
         alert(errorData?.message || 'Failed to save changes');
       }
     } catch (err) {
@@ -285,16 +401,93 @@ export default function BookingDescription({ open, onClose, booking }) {
                     <input style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.email || ''} onChange={handleChange('email')} />
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
-                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Total Price:</span>
-                    <input style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.totalPrice || ''} onChange={handleChange('totalPrice')} />
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Payment Mode:</span>
+                    <select
+                      style={{ 
+                        marginLeft: 8, 
+                        color: '#222', 
+                        fontSize: 15, 
+                        borderRadius: 4, 
+                        border: '1px solid #ccc', 
+                        padding: '2px 8px', 
+                        background: '#fff'
+                      }}
+                      value={editData.paymentMode || ''}
+                      onChange={(e) => {
+                        setEditData(prev => ({ ...prev, paymentMode: e.target.value }));
+                      }}
+                    >
+                      <option value="">Select Payment Mode</option>
+                      {paymentModes.map(mode => (
+                        <option key={mode} value={mode}>{mode}</option>
+                      ))}
+                    </select>
                   </div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Discount:</span>
+                    <select
+                      style={{ 
+                        marginLeft: 8, 
+                        color: '#222', 
+                        fontSize: 15, 
+                        borderRadius: 4, 
+                        border: '1px solid #ccc', 
+                        padding: '2px 8px', 
+                        background: '#fff'
+                      }}
+                      value={editData.discountType || ''}
+                      onChange={(e) => {
+                        const discountType = e.target.value;
+                        const totals = calculateTotal(editData.products, null, discountType);
+                        setEditData(prev => ({
+                          ...prev,
+                          discountType,
+                          discount: totals.discount,
+                          totalPrice: totals.finalTotal
+                        }));
+                      }}
+                    >
+                      <option value="">No Discount</option>
+                      <option value="10">10% Discount</option>
+                      <option value="20">20% Discount</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Total Price:</span>
+                    <input 
+                      style={{ 
+                        marginLeft: 8, 
+                        color: '#222', 
+                        fontSize: 15, 
+                        borderRadius: 4, 
+                        border: '1px solid #ccc', 
+                        padding: '2px 8px', 
+                        background: '#f5f5f5', 
+                        cursor: 'not-allowed' 
+                      }} 
+                      value={`PHP ${editData.totalPrice || ''}`} 
+                      readOnly 
+                    />
+                  </div>
+                  {editData.discount > 0 && (
+                    <div style={{ marginBottom: 10, fontSize: 15 }}>
+                      <span style={{ fontWeight: 700, color: '#000000ff' }}>Discount Amount:</span>
+                      <span style={{ marginLeft: 8, color: '#e53935' }}>- PHP {editData.discount}</span>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Name:</span> <span style={{ color: '#222' }}>{editData.name || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Contact Number:</span> <span style={{ color: '#222' }}>{editData.contact || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Email Address:</span> <span style={{ color: '#222' }}>{editData.email || ''}</span></div>
-                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Total Price:</span> <span style={{ color: '#222' }}>PHP {editData.totalPrice || ''}</span></div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Payment Mode:</span> <span style={{ color: '#222' }}>{editData.paymentMode || 'Not set'}</span></div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Sub Total:</span> <span style={{ color: '#222' }}>PHP {editData.subTotal || editData.totalPrice || ''}</span></div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Discount Applied:</span> <span style={{ color: '#222' }}>{editData.discountType ? `${editData.discountType}%` : 'None'}</span></div>
+                  {editData.discount > 0 && (
+                    <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Discount Amount:</span> <span style={{ color: '#e53935' }}>- PHP {editData.discount}</span></div>
+                  )}
+                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Total Price:</span> <span style={{ color: '#222', fontWeight: 'bold' }}>PHP {editData.totalPrice || ''}</span></div>
                 </>
               )}
             </div>
@@ -520,25 +713,145 @@ export default function BookingDescription({ open, onClose, booking }) {
                 >
                   Cancel
                 </button>
-                <button 
-                  onClick={() => {
-                    // Add your payment details logic here
-                    console.log('Add payment details clicked');
-                  }}
-                  style={{ 
-                    background: '#fff', 
-                    color: '#222', 
-                    fontWeight: 700, 
-                    fontSize: 16, 
-                    border: '2px solid #4CAF50', 
-                    borderRadius: 8, 
-                    padding: '8px 32px', 
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                  }}
-                >
-                  Add Payment Details
-                </button>
+                {/* Removed Add Payment Details button since it's integrated in edit mode */}
+                {false && (
+                  <Dialog
+                    open={showPaymentModal}
+                    onClose={() => setShowPaymentModal(false)}
+                    PaperProps={{
+                      style: {
+                        borderRadius: 16,
+                        padding: 24,
+                        minWidth: 400
+                      }
+                    }}
+                  >
+                    <DialogTitle sx={{ pb: 2, fontWeight: 800, fontSize: 24, color: '#222' }}>
+                      Payment Details
+                    </DialogTitle>
+                    <DialogContent>
+                      <div style={{ marginBottom: 24 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 8 }}>Mode of Payment</div>
+                        <select
+                          value={paymentDetails.modeOfPayment}
+                          onChange={(e) => setPaymentDetails(prev => ({ ...prev, modeOfPayment: e.target.value }))}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #fedb71',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <option value="">Select Payment Mode</option>
+                          {paymentModes.map(mode => (
+                            <option key={mode} value={mode}>{mode}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ marginBottom: 24 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 8 }}>Discount</div>
+                        <select
+                          value={paymentDetails.discountType}
+                          onChange={(e) => setPaymentDetails(prev => ({ ...prev, discountType: e.target.value }))}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #fedb71',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <option value="">No Discount</option>
+                          <option value="10">10% Discount</option>
+                          <option value="20">20% Discount</option>
+                        </select>
+                      </div>
+
+                      <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8, marginBottom: 24 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 18 }}>Order Summary</div>
+                        
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 8 }}>Products/Services:</div>
+                          {editData.products?.map((item, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <span>{item.title}</span>
+                              <span>PHP {item.price || 0}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 8 }}>Additionals:</div>
+                          {editData.products?.map(product => (
+                            (product.__cart_additionals || product.additionals || []).map((add, idx) => (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span>{add.title}</span>
+                                <span>PHP {add.price || 0}</span>
+                              </div>
+                            ))
+                          ))}
+                        </div>
+
+                        {(() => {
+                          const totals = calculateTotal(editData.products, null, paymentDetails.discountType);
+                          return (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontWeight: 600 }}>
+                                <span>Subtotal:</span>
+                                <span>PHP {totals.subTotal}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: '#e53935', fontWeight: 600 }}>
+                                <span>Discount:</span>
+                                <span>- PHP {totals.discount}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontWeight: 800, fontSize: 18 }}>
+                                <span>Total:</span>
+                                <span>PHP {totals.finalTotal}</span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                        <button
+                          onClick={() => setShowPaymentModal(false)}
+                          style={{
+                            padding: '8px 24px',
+                            borderRadius: 8,
+                            border: '1px solid #fedb71',
+                            background: '#fff',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handlePaymentDetailsSubmit}
+                          style={{
+                            padding: '8px 24px',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: '#fedb71',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
                 <button 
                   onClick={handleSave} 
                   style={{ 

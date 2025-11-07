@@ -326,7 +326,7 @@ const Category = mongoose.model('Category', categorySchema);
 
 
 const productSchema = new mongoose.Schema({
-  image: String,
+  images: [String], // Changed to array of strings for multiple images
   title: { type: String, required: true },
   description: String,
   price: String,
@@ -488,19 +488,68 @@ app.delete('/api/products/category/:categoryTitle', async (req, res) => {
 });
 
 app.get('/api/products/:categoryTitle', async (req, res) => {
-  const products = await Product.find({ categoryTitle: req.params.categoryTitle });
-  res.json(products);
+  try {
+    const products = await Product.find({ categoryTitle: req.params.categoryTitle });
+    
+    // Ensure backward compatibility
+    const formattedProducts = products.map(product => {
+      const prod = product.toObject();
+      // If it's an old product with single image, convert to images array
+      if (prod.image && !prod.images) {
+        prod.images = [prod.image];
+        delete prod.image;
+      }
+      // Ensure images is always an array
+      if (!Array.isArray(prod.images)) {
+        prod.images = prod.images ? [prod.images] : [];
+      }
+      return prod;
+    });
+    
+    res.json(formattedProducts);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
 });
 
 app.post('/api/products', async (req, res) => {
-  const prod = new Product(req.body);
-  await prod.save();
-  res.status(201).json(prod);
+  try {
+    const data = req.body;
+    // Ensure images is an array
+    if (data.image && !data.images) {
+      data.images = [data.image];
+      delete data.image;
+    }
+    if (!Array.isArray(data.images)) {
+      data.images = data.images ? [data.images] : [];
+    }
+    const prod = new Product(data);
+    await prod.save();
+    res.status(201).json(prod);
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ error: 'Failed to create product' });
+  }
 });
 
 app.put('/api/products/:id', async (req, res) => {
-  const prod = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(prod);
+  try {
+    const data = req.body;
+    // Ensure images is an array
+    if (data.image && !data.images) {
+      data.images = [data.image];
+      delete data.image;
+    }
+    if (!Array.isArray(data.images)) {
+      data.images = data.images ? [data.images] : [];
+    }
+    const prod = await Product.findByIdAndUpdate(req.params.id, data, { new: true });
+    res.json(prod);
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
