@@ -24,6 +24,15 @@ const bookingBaseSchema = new mongoose.Schema({
     discount: { type: Number, default: 0 },
     subTotal: { type: Number, default: 0 },
     totalPrice: Number,
+    // Payment details object
+    paymentDetails: {
+        paymentStatus: String,
+        amountPaid: Number,
+        paymentDate: String,
+        transactionReference: String,
+        paymentProof: String,
+        paymentNotes: String
+    },
     products: [
         {
             image: String,
@@ -65,6 +74,18 @@ router.put('/:id', async (req, res) => {
         }
         if (updateData.totalPrice !== undefined) {
             updateData.totalPrice = Number(updateData.totalPrice) || 0;
+        }
+
+        // Handle payment details object
+        if (updateData.paymentDetails) {
+            updateData.paymentDetails = {
+                paymentStatus: updateData.paymentDetails.paymentStatus || '',
+                amountPaid: Number(updateData.paymentDetails.amountPaid) || 0,
+                paymentDate: updateData.paymentDetails.paymentDate || '',
+                transactionReference: updateData.paymentDetails.transactionReference || '',
+                paymentProof: updateData.paymentDetails.paymentProof || '',
+                paymentNotes: updateData.paymentDetails.paymentNotes || ''
+            };
         }
 
         // Try to find and update the booking in all collections

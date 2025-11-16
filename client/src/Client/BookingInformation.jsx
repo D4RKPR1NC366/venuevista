@@ -21,25 +21,26 @@ const BookingInformation = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userEmail = user.email;
 
-  useEffect(() => {
-    async function fetchBookings() {
-      try {
-        // Fetch all bookings and filter by user email
-        const [pendingRes, approvedRes, finishedRes] = await Promise.all([
-          api.get('/bookings/pending'),
-          api.get('/bookings/approved'),
-          api.get('/bookings/finished'),
-        ]);
-        const pending = pendingRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Pending' }));
-        const approved = approvedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Approved' }));
-        const finished = finishedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Finished' }));
-        setBookings([...pending, ...approved, ...finished]);
-      } catch (err) {
-        setBookings([]);
-      } finally {
-        setLoading(false);
-      }
+  const fetchBookings = async () => {
+    try {
+      // Fetch all bookings and filter by user email
+      const [pendingRes, approvedRes, finishedRes] = await Promise.all([
+        api.get('/bookings/pending'),
+        api.get('/bookings/approved'),
+        api.get('/bookings/finished'),
+      ]);
+      const pending = pendingRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Pending' }));
+      const approved = approvedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Approved' }));
+      const finished = finishedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Finished' }));
+      setBookings([...pending, ...approved, ...finished]);
+    } catch (err) {
+      setBookings([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     if (userEmail) fetchBookings();
   }, [userEmail]);
 
@@ -47,8 +48,13 @@ const BookingInformation = () => {
   const handleCardClick = (booking) => {
     // Only open booking details if not currently opening review modal
     if (!showReviewModal) {
-      setSelectedBooking(booking);
-      setShowModal(true);
+      // Refetch bookings to get fresh data
+      fetchBookings().then(() => {
+        // Find the updated booking
+        const updatedBooking = bookings.find(b => b._id === booking._id) || booking;
+        setSelectedBooking(updatedBooking);
+        setShowModal(true);
+      });
     }
   };
 
@@ -212,7 +218,7 @@ const BookingInformation = () => {
         {/* Modal */}
         {showModal && selectedBooking && (
           <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
-            <div style={{
+            <div className="booking-modal-content" style={{
               background: '#fff', 
               borderRadius: 8, 
               padding: 32, 
@@ -221,12 +227,7 @@ const BookingInformation = () => {
               maxHeight: '90vh',
               boxShadow: '0 2px 10px rgba(0,0,0,0.15)', 
               position: 'relative',
-              overflow: 'auto',
-              msOverflowStyle: 'none', /* Hide scrollbar for IE and Edge */
-              scrollbarWidth: 'none', /* Hide scrollbar for Firefox */
-              '&::-webkit-scrollbar': {
-                display: 'none' /* Hide scrollbar for Chrome, Safari and Opera */
-              }
+              overflow: 'auto'
             }}>
               <button onClick={handleCloseModal} style={{position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 28, cursor: 'pointer'}}>&times;</button>
               <h2 style={{fontWeight: 800, fontSize: '1.8rem', marginBottom: 24}}>Booking Details</h2>
@@ -302,9 +303,88 @@ const BookingInformation = () => {
                 )}
               </div>
               <h3 style={{fontWeight: 700, fontSize: '1.1rem', marginBottom: 10}}>Special Request</h3>
-              <div style={{background: '#fffbe6', borderRadius: 12, padding: 16, border: '1px solid #ffe066', minHeight: 60}}>
+              <div style={{background: '#fffbe6', borderRadius: 12, padding: 16, border: '1px solid #ffe066', minHeight: 60, marginBottom: 24}}>
                 {selectedBooking.specialRequest || 'None'}
               </div>
+
+              {/* Payment Details Display */}
+              {selectedBooking.paymentDetails && (
+                <>
+                  <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Payment Details</h3>
+                  <div style={{ 
+                    background: '#e8f5e9', 
+                    borderRadius: 12, 
+                    padding: 24,
+                    border: '2px solid #4CAF50',
+                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.15)'
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Payment Status</div>
+                        <div style={{ 
+                          fontWeight: 800, 
+                          fontSize: '1.1rem', 
+                          color: selectedBooking.paymentDetails.paymentStatus === 'Fully Paid' ? '#4CAF50' : 
+                                 selectedBooking.paymentDetails.paymentStatus === 'Partially Paid' ? '#FF9800' : 
+                                 selectedBooking.paymentDetails.paymentStatus === 'Refunded' ? '#e53935' : '#666'
+                        }}>
+                          {selectedBooking.paymentDetails.paymentStatus}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Amount Paid</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#222' }}>PHP {selectedBooking.paymentDetails.amountPaid}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Payment Date</div>
+                        <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>{selectedBooking.paymentDetails.paymentDate}</div>
+                      </div>
+                      {selectedBooking.paymentDetails.transactionReference && (
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Transaction Reference</div>
+                          <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#222', wordBreak: 'break-all' }}>{selectedBooking.paymentDetails.transactionReference}</div>
+                        </div>
+                      )}
+                    </div>
+                    {selectedBooking.paymentDetails.paymentProof && (
+                      <div style={{ marginTop: 20 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 10 }}>Payment Proof</div>
+                        <img 
+                          src={selectedBooking.paymentDetails.paymentProof} 
+                          alt="Payment Proof" 
+                          style={{ 
+                            maxWidth: '300px', 
+                            maxHeight: '200px', 
+                            borderRadius: 8, 
+                            border: '2px solid #ddd',
+                            objectFit: 'contain'
+                          }} 
+                        />
+                      </div>
+                    )}
+                    {selectedBooking.paymentDetails.paymentNotes && (
+                      <div style={{ marginTop: 20 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Additional Notes</div>
+                        <div style={{ fontSize: '0.95rem', color: '#222', fontStyle: 'italic' }}>{selectedBooking.paymentDetails.paymentNotes}</div>
+                      </div>
+                    )}
+                    {selectedBooking.totalPrice && selectedBooking.paymentDetails.amountPaid && (
+                      <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #c8e6c9' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555' }}>Total Booking Amount:</div>
+                          <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#222' }}>PHP {selectedBooking.totalPrice}</div>
+                        </div>
+                        {selectedBooking.paymentDetails.amountPaid < selectedBooking.totalPrice && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#e53935' }}>Remaining Balance:</div>
+                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#e53935' }}>PHP {selectedBooking.totalPrice - selectedBooking.paymentDetails.amountPaid}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

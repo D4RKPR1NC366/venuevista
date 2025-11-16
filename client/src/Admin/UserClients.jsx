@@ -6,32 +6,23 @@ import api from '../services/api';
 
 export default function UserClients() {
   const [customers, setCustomers] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
   
   useEffect(() => {
-    // Fetch both customers and suppliers
-    Promise.all([
-      api.get('/customers'),
-      api.get('/suppliers')
-    ])
-      .then(([customerRes, supplierRes]) => {
-        setCustomers(customerRes.data);
-        setSuppliers(supplierRes.data);
-        console.log('Loaded data:', {
-          customers: customerRes.data,
-          suppliers: supplierRes.data
-        });
+    // Fetch customers only
+    api.get('/customers')
+      .then((res) => {
+        setCustomers(res.data);
+        console.log('Loaded customers:', res.data);
       })
       .catch(error => {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching customers:', error);
         setCustomers([]);
-        setSuppliers([]);
       });
   }, []);
 
-  // Filter both customers and suppliers by search
-  const filteredUsers = [...customers, ...suppliers].filter(user => {
+  // Filter customers by search
+  const filteredUsers = customers.filter(user => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (

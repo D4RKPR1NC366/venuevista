@@ -5,9 +5,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import CloseIcon from '@mui/icons-material/Close';
+import api from '../services/api';
 import './booking-description.css';
 
-export default function BookingDescription({ open, onClose, booking }) {
+export default function BookingDescription({ open, onClose, booking, onSave }) {
   const [editData, setEditData] = React.useState(booking || {});
   const [isEditing, setIsEditing] = React.useState(false);
   const [provinces, setProvinces] = React.useState([]);
@@ -23,8 +24,20 @@ export default function BookingDescription({ open, onClose, booking }) {
     finalTotal: 0
   });
   const [showPaymentModal, setShowPaymentModal] = React.useState(false);
+  const [showPaymentDetailsModal, setShowPaymentDetailsModal] = React.useState(false);
+  const [paymentDetailsForm, setPaymentDetailsForm] = React.useState({
+    paymentStatus: '',
+    amountPaid: '',
+    paymentDate: '',
+    transactionReference: '',
+    paymentProof: '',
+    paymentNotes: ''
+  });
+  const [paymentProofPreview, setPaymentProofPreview] = React.useState('');
+  const paymentProofInputRef = React.useRef(null);
   const eventTypes = ['Birthday', 'Wedding', 'Corporate', 'Anniversary', 'Other'];
   const paymentModes = ['Cash', 'Bank Transfer', 'GCash'];
+  const paymentStatuses = ['Pending', 'Partially Paid', 'Fully Paid', 'Refunded'];
 
   // PSGC API endpoints
   const PSGC_API = 'https://psgc.gitlab.io/api';
@@ -39,9 +52,15 @@ export default function BookingDescription({ open, onClose, booking }) {
       .catch(console.error);
   }, []);
 
-  // Handle booking data updates
+  // Handle booking data updates - reset everything when booking changes
   React.useEffect(() => {
     if (booking) {
+      // Reset edit mode when switching bookings
+      setIsEditing(false);
+      
+      // Reset edit data to the new booking
+      setEditData(booking);
+      
       // Initialize payment details from booking data
       setPaymentDetails(prev => ({
         ...prev,
@@ -52,19 +71,57 @@ export default function BookingDescription({ open, onClose, booking }) {
         finalTotal: booking.totalPrice || 0
       }));
 
-      setEditData(prev => ({
-        ...prev,
-        ...booking,
-        date: formatDate(booking.date),
-        eventVenue: booking.eventVenue || prev.eventVenue,
-        products: booking.products || prev.products,
-        paymentMode: booking.paymentMode || prev.paymentMode,
-        discountType: booking.discountType || prev.discountType,
-        discount: booking.discount || prev.discount,
-        totalPrice: booking.totalPrice || prev.totalPrice
-      }));
+      // Initialize payment details form if booking has payment details
+      if (booking.paymentDetails) {
+        setPaymentDetailsForm({
+          paymentStatus: booking.paymentDetails.paymentStatus || '',
+          amountPaid: booking.paymentDetails.amountPaid || '',
+          paymentDate: booking.paymentDetails.paymentDate || '',
+          transactionReference: booking.paymentDetails.transactionReference || '',
+          paymentProof: booking.paymentDetails.paymentProof || '',
+          paymentNotes: booking.paymentDetails.paymentNotes || ''
+        });
+        setPaymentProofPreview(booking.paymentDetails.paymentProof || '');
+      } else {
+        // Reset payment details form if no payment details exist
+        setPaymentDetailsForm({
+          paymentStatus: '',
+          amountPaid: '',
+          paymentDate: '',
+          transactionReference: '',
+          paymentProof: '',
+          paymentNotes: ''
+        });
+        setPaymentProofPreview('');
+      }
+      
+      // Reset venue dropdown
+      setVenueDropdown({ province: '', city: '', barangay: '' });
     }
   }, [booking]);
+
+  // Handle payment proof file upload
+  const handlePaymentProofUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target.result;
+        setPaymentProofPreview(base64);
+        setPaymentDetailsForm(prev => ({ ...prev, paymentProof: base64 }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove payment proof
+  const handleRemovePaymentProof = () => {
+    setPaymentProofPreview('');
+    setPaymentDetailsForm(prev => ({ ...prev, paymentProof: '' }));
+    if (paymentProofInputRef.current) {
+      paymentProofInputRef.current.value = '';
+    }
+  };
 
   // Effect to log state changes (for debugging)
   React.useEffect(() => {
@@ -191,7 +248,7 @@ export default function BookingDescription({ open, onClose, booking }) {
     };
   };
 
-  const handlePaymentDetailsSubmit = () => {
+  const handlePaymentModalSubmit = () => {
     const totals = calculateTotal(editData.products, null, paymentDetails.discountType);
     setPaymentDetails(prev => ({
       ...prev,
@@ -248,6 +305,30 @@ export default function BookingDescription({ open, onClose, booking }) {
 
   const handleChange = (field) => (e) => {
     setEditData({ ...editData, [field]: e.target.value });
+  };
+
+  const handlePaymentDetailsSubmit = async () => {
+    try {
+      const response = await api.put(`/bookings/${booking._id}`, {
+        ...editData,
+        paymentDetails: paymentDetailsForm
+      });
+      
+      if (response.status === 200) {
+        alert('Payment details saved successfully!');
+        setShowPaymentDetailsModal(false);
+        // Update the local state
+        setEditData(prev => ({
+          ...prev,
+          paymentDetails: paymentDetailsForm
+        }));
+        // Notify parent to refresh
+        if (onSave) onSave();
+      }
+    } catch (err) {
+      console.error('Error saving payment details:', err);
+      alert('Failed to save payment details. Please try again.');
+    }
   };
 
   const handleSave = async () => {
@@ -344,11 +425,8 @@ export default function BookingDescription({ open, onClose, booking }) {
         // Exit edit mode
         setIsEditing(false);
 
-        // Force the parent to update with the latest data
-        if (onClose) {
-          // Pass the updated data back
-          onClose(mergedData);
-        }
+        // Notify parent to refresh
+        if (onSave) onSave();
 
         // Show success message
         alert('Changes saved successfully!');
@@ -690,8 +768,93 @@ export default function BookingDescription({ open, onClose, booking }) {
               <div style={{ color: '#222', background: '#fff', borderRadius: 10, padding: 12, minHeight: 100, border: '1px solid #fedb71' }}>{editData.specialRequest || ''}</div>
             )}
           </div>
+
+          {/* Payment Details Display */}
+          {editData.paymentDetails && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 12, color: '#222' }}>Payment Details</div>
+              <div style={{ 
+                background: '#e8f5e9', 
+                borderRadius: 12, 
+                padding: 20,
+                border: '2px solid #4CAF50',
+                boxShadow: '0 2px 8px rgba(76, 175, 80, 0.15)'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Payment Status</div>
+                    <div style={{ 
+                      fontWeight: 800, 
+                      fontSize: 16, 
+                      color: editData.paymentDetails.paymentStatus === 'Fully Paid' ? '#4CAF50' : 
+                             editData.paymentDetails.paymentStatus === 'Partially Paid' ? '#FF9800' : 
+                             editData.paymentDetails.paymentStatus === 'Refunded' ? '#e53935' : '#666'
+                    }}>
+                      {editData.paymentDetails.paymentStatus}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Amount Paid</div>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: '#222' }}>PHP {editData.paymentDetails.amountPaid}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Payment Date</div>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>{editData.paymentDetails.paymentDate}</div>
+                  </div>
+                  {editData.paymentDetails.transactionReference && (
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Transaction Reference</div>
+                      <div style={{ fontWeight: 600, fontSize: 15, color: '#222', wordBreak: 'break-all' }}>{editData.paymentDetails.transactionReference}</div>
+                    </div>
+                  )}
+                </div>
+                {editData.paymentDetails.paymentProof && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 8 }}>Payment Proof</div>
+                    <img 
+                      src={editData.paymentDetails.paymentProof} 
+                      alt="Payment Proof" 
+                      style={{ 
+                        maxWidth: '300px', 
+                        maxHeight: '200px', 
+                        borderRadius: 8, 
+                        border: '2px solid #ddd',
+                        objectFit: 'contain'
+                      }} 
+                    />
+                  </div>
+                )}
+                {editData.paymentDetails.paymentNotes && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Additional Notes</div>
+                    <div style={{ fontSize: 15, color: '#222', fontStyle: 'italic' }}>{editData.paymentDetails.paymentNotes}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Edit/Save/Cancel/Payment Buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, gap: 12, alignItems: 'center' }}>
+            {isEditing && (
+              <button 
+                onClick={() => setShowPaymentDetailsModal(true)} 
+                style={{ 
+                  background: '#4CAF50', 
+                  color: '#fff', 
+                  fontWeight: 700, 
+                  fontSize: 16, 
+                  border: 'none', 
+                  borderRadius: 8, 
+                  padding: '10px 32px', 
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  marginRight: 'auto'
+                }}
+              >
+                Add Payment Details
+              </button>
+            )}
             {isEditing ? (
               <>
                 <button 
@@ -836,7 +999,7 @@ export default function BookingDescription({ open, onClose, booking }) {
                           Cancel
                         </button>
                         <button
-                          onClick={handlePaymentDetailsSubmit}
+                          onClick={handlePaymentModalSubmit}
                           style={{
                             padding: '8px 24px',
                             borderRadius: 8,
@@ -852,6 +1015,284 @@ export default function BookingDescription({ open, onClose, booking }) {
                     </DialogContent>
                   </Dialog>
                 )}
+                
+                {/* Payment Details Modal */}
+                <Dialog
+                  open={showPaymentDetailsModal}
+                  onClose={() => setShowPaymentDetailsModal(false)}
+                  PaperProps={{
+                    style: {
+                      borderRadius: 16,
+                      padding: 24,
+                      minWidth: 500
+                    }
+                  }}
+                >
+                  <DialogTitle sx={{ pb: 2, fontWeight: 800, fontSize: 24, color: '#222' }}>
+                    Payment Details
+                    <IconButton
+                      aria-label="close"
+                      onClick={() => setShowPaymentDetailsModal(false)}
+                      sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </DialogTitle>
+                  <DialogContent>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 16 }}>
+                      {/* Payment Status */}
+                      <div>
+                        <label style={{ fontWeight: 700, marginBottom: 8, display: 'block', color: '#222' }}>
+                          Payment Status <span style={{ color: '#e53935' }}>*</span>
+                        </label>
+                        <select
+                          value={paymentDetailsForm.paymentStatus}
+                          onChange={(e) => setPaymentDetailsForm(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #ccc',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222'
+                          }}
+                        >
+                          <option value="">Select Status</option>
+                          {paymentStatuses.map(status => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Amount Paid */}
+                      <div>
+                        <label style={{ fontWeight: 700, marginBottom: 8, display: 'block', color: '#222' }}>
+                          Amount Paid (PHP) <span style={{ color: '#e53935' }}>*</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={paymentDetailsForm.amountPaid}
+                          onChange={(e) => setPaymentDetailsForm(prev => ({ ...prev, amountPaid: e.target.value }))}
+                          placeholder="0.00"
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #ccc',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222'
+                          }}
+                        />
+                        {editData.totalPrice && (
+                          <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
+                            Total booking amount: PHP {editData.totalPrice}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Payment Date */}
+                      <div>
+                        <label style={{ fontWeight: 700, marginBottom: 8, display: 'block', color: '#222' }}>
+                          Payment Date <span style={{ color: '#e53935' }}>*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={paymentDetailsForm.paymentDate}
+                          onChange={(e) => setPaymentDetailsForm(prev => ({ ...prev, paymentDate: e.target.value }))}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #ccc',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222'
+                          }}
+                        />
+                      </div>
+
+                      {/* Transaction Reference */}
+                      <div>
+                        <label style={{ fontWeight: 700, marginBottom: 8, display: 'block', color: '#222' }}>
+                          Transaction Reference Number
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentDetailsForm.transactionReference}
+                          onChange={(e) => setPaymentDetailsForm(prev => ({ ...prev, transactionReference: e.target.value }))}
+                          placeholder="e.g., TXN123456789, GCash Ref#, Bank Transfer#"
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #ccc',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222'
+                          }}
+                        />
+                      </div>
+
+                      {/* Payment Proof Upload */}
+                      <div>
+                        <label style={{ fontWeight: 700, marginBottom: 8, display: 'block', color: '#222' }}>
+                          Payment Proof (Receipt/Screenshot)
+                        </label>
+                        <input
+                          ref={paymentProofInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePaymentProofUpload}
+                          style={{ display: 'none' }}
+                        />
+                        {paymentProofPreview ? (
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <img
+                              src={paymentProofPreview}
+                              alt="Payment Proof Preview"
+                              style={{
+                                maxWidth: '300px',
+                                maxHeight: '200px',
+                                borderRadius: 8,
+                                border: '2px solid #ccc',
+                                objectFit: 'contain',
+                                display: 'block'
+                              }}
+                            />
+                            <button
+                              onClick={handleRemovePaymentProof}
+                              style={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                background: '#e53935',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 28,
+                                height: 28,
+                                cursor: 'pointer',
+                                fontSize: 18,
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => paymentProofInputRef.current?.click()}
+                            style={{
+                              padding: '10px 20px',
+                              borderRadius: 8,
+                              border: '2px dashed #ccc',
+                              background: '#f9f9f9',
+                              cursor: 'pointer',
+                              fontSize: 15,
+                              color: '#666',
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8
+                            }}
+                          >
+                            📎 Upload Payment Proof
+                          </button>
+                        )}
+                        <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
+                          Upload receipt, bank transfer screenshot, or proof of payment
+                        </div>
+                      </div>
+
+                      {/* Payment Notes */}
+                      <div>
+                        <label style={{ fontWeight: 700, marginBottom: 8, display: 'block', color: '#222' }}>
+                          Additional Notes
+                        </label>
+                        <textarea
+                          value={paymentDetailsForm.paymentNotes}
+                          onChange={(e) => setPaymentDetailsForm(prev => ({ ...prev, paymentNotes: e.target.value }))}
+                          placeholder="Any additional payment information..."
+                          rows={3}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #ccc',
+                            fontSize: 15,
+                            background: '#fff',
+                            color: '#222',
+                            resize: 'vertical',
+                            fontFamily: 'inherit'
+                          }}
+                        />
+                      </div>
+
+                      {/* Display current payment details if exists */}
+                      {editData.paymentDetails && (
+                        <div style={{ 
+                          background: '#f5f5f5', 
+                          padding: 16, 
+                          borderRadius: 8,
+                          border: '1px solid #ddd'
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: 12, color: '#222' }}>Current Payment Details:</div>
+                          <div style={{ fontSize: 14, color: '#555', lineHeight: 1.8 }}>
+                            <div><strong>Status:</strong> {editData.paymentDetails.paymentStatus}</div>
+                            <div><strong>Amount Paid:</strong> PHP {editData.paymentDetails.amountPaid}</div>
+                            <div><strong>Date:</strong> {editData.paymentDetails.paymentDate}</div>
+                            {editData.paymentDetails.transactionReference && (
+                              <div><strong>Reference:</strong> {editData.paymentDetails.transactionReference}</div>
+                            )}
+                            {editData.paymentDetails.paymentNotes && (
+                              <div><strong>Notes:</strong> {editData.paymentDetails.paymentNotes}</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+                      <button
+                        onClick={() => setShowPaymentDetailsModal(false)}
+                        style={{
+                          padding: '10px 28px',
+                          borderRadius: 8,
+                          border: '1px solid #ccc',
+                          background: '#fff',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontSize: 15
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handlePaymentDetailsSubmit}
+                        disabled={!paymentDetailsForm.paymentStatus || !paymentDetailsForm.amountPaid || !paymentDetailsForm.paymentDate}
+                        style={{
+                          padding: '10px 28px',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: (!paymentDetailsForm.paymentStatus || !paymentDetailsForm.amountPaid || !paymentDetailsForm.paymentDate) ? '#ccc' : '#4CAF50',
+                          color: '#fff',
+                          fontWeight: 600,
+                          cursor: (!paymentDetailsForm.paymentStatus || !paymentDetailsForm.amountPaid || !paymentDetailsForm.paymentDate) ? 'not-allowed' : 'pointer',
+                          fontSize: 15
+                        }}
+                      >
+                        Save Payment Details
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                
                 <button 
                   onClick={handleSave} 
                   style={{ 

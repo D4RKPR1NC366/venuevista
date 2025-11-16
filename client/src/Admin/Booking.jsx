@@ -60,29 +60,31 @@ export default function AdminBooking() {
   // Bookings state from database
   const [bookings, setBookings] = useState([]);
 
-  // Fetch bookings from backend on mount
+  // Fetch bookings from backend
+  const fetchBookings = async () => {
+    try {
+      const [pendingRes, approvedRes, finishedRes] = await Promise.all([
+        fetch('http://localhost:5051/api/bookings/pending'),
+        fetch('http://localhost:5051/api/bookings/approved'),
+        fetch('http://localhost:5051/api/bookings/finished'),
+      ]);
+      const [pending, approved, finished] = await Promise.all([
+        pendingRes.json(),
+        approvedRes.json(),
+        finishedRes.json(),
+      ]);
+      // Add status to each booking
+      const pendingWithStatus = pending.map(b => ({ ...b, status: 'pending' }));
+      const approvedWithStatus = approved.map(b => ({ ...b, status: 'approved' }));
+      const finishedWithStatus = finished.map(b => ({ ...b, status: 'finished' }));
+      setBookings([...pendingWithStatus, ...approvedWithStatus, ...finishedWithStatus]);
+    } catch (err) {
+      setBookings([]);
+    }
+  };
+
+  // Fetch on mount
   React.useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const [pendingRes, approvedRes, finishedRes] = await Promise.all([
-          fetch('http://localhost:5051/api/bookings/pending'),
-          fetch('http://localhost:5051/api/bookings/approved'),
-          fetch('http://localhost:5051/api/bookings/finished'),
-        ]);
-        const [pending, approved, finished] = await Promise.all([
-          pendingRes.json(),
-          approvedRes.json(),
-          finishedRes.json(),
-        ]);
-        // Add status to each booking
-        const pendingWithStatus = pending.map(b => ({ ...b, status: 'pending' }));
-        const approvedWithStatus = approved.map(b => ({ ...b, status: 'approved' }));
-        const finishedWithStatus = finished.map(b => ({ ...b, status: 'finished' }));
-        setBookings([...pendingWithStatus, ...approvedWithStatus, ...finishedWithStatus]);
-      } catch (err) {
-        setBookings([]);
-      }
-    };
     fetchBookings();
   }, []);
   // Delete booking handler
@@ -359,6 +361,23 @@ export default function AdminBooking() {
             open={!!selectedBooking}
             onClose={handleCloseModal}
             booking={selectedBooking}
+            onSave={() => {
+              fetchBookings();
+              // Update selected booking with fresh data
+              if (selectedBooking) {
+                setTimeout(async () => {
+                  try {
+                    const response = await fetch(`http://localhost:5051/api/bookings/${selectedBooking._id}`);
+                    if (response.ok) {
+                      const updated = await response.json();
+                      setSelectedBooking(updated);
+                    }
+                  } catch (err) {
+                    console.error('Failed to refresh booking:', err);
+                  }
+                }, 100);
+              }
+            }}
           />
         </div>
       </main>

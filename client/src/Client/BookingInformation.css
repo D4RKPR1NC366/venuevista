@@ -114,3 +114,13 @@
   margin-top: 20px;
   font-size: 18px;
 }
+
+/* Hide scrollbar for booking modal */
+.booking-modal-content {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.booking-modal-content::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
