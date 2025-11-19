@@ -22,6 +22,8 @@ export default function ProductsAndServices() {
   const [newTitle, setNewTitle] = useState('');
   const [newImage, setNewImage] = useState('');
   const [fields, setFields] = useState([{ label: '' }]);
+  const [newEvents, setNewEvents] = useState([]);
+  const [editEvents, setEditEvents] = useState([]);
   const [editIdx, setEditIdx] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editImage, setEditImage] = useState('');
@@ -74,30 +76,34 @@ export default function ProductsAndServices() {
 
   const openModal = () => {
     setShowModal(true);
-    setNewTitle('');
-    setNewImage('');
-    setFields([{ label: '' }]);
-    setEditIdx(null);
-    setEditTitle('');
-    setEditImage('');
-    setEditFields([{ label: '' }]);
+  setNewTitle('');
+  setNewImage('');
+  setFields([{ label: '' }]);
+  setNewEvents([]);
+  setEditIdx(null);
+  setEditTitle('');
+  setEditImage('');
+  setEditFields([{ label: '' }]);
+  setEditEvents([]);
   };
 
   const closeModal = () => {
-    setShowModal(false);
-    setNewTitle('');
-    setNewImage('');
-    setFields([{ label: '' }]);
-    setEditIdx(null);
-    setEditTitle('');
-    setEditImage('');
-    setEditFields([{ label: '' }]);
+  setShowModal(false);
+  setNewTitle('');
+  setNewImage('');
+  setFields([{ label: '' }]);
+  setNewEvents([]);
+  setEditIdx(null);
+  setEditTitle('');
+  setEditImage('');
+  setEditFields([{ label: '' }]);
+  setEditEvents([]);
   };
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
-    const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })) };
+  if (!newTitle.trim()) return;
+  const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents };
     try {
       const res = await fetch(`${API_BASE}/categories`, {
         method: 'POST',
@@ -111,11 +117,12 @@ export default function ProductsAndServices() {
   };
 
   const handleEdit = (idx) => {
-    setEditIdx(idx);
-    setEditTitle(categories[idx].title);
-    setEditImage(categories[idx].image || '');
-    setEditFields(categories[idx].fields && categories[idx].fields.length > 0 ? categories[idx].fields : [{ label: '' }]);
-    setShowModal(true);
+  setEditIdx(idx);
+  setEditTitle(categories[idx].title);
+  setEditImage(categories[idx].image || '');
+  setEditFields(categories[idx].fields && categories[idx].fields.length > 0 ? categories[idx].fields : [{ label: '' }]);
+  setEditEvents(categories[idx].events || []);
+  setShowModal(true);
   };
 
   const handleUpdate = async (e) => {
@@ -126,7 +133,7 @@ export default function ProductsAndServices() {
       const res = await fetch(`${API_BASE}/categories/${catToUpdate._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...catToUpdate, title: editTitle.trim(), image: editImage, fields: editFields.map(f => ({ label: f.label })) }),
+        body: JSON.stringify({ ...catToUpdate, title: editTitle.trim(), image: editImage, fields: editFields.map(f => ({ label: f.label })), events: editEvents }),
       });
       const updatedCat = await res.json();
       setCategories(categories.map((cat, i) => i === editIdx ? updatedCat : cat));
@@ -396,6 +403,27 @@ export default function ProductsAndServices() {
                     required
                     margin="normal"
                   />
+                  {/* Event Type Radio Buttons */}
+                  <div style={{ margin: '16px 0' }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Event Types:</div>
+                    {['debut', 'wedding', 'seminar', 'birthday', 'corporate', 'anniversary', 'reunion', 'baptism'].map(type => (
+                      <label key={type} style={{ marginRight: 16 }}>
+                         <input
+                           type="checkbox"
+                           value={type}
+                           checked={editIdx !== null ? editEvents.includes(type) : newEvents.includes(type)}
+                           onChange={e => {
+                             if (editIdx !== null) {
+                               setEditEvents(ev => e.target.checked ? [...ev, type] : ev.filter(t => t !== type));
+                             } else {
+                               setNewEvents(ev => e.target.checked ? [...ev, type] : ev.filter(t => t !== type));
+                             }
+                           }}
+                           style={{ background: '#fff', border: '2px solid #222', borderRadius: '4px', width: '18px', height: '18px', marginRight: '4px', outline: 'none', cursor: 'pointer', position: 'relative' }}
+                         /> {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </label>
+                    ))}
+                  </div>
                 </DialogContent>
                 <DialogActions>
                   <Button onClick={closeModal} color="secondary">Cancel</Button>

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -26,6 +25,8 @@ app.use('/api/auth', passwordResetRouter);
 app.use('/api/mfa', mfaRouter);
 app.use('/api/bookings', bookingsRouter);
 
+const categoriesRouter = require('./routes/categories');
+app.use('/api/categories', categoriesRouter);
 
 
 // Create a separate connection for schedules/calendar
@@ -317,12 +318,6 @@ bookingConnection.on('error', err => console.error('MongoDB booking connection e
 
 
 
-const categorySchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  image: String,
-  fields: [{ label: String }],
-});
-const Category = mongoose.model('Category', categorySchema);
 
 
 const productSchema = new mongoose.Schema({

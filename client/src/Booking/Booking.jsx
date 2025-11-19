@@ -265,7 +265,9 @@ const Booking = () => {
                       <MenuItem value="Birthday">Birthday</MenuItem>
                       <MenuItem value="Debut">Debut</MenuItem>
                       <MenuItem value="Corporate">Corporate</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
+                      <MenuItem value="Anniversary">Anniversary</MenuItem>
+                      <MenuItem value="Reunion">Reunion</MenuItem>
+                      <MenuItem value="Baptism">Baptism</MenuItem>
                     </Select>
                   </FormControl>
                 </div>

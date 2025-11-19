@@ -19,6 +19,7 @@ const navItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon fontSize="small" /> },
   { label: 'Bookings', path: '/admin/booking', icon: <BookOnlineIcon fontSize="small" /> },
   { label: 'Products & Services', path: '/admin/products-services', icon: <StorefrontIcon fontSize="small" /> },
+  { label: 'Promos', path: '/admin/promos', icon: <StorefrontIcon fontSize="small" /> },
   { label: 'Reminders', path: '/admin/reminders', icon: <AlarmIcon fontSize="small" /> },
   { label: 'Calendar', path: '/admin/calendars', icon: <CalendarMonthIcon fontSize="small" /> },
   { label: 'Suppliers', path: '/admin/suppliers', icon: <LocalShippingIcon fontSize="small" /> },

@@ -12,6 +12,8 @@ import api from '../services/api';
 
 const Home = () => {
   const [categories, setCategories] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  const [eventType, setEventType] = useState('all');
   const [bgImages, setBgImages] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
   const [reviewIndex, setReviewIndex] = useState(0); // no longer used for scrolling
@@ -25,6 +27,18 @@ const Home = () => {
       .then(res => setUserReviews(res.data))
       .catch(() => setUserReviews([]));
   }, []);
+
+  // Filter categories by event type
+  useEffect(() => {
+    if (eventType === 'all') {
+      setFilteredCategories(categories);
+    } else {
+      setFilteredCategories(categories.filter(cat => {
+        // Assume each category has an 'events' array property listing applicable event types
+        return Array.isArray(cat.events) && cat.events.includes(eventType);
+      }));
+    }
+  }, [categories, eventType]);
 
   const allReviews = userReviews;
 
@@ -96,11 +110,30 @@ const Home = () => {
       </section>
       <section className="home-services" id="services">
         <h2 className="home-services-title">SERVICES</h2>
+        <div className="home-services-filter-row" style={{ marginBottom: '1rem' }}>
+          <label htmlFor="eventType" style={{ marginRight: '0.5rem' }}>Filter by Event:</label>
+          <select
+            id="eventType"
+            value={eventType}
+            onChange={e => setEventType(e.target.value)}
+            style={{ padding: '0.4rem', borderRadius: '4px', background: '#fff', color: '#222', border: '1px solid #ccc' }}
+          >
+            <option value="all">All Events</option>
+            <option value="debut">Debut</option>
+            <option value="wedding">Wedding</option>
+            <option value="seminar">Seminar</option>
+            <option value="birthday">Birthday</option>
+            <option value="corporate">Corporate</option>
+            <option value="anniversary">Anniversary</option>
+            <option value="reunion">Reunion</option>
+            <option value="baptism">Baptism</option>
+          </select>
+        </div>
         <div className="home-services-grid">
-          {categories.length === 0 && <div>No services yet.</div>}
-          {Array.from({ length: Math.ceil(categories.length / 3) }).map((_, rowIdx) => (
+          {filteredCategories.length === 0 && <div>No services for this event.</div>}
+          {Array.from({ length: Math.ceil(filteredCategories.length / 3) }).map((_, rowIdx) => (
             <div className="home-services-row" key={rowIdx}>
-              {categories.slice(rowIdx * 3, rowIdx * 3 + 3).map((cat, idx) => (
+              {filteredCategories.slice(rowIdx * 3, rowIdx * 3 + 3).map((cat, idx) => (
                 <div
                   key={cat.title + (rowIdx * 3 + idx)}
                   className="home-service-card"
