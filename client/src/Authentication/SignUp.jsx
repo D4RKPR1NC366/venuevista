@@ -60,18 +60,6 @@ const SignUp = () => {
     // Reset error state
     setError("");
 
-    // Validate passwords
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords don't match!");
-      return;
-    }
-
-    // Validate terms agreement
-    if (!form.agree) {
-      setError("Please agree to the terms and policy");
-      return;
-    }
-
     // Validate required fields
     const requiredFields = {
       firstName: "First Name",
@@ -90,6 +78,53 @@ const SignUp = () => {
         setError(`${label} is required`);
         return;
       }
+    }
+
+    // Validate name fields (letters and spaces only)
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(form.firstName.trim())) {
+      setError("First name should only contain letters");
+      return;
+    }
+    if (!nameRegex.test(form.lastName.trim())) {
+      setError("Last name should only contain letters");
+      return;
+    }
+    if (form.middleName && !nameRegex.test(form.middleName.trim())) {
+      setError("Middle name should only contain letters");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate phone number (Philippine format: 11 digits starting with 09)
+    const phoneRegex = /^09\d{9}$/;
+    if (!phoneRegex.test(form.phone.trim())) {
+      setError("Phone number must be 11 digits starting with 09 (e.g., 09123456789)");
+      return;
+    }
+
+    // Validate password strength
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    // Validate passwords match
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match!");
+      return;
+    }
+
+    // Validate terms agreement
+    if (!form.agree) {
+      setError("Please agree to the terms and policy");
+      return;
     }
 
     setLoading(true);
@@ -112,11 +147,6 @@ const SignUp = () => {
         endpoint = 'http://localhost:5051/api/auth/register-customer';
       }
 
-      console.log('Attempting registration with:', {
-        ...payload,
-        password: '[HIDDEN]'
-      });
-
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -134,10 +164,8 @@ const SignUp = () => {
       } else {
         // Show specific error from server
         setError(data.error || data.message || 'Registration failed');
-        console.error('Registration failed:', data);
       }
     } catch (error) {
-      console.error('Registration error:', error);
       setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);

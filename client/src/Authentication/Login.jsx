@@ -58,7 +58,6 @@ const Login = () => {
           mfaCode
         };
 
-        console.log('Verifying MFA for:', tempUserData.type);
         const data = await loginAttempt(`login-${tempUserData.type}`, credentials);
 
         if (data.requireMFA) {
@@ -100,6 +99,17 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.emailOrPhone.trim())) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Validate password is not empty
+      if (!form.password || form.password.length < 1) {
+        throw new Error('Password is required');
+      }
+
       // Check for hardcoded admin credentials
       if (
         form.emailOrPhone === 'goldustadmin@gmail.com' &&
@@ -140,7 +150,7 @@ const Login = () => {
       if (otherResult.requireMFA) return;
 
       // If both failed and no MFA required, show error
-      throw new Error('Invalid credentials');
+      throw new Error('Invalid email or password. Please check your credentials and try again.');
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
@@ -156,6 +166,11 @@ const Login = () => {
             <Typography variant="h5" align="left" gutterBottom className="auth-title">
               Welcome Back
             </Typography>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
             <form onSubmit={handleSubmit}>
               <TextField
                 label="Email"
