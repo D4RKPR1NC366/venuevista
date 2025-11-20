@@ -596,14 +596,13 @@ app.post('/api/auth/register-supplier', async (req, res) => {
     const supplier = new Supplier({ 
       email, 
       password, 
-      businessName: companyName,  // Map companyName to businessName
+      companyName: companyName,  // Use companyName directly
       firstName, 
       lastName, 
       middleName, 
-      phoneNumber: phone,  // Map phone to phoneNumber
+      phone: phone,  // Use phone directly
       contact: phone,
-      mfaEnabled: false,
-      role: 'supplier'
+      mfaEnabled: false
     });
     
     console.log('Attempting to save supplier:', {
