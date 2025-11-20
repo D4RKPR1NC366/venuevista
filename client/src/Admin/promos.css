@@ -1,0 +1,240 @@
+/* MUI DatePicker unified field style */
+.promo-form .MuiOutlinedInput-root,
+.promo-form .MuiInputBase-root,
+.promo-form .MuiOutlinedInput-input {
+  background: #a59f8e !important;
+  border-radius: 8px !important;
+}
+.promo-form .MuiOutlinedInput-notchedOutline {
+  border: 1px solid #e0e0e0 !important;
+}
+.promo-form .MuiInputAdornment-root .MuiIconButton-root {
+  background: #faf9f6 !important;
+  color: #c9b037 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 8px !important;
+}
+/* Header for title and button */
+.promos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Add Promo button styled yellow */
+.add-promo-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(90deg, #c9b037 0%, #e6c200 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(201, 176, 55, 0.12);
+  transition: background 0.2s;
+}
+.add-promo-btn:hover {
+  background: linear-gradient(90deg, #c9b137c7 0%, #e6c400c4 100%);
+}
+/* Modal header and title */
+.promo-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+ 
+}
+.promo-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+}
+/* Overlay for modal, centers modal using flexbox */
+.promo-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+/* Modal overlay for promo form */
+.promo-modal-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 2rem 2.5rem;
+  min-width: 350px;
+  max-width: 90vw;
+  position: relative;
+  animation: promoModalFadeIn 0.2s ease;
+}
+
+.promo-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.promo-form input,
+.promo-form select,
+.promo-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  
+ 
+  border-radius: 10px;
+  border: 1px solid #eee;
+  font-size: 1.1rem;
+  background: #fff;
+  outline: none;
+  transition: border 0.2s;
+}
+.promo-form input:focus,
+.promo-form select:focus,
+.promo-form textarea:focus {
+  border: 1.5px solid #d32f2f;
+}
+
+.promo-form button[type="submit"] {
+  width: 100%;
+
+  padding: .50rem 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  font-weight: bold;
+  background: linear-gradient(90deg, #d4af37 0%, #e7c74a 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.2s;
+}
+.promo-form button[type="submit"]:hover {
+  background: linear-gradient(90deg, #d4af37b5 0%, #e7c84ad6 100%);
+}
+
+.promo-modal-close {
+  background: none !important;
+  border: none;
+  font-size: 2.5rem;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.2s;
+  width: auto;
+  height: auto;
+  padding: 0;
+  box-shadow: none;
+  margin-left: 1rem;
+}
+.promo-modal-close:hover {
+  color: #d32f2f;
+  background: none !important;
+}
+@keyframes promoModalFadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.promo-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 5rem;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.promo-modal-close:hover {
+  color: #d32f2f;
+}
+.admin-promos-container {
+  display: flex;
+  min-height: 100vh;
+  
+}
+
+.promos-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 260px; /* Adjust to match sidebar width */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.promos-content h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  
+  margin-bottom: 0.5rem;
+}
+
+.promos-content p {
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+.promo-form {
+  width: 100%;
+  max-width: 500px;
+  background: #fb7676;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(201, 176, 55, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.promo-form label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.3rem;
+}
+
+.promo-form input,
+.promo-form select,
+.promo-form textarea {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-top: 0.2rem;
+  background: #faf9f6;
+  transition: border-color 0.2s;
+}
+
+.promo-form input:focus,
+.promo-form select:focus,
+.promo-form textarea:focus {
+  border-color: #c9b037;
+  outline: none;
+}
+
+.promo-form button {
+  padding: 0.8rem 2rem;
+  background: linear-gradient(90deg, #c9b037 0%, #e6c200 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(201, 176, 55, 0.12);
+  transition: background 0.2s;
+}
+
+.promo-form button:hover {
+  background: linear-gradient(90deg, #e6c200 0%, #c9b037 100%);
+}
