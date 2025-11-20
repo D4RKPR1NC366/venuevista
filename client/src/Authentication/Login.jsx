@@ -71,21 +71,11 @@ const Login = () => {
         return { success: true };
       }
 
-      // For initial login, determine type based on email
-      const email = form.emailOrPhone.toLowerCase();
-      const actualType = email.includes('yahoo.com') ? 'supplier' : 'customer';
-      
-      if (actualType !== type) {
-        // Skip if trying wrong type
-        return { success: false, error: new Error('Invalid credentials') };
-      }
-
       const credentials = {
         email: form.emailOrPhone,
         password: form.password
       };
 
-      console.log('Attempting login as:', type);
       const data = await loginAttempt(`login-${type}`, credentials);
 
       if (data.requireMFA) {
@@ -100,7 +90,6 @@ const Login = () => {
       localStorage.setItem('userEmail', data.user.email);
       return { success: true };
     } catch (error) {
-      console.log('Login failed:', error);
       return { success: false, error };
     }
   };
