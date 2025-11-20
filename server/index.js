@@ -28,6 +28,24 @@ app.use('/api/bookings', bookingsRouter);
 const categoriesRouter = require('./routes/categories');
 app.use('/api/categories', categoriesRouter);
 
+// Create a separate connection for promos database
+const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+promoConnection.on('connected', () => console.log('MongoDB promosDatabase connected!'));
+promoConnection.on('error', err => console.error('MongoDB promosDatabase connection error:', err));
+
+// Load Promo model using the promo connection
+const promoSchema = require('./models/Promo');
+const Promo = promoConnection.model('Promo', promoSchema);
+
+// Make Promo model available to routes
+app.locals.Promo = Promo;
+
+// Register promo routes
+const promosRouter = require('./routes/promos');
+app.use('/api/promos', promosRouter);
 
 // Create a separate connection for schedules/calendar
 const scheduleConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/scheduleCalendar', {
@@ -745,7 +763,8 @@ Promise.all([
   authConnection.asPromise(),
   scheduleConnection.asPromise(),
   bgImageConnection.asPromise(),
-  bookingConnection.asPromise()
+  bookingConnection.asPromise(),
+  promoConnection.asPromise()
 ]).then(() => {
   console.log('All MongoDB connections established');
   app.listen(PORT, () => {
