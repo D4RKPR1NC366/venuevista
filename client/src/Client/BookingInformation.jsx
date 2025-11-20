@@ -14,6 +14,7 @@ const BookingInformation = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +64,7 @@ const BookingInformation = () => {
     setSelectedBooking(booking);
     setReviewRating(0);
     setReviewText('');
+    setIsAnonymous(false);
     setShowReviewModal(true);
   };
 
@@ -70,13 +72,20 @@ const BookingInformation = () => {
     setShowReviewModal(false);
     setReviewRating(0);
     setReviewText('');
+    setIsAnonymous(false);
   };
 
   const handleSubmitReview = async () => {
     if (!reviewRating || !reviewText.trim()) return;
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    // Get user's full name from different possible fields
+    const userName = user.firstName && user.lastName 
+      ? `${user.firstName} ${user.lastName}`.trim()
+      : user.name || user.firstName || user.lastName || 'User';
+    
     const newReview = {
-      name: user.name || 'Anonymous',
+      name: isAnonymous ? 'Anonymous' : userName,
       rating: reviewRating,
       comment: reviewText,
       date: new Date().toISOString().slice(0, 10),
@@ -85,11 +94,13 @@ const BookingInformation = () => {
       bookingId: selectedBooking?._id || null,
       userId: user._id || null
     };
+    
     try {
       await api.post('/reviews', newReview);
       setShowReviewModal(false);
       setReviewRating(0);
       setReviewText('');
+      setIsAnonymous(false);
       alert('Thank you for your review!');
     } catch (err) {
       alert('Failed to submit review. Please try again.');
@@ -143,72 +154,11 @@ const BookingInformation = () => {
                           cursor: 'pointer',
                           boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
                         }}
-                        onClick={e => {
-                          e.stopPropagation();
-                          setSelectedBooking(booking);
-                          setShowModal(false); // Ensure booking modal is closed
-                          setReviewRating(0);
-                          setReviewText('');
-                          setShowReviewModal(true);
-                        }}
+                        onClick={e => handleReviewClick(booking, e)}
                       >
                         Write a Review
                       </button>
                     )}
-        {/* Review Modal */}
-        {showReviewModal && (
-          <div style={{
-            position: 'fixed',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 2147483647,
-          }}>
-            <div className="modal-content modal-review-content" style={{boxShadow: '0 2px 10px rgba(0,0,0,0.18)'}}>
-              <button onClick={handleCloseReviewModal} style={{position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 28, cursor: 'pointer'}}>&times;</button>
-              <h2 style={{fontWeight: 800, fontSize: '1.3rem', marginBottom: 18}}>Write a Review</h2>
-              <div style={{marginBottom: 18, display: 'flex', gap: 4}}>
-                {[1,2,3,4,5].map(star => (
-                  <span
-                    key={star}
-                    style={{
-                      fontSize: 32,
-                      color: star <= reviewRating ? '#ffc107' : '#e4e5e9',
-                      cursor: 'pointer',
-                      transition: 'color 0.2s'
-                    }}
-                    onClick={() => setReviewRating(star)}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              <textarea
-                value={reviewText}
-                onChange={e => setReviewText(e.target.value)}
-                placeholder="Share your experience..."
-                rows={4}
-                style={{width: '100%', borderRadius: 6, border: '1px solid #ccc', padding: 10, marginBottom: 18, resize: 'none', background: '#fff'}}
-              />
-              <button
-                style={{
-                  background: '#ffe066',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '8px 24px',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  cursor: reviewRating && reviewText.trim() ? 'pointer' : 'not-allowed',
-                  opacity: reviewRating && reviewText.trim() ? 1 : 0.6
-                }}
-                disabled={!reviewRating || !reviewText.trim()}
-                onClick={handleSubmitReview}
-              >
-                Submit Review
-              </button>
-            </div>
-          </div>
-        )}
                   </div>
                 </div>
               ))
@@ -385,6 +335,147 @@ const BookingInformation = () => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Review Modal */}
+        {showReviewModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 2147483647,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 32,
+              maxWidth: 500,
+              width: '90%',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={handleCloseReviewModal} 
+                style={{
+                  position: 'absolute', 
+                  top: 16, 
+                  right: 16, 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: 28, 
+                  cursor: 'pointer',
+                  color: '#999'
+                }}
+              >
+                &times;
+              </button>
+              
+              <h2 style={{fontWeight: 800, fontSize: '1.5rem', marginBottom: 20, color: '#333'}}>Write a Review</h2>
+              
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>Rating</label>
+                <div style={{display: 'flex', gap: 8}}>
+                  {[1,2,3,4,5].map(star => (
+                    <span
+                      key={star}
+                      style={{
+                        fontSize: 36,
+                        color: star <= reviewRating ? '#ffc107' : '#e4e5e9',
+                        cursor: 'pointer',
+                        transition: 'color 0.2s, transform 0.2s'
+                      }}
+                      onClick={() => setReviewRating(star)}
+                      onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                      onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>Your Review</label>
+                <textarea
+                  value={reviewText}
+                  onChange={e => setReviewText(e.target.value)}
+                  placeholder="Share your experience..."
+                  rows={5}
+                  style={{
+                    width: '100%', 
+                    borderRadius: 8, 
+                    border: '2px solid #e0e0e0', 
+                    padding: 12, 
+                    fontSize: '14px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.2s',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#ffe066'}
+                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                />
+              </div>
+
+              <div style={{marginBottom: 24}}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    style={{
+                      marginRight: 8,
+                      width: 18,
+                      height: 18,
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <span style={{fontSize: '14px', color: '#666'}}>Post as Anonymous</span>
+                </label>
+              </div>
+
+              <button
+                style={{
+                  background: reviewRating && reviewText.trim() ? '#ffe066' : '#e0e0e0',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '12px 32px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: reviewRating && reviewText.trim() ? 'pointer' : 'not-allowed',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  color: '#333'
+                }}
+                disabled={!reviewRating || !reviewText.trim()}
+                onClick={handleSubmitReview}
+                onMouseEnter={(e) => {
+                  if (reviewRating && reviewText.trim()) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(255,224,102,0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                Submit Review
+              </button>
             </div>
           </div>
         )}
