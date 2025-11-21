@@ -216,8 +216,8 @@ export default function MFASettings() {
       </Box>
 
       <Dialog 
-        open={emailVerifyModalOpen} 
-        onClose={() => setEmailVerifyModalOpen(false)}
+        open={dialogOpen} 
+        onClose={() => setDialogOpen(false)}
         scroll="paper"
         PaperProps={{
           sx: {
