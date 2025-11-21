@@ -241,9 +241,29 @@ const Login = () => {
       </Box>
 
       {/* MFA Dialog */}
-      <Dialog open={showMFADialog} onClose={() => setShowMFADialog(false)}>
+      <Dialog 
+        open={showMFADialog} 
+        onClose={() => setShowMFADialog(false)}
+        scroll="paper"
+        PaperProps={{
+          sx: {
+            maxHeight: '90vh',
+            margin: '16px',
+            '@media (max-width: 768px)': {
+              margin: '8px',
+              maxHeight: '95vh',
+              width: 'calc(100vw - 16px)'
+            },
+            '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+              margin: '4px',
+              maxHeight: '85vh',
+              width: 'calc(100vw - 8px)'
+            }
+          }
+        }}
+      >
         <DialogTitle>Two-Factor Authentication Required</DialogTitle>
-        <DialogContent>
+        <DialogContent dividers>
           <Typography variant="body1" sx={{ mb: 2 }}>
             Please enter the verification code sent to your email.
           </Typography>

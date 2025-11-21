@@ -14,7 +14,7 @@ import { useLocation } from 'react-router-dom';
 import TopBar from './TopBar';
 
 
-const API_BASE = 'http://localhost:5051/api';
+const API_BASE = '/api';
 
 const CART_LOCAL_KEY = 'gd_event_cart';
 
@@ -206,9 +206,29 @@ export default function PnSDetails() {
             ))}
             <ProductDetailsModal open={modalOpen} onClose={() => setModalOpen(false)} product={selectedProduct} />
             {/* Additionals Modal */}
-            <Dialog open={additionalsOpen} onClose={() => setAdditionalsOpen(false)}>
+            <Dialog 
+              open={additionalsOpen} 
+              onClose={() => setAdditionalsOpen(false)}
+              scroll="paper"
+              PaperProps={{
+                sx: {
+                  maxHeight: '90vh',
+                  margin: '16px',
+                  '@media (max-width: 768px)': {
+                    margin: '8px',
+                    maxHeight: '95vh',
+                    width: 'calc(100vw - 16px)'
+                  },
+                  '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+                    margin: '4px',
+                    maxHeight: '85vh',
+                    width: 'calc(100vw - 8px)'
+                  }
+                }
+              }}
+            >
               <DialogTitle>Add Additionals?</DialogTitle>
-              <DialogContent>
+              <DialogContent dividers>
                 {additionalsList.length === 0 ? (
                   <div style={{ color: '#888', fontSize: 16 }}>No additionals available for this product.</div>
                 ) : (

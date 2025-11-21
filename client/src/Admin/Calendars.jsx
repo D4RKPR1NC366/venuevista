@@ -22,7 +22,7 @@ function Modal({ open, onClose, children }) {
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
       background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
     }}>
-      <div style={{ background: '#fff', borderRadius: 10, padding: 32, minWidth: 350, boxShadow: '0 2px 16px rgba(0,0,0,0.18)', position: 'relative' }}>
+      <div className="calendars-modal-content" style={{ background: '#fff', borderRadius: 10, padding: 32, minWidth: 350, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 2px 16px rgba(0,0,0,0.18)', position: 'relative' }}>
         <button
           onClick={onClose}
           style={{

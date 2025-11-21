@@ -383,7 +383,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
 
       console.log('Saving booking:', dataToSave);
 
-      const response = await fetch(`http://localhost:5051/api/bookings/${bookingId}`, {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -447,7 +447,24 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       PaperComponent={Paper}
       maxWidth={false}
       fullWidth={false}
+      scroll="paper"
       className="booking-description-modal"
+      PaperProps={{
+        sx: {
+          maxHeight: '90vh',
+          margin: '16px',
+          '@media (max-width: 768px)': {
+            margin: '8px',
+            maxHeight: '95vh',
+            width: 'calc(100vw - 16px)'
+          },
+          '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+            margin: '4px',
+            maxHeight: '85vh',
+            width: 'calc(100vw - 8px)'
+          }
+        }
+      }}
     >
       <DialogTitle sx={{ m: 0, pt: 2, pb: 2, pl: 4, pr: 2, fontWeight: 800, fontSize: 26, letterSpacing: 1, color: '#222', textAlign: 'left', position: 'relative' }}>
         Booking Details
@@ -459,7 +476,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent>
+      <DialogContent dividers>
   <div style={{ padding: 32, background: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)', borderRadius: 24, minWidth: 900 }}>
           {/* Booker & Event Info */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 48, marginBottom: 40, background: '#fedb71', borderRadius: 18, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: 32, minWidth: 800 }}>
@@ -881,18 +898,35 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   <Dialog
                     open={showPaymentModal}
                     onClose={() => setShowPaymentModal(false)}
+                    scroll="paper"
                     PaperProps={{
                       style: {
                         borderRadius: 16,
                         padding: 24,
                         minWidth: 400
+                      },
+                      sx: {
+                        maxHeight: '90vh',
+                        margin: '16px',
+                        '@media (max-width: 768px)': {
+                          margin: '8px',
+                          maxHeight: '95vh',
+                          width: 'calc(100vw - 16px)',
+                          minWidth: 'unset'
+                        },
+                        '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+                          margin: '4px',
+                          maxHeight: '85vh',
+                          width: 'calc(100vw - 8px)',
+                          minWidth: 'unset'
+                        }
                       }
                     }}
                   >
                     <DialogTitle sx={{ pb: 2, fontWeight: 800, fontSize: 24, color: '#222' }}>
                       Payment Details
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent dividers>
                       <div style={{ marginBottom: 24 }}>
                         <div style={{ fontWeight: 700, marginBottom: 8 }}>Mode of Payment</div>
                         <select
@@ -1020,11 +1054,28 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                 <Dialog
                   open={showPaymentDetailsModal}
                   onClose={() => setShowPaymentDetailsModal(false)}
+                  scroll="paper"
                   PaperProps={{
                     style: {
                       borderRadius: 16,
                       padding: 24,
                       minWidth: 500
+                    },
+                    sx: {
+                      maxHeight: '90vh',
+                      margin: '16px',
+                      '@media (max-width: 768px)': {
+                        margin: '8px',
+                        maxHeight: '95vh',
+                        width: 'calc(100vw - 16px)',
+                        minWidth: 'unset'
+                      },
+                      '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+                        margin: '4px',
+                        maxHeight: '85vh',
+                        width: 'calc(100vw - 8px)',
+                        minWidth: 'unset'
+                      }
                     }
                   }}
                 >
@@ -1038,7 +1089,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                       <CloseIcon />
                     </IconButton>
                   </DialogTitle>
-                  <DialogContent>
+                  <DialogContent dividers>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 16 }}>
                       {/* Payment Status */}
                       <div>

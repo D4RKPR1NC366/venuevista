@@ -8,6 +8,12 @@
   
 }
 
+@media (max-width: 900px) {
+  .admin-dashboard-layout {
+    flex-direction: column !important;
+  }
+}
+
 .admin-dashboard-main {
   flex: 1;
   margin-left: 270px;
@@ -17,8 +23,15 @@
 
 @media (max-width: 900px) {
   .admin-dashboard-main {
-    margin-left: 0;
-    padding: 18px 6px;
+    margin-left: 0 !important;
+    padding: 20px 16px !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard-main {
+    padding: 16px 12px;
   }
 }
 
@@ -27,6 +40,20 @@
   font-weight: 800;
   color: #222;
   margin-bottom: 18px;
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard-main h2 {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard-main h2 {
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+  }
 }
 
 .admin-dashboard-cards-row {
@@ -39,6 +66,30 @@
   .admin-dashboard-cards-row {
     flex-direction: column;
     gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard-card {
+    padding: 14px 18px;
+  }
+  .admin-dashboard-card-title {
+    font-size: 0.95rem;
+  }
+  .admin-dashboard-card-value {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard-card {
+    padding: 12px 16px;
+  }
+  .admin-dashboard-card-title {
+    font-size: 0.9rem;
+  }
+  .admin-dashboard-card-value {
+    font-size: 1.2rem;
   }
 }
 

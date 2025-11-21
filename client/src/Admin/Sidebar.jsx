@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './sidebar.css';
 // MUI icons
@@ -14,6 +14,8 @@ import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
 import DiscountIcon from '@mui/icons-material/Discount';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 
 const navItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon fontSize="small" /> },
@@ -31,6 +33,8 @@ const navItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  
   const handleLogout = () => {
     // Clear all auth data
     localStorage.removeItem('user');
@@ -38,14 +42,28 @@ export default function Sidebar() {
     localStorage.removeItem('userEmail');
     window.location.href = '/login';
   };
+  
   return (
-    <aside className="admin-sidebar">
-      <div className="admin-sidebar-title">GOLDUST CREATIONS</div>
-      <nav>
+    <aside className={`admin-sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+      <div className="admin-sidebar-header-mobile">
+        <div className="admin-sidebar-title">GOLDUST CREATIONS</div>
+        <button 
+          className="sidebar-toggle-mobile" 
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+        >
+          {isOpen ? <CloseIcon /> : <MenuIcon />}
+        </button>
+      </div>
+      <nav className={`admin-sidebar-nav ${isOpen ? 'nav-visible' : 'nav-hidden'}`}>
         <ul>
           {navItems.map(item => (
             <li key={item.path} className={location.pathname === item.path ? 'active' : ''}>
-              <Link to={item.path} className="sidebar-link">
+              <Link 
+                to={item.path} 
+                className="sidebar-link"
+                onClick={() => setIsOpen(false)}
+              >
                 <span className="sidebar-icon">{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
@@ -53,7 +71,10 @@ export default function Sidebar() {
           ))}
         </ul>
       </nav>
-      <button className="admin-logout-btn" onClick={handleLogout}>
+      <button 
+        className={`admin-logout-btn ${isOpen ? 'logout-visible' : 'logout-hidden'}`} 
+        onClick={handleLogout}
+      >
         <span className="sidebar-icon"><LogoutIcon fontSize="small" /></span>
         <span>Log Out</span>
       </button>

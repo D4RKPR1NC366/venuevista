@@ -106,6 +106,14 @@
   gap: 32px;
 }
 
+@media (max-width: 900px) {
+  .admin-products-root {
+    flex-direction: column !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+}
+
 .admin-products-sidebar {
   width: 220px;
   background: #f2f2f2;
@@ -126,8 +134,9 @@
 
 @media (max-width: 900px) {
   .admin-products-main {
-    margin-left: 0;
-    padding: 18px 6px;
+    margin-left: 0 !important;
+    padding: 18px 12px !important;
+    width: 100% !important;
   }
 }
 
@@ -214,4 +223,72 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .admin-products-root {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .admin-products-main {
+    margin-left: 0;
+    padding: 16px;
+  }
+
+  .admin-products-title {
+    font-size: 1.5rem;
+  }
+
+  .redesign-category-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .redesign-category-card {
+    min-width: unset;
+    max-width: 100%;
+    width: 100%;
+    padding: 20px;
+  }
+
+  .redesign-category-card-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .admin-modal {
+    min-width: unset;
+    width: calc(100% - 32px);
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-products-title {
+    font-size: 1.25rem;
+  }
+
+  .admin-add-btn {
+    font-size: 0.9rem;
+    padding: 8px 16px;
+  }
+
+  .redesign-category-card {
+    padding: 16px;
+  }
+
+  .redesign-category-card-title {
+    font-size: 1rem;
+  }
+
+  .redesign-category-card-fields {
+    font-size: 0.85rem;
+  }
+
+  .redesign-category-card-btn {
+    padding: 6px 16px;
+    font-size: 0.9rem;
+  }
 }

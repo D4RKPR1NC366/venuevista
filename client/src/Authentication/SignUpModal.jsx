@@ -40,10 +40,27 @@ const SignUpModal = ({ open, onClose, onSelect }) => {
       onClose={handleClose}
       maxWidth={false}
       fullWidth={false}
+      scroll="paper"
       className="custom-signup-modal"
+      PaperProps={{
+        sx: {
+          maxHeight: '90vh',
+          margin: '16px',
+          '@media (max-width: 768px)': {
+            margin: '8px',
+            maxHeight: '95vh',
+            width: 'calc(100vw - 16px)'
+          },
+          '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+            margin: '4px',
+            maxHeight: '85vh',
+            width: 'calc(100vw - 8px)'
+          }
+        }
+      }}
     >
       <DialogTitle className="signup-modal-title">Choose Account Type</DialogTitle>
-      <DialogContent>
+      <DialogContent dividers>
         <Box className="signup-modal-options">
           {options.map(opt => (
             <Box

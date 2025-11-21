@@ -57,7 +57,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Fetch urgent reminders (schedules due today or tomorrow)
-    fetch('http://localhost:5051/api/schedules')
+    fetch('/api/schedules')
       .then(res => res.json())
       .then(data => {
         const today = new Date();
@@ -76,7 +76,7 @@ export default function Dashboard() {
       })
       .catch(() => setUrgentReminders(0));
     // Fetch revenue data (monthly, filtered)
-    fetch(`http://localhost:5051/api/revenue?filter=${filter}`)
+    fetch(`/api/revenue?filter=${filter}`)
       .then(res => res.json())
       .then(data => {
         // Ensure data is an array
@@ -92,7 +92,7 @@ export default function Dashboard() {
         setRevenueData([]);
       });
     // Fetch pending events
-    fetch('http://localhost:5051/api/bookings/pending')
+    fetch('/api/bookings/pending')
       .then(res => res.json())
       .then(data => {
         const startDate = getStartDate(filter);
@@ -106,7 +106,7 @@ export default function Dashboard() {
       .catch(() => setPendingEvents(0));
 
     // Fetch approved bookings
-    fetch('http://localhost:5051/api/bookings/approved')
+    fetch('/api/bookings/approved')
       .then(res => res.json())
       .then(data => {
         const startDate = getStartDate(filter);
@@ -120,7 +120,7 @@ export default function Dashboard() {
       .catch(() => setApprovedBookings(0));
 
     // Fetch finished bookings
-    fetch('http://localhost:5051/api/bookings/finished')
+    fetch('/api/bookings/finished')
       .then(res => res.json())
       .then(data => {
         const startDate = getStartDate(filter);
@@ -134,7 +134,7 @@ export default function Dashboard() {
       .catch(() => setFinishedBookings(0));
 
     // Fetch total customers (filtered by date)
-    fetch('http://localhost:5051/api/customers')
+    fetch('/api/customers')
       .then(res => res.json())
       .then(data => {
         const startDate = getStartDate(filter);
@@ -148,7 +148,7 @@ export default function Dashboard() {
       .catch(() => setTotalCustomers(0));
 
     // Fetch total suppliers (filtered by date)
-    fetch('http://localhost:5051/api/suppliers')
+    fetch('/api/suppliers')
       .then(res => res.json())
       .then(data => {
         const startDate = getStartDate(filter);

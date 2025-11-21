@@ -64,9 +64,9 @@ export default function AdminBooking() {
   const fetchBookings = async () => {
     try {
       const [pendingRes, approvedRes, finishedRes] = await Promise.all([
-        fetch('http://localhost:5051/api/bookings/pending'),
-        fetch('http://localhost:5051/api/bookings/approved'),
-        fetch('http://localhost:5051/api/bookings/finished'),
+        fetch('/api/bookings/pending'),
+        fetch('/api/bookings/approved'),
+        fetch('/api/bookings/finished'),
       ]);
       const [pending, approved, finished] = await Promise.all([
         pendingRes.json(),
@@ -94,11 +94,11 @@ export default function AdminBooking() {
     let endpoint = '';
     if (!booking) return;
     if (booking.status === 'pending') {
-      endpoint = `http://localhost:5051/api/bookings/pending/${id}`;
+      endpoint = `/api/bookings/pending/${id}`;
     } else if (booking.status === 'approved') {
-      endpoint = `http://localhost:5051/api/bookings/approved/${id}`;
+      endpoint = `/api/bookings/approved/${id}`;
     } else if (booking.status === 'finished') {
-      endpoint = `http://localhost:5051/api/bookings/finished/${id}`;
+      endpoint = `/api/bookings/finished/${id}`;
     }
     try {
       await fetch(endpoint, { method: 'DELETE' });
@@ -118,7 +118,7 @@ export default function AdminBooking() {
     const booking = approveModal.booking;
     try {
       // 1. Add to approved bookings in backend
-      await fetch('http://localhost:5051/api/bookings/approved', {
+      await fetch('/api/bookings/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -129,7 +129,7 @@ export default function AdminBooking() {
         })
       });
       // 2. Remove from pending bookings in backend
-      await fetch(`http://localhost:5051/api/bookings/pending/${booking._id}`, {
+      await fetch(`/api/bookings/pending/${booking._id}`, {
         method: 'DELETE'
       });
       // 3. Update frontend state
@@ -184,13 +184,13 @@ export default function AdminBooking() {
   const handleDoneBooking = async (booking) => {
     try {
       // 1. Add to finished bookings in backend
-      await fetch('http://localhost:5051/api/bookings/finished', {
+      await fetch('/api/bookings/finished', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...booking, status: 'finished' })
       });
       // 2. Remove from approved bookings in backend
-      await fetch(`http://localhost:5051/api/bookings/approved/${booking._id}`, {
+      await fetch(`/api/bookings/approved/${booking._id}`, {
         method: 'DELETE'
       });
       // 3. Update frontend state
@@ -367,7 +367,7 @@ export default function AdminBooking() {
               if (selectedBooking) {
                 setTimeout(async () => {
                   try {
-                    const response = await fetch(`http://localhost:5051/api/bookings/${selectedBooking._id}`);
+                    const response = await fetch(`/api/bookings/${selectedBooking._id}`);
                     if (response.ok) {
                       const updated = await response.json();
                       setSelectedBooking(updated);

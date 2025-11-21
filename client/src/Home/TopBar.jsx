@@ -6,7 +6,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { Link } from 'react-router-dom';
 
 
-const API_BASE = 'http://localhost:5051/api';
+const API_BASE = '/api';
 
 const TopBar = () => {
   const [expanded, setExpanded] = useState(true);

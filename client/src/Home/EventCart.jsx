@@ -4,7 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TopBar from './TopBar';
 import './EventCart.css';
 
-const API_BASE = 'http://localhost:5051/api';
+const API_BASE = '/api';
 
 const EventCart = () => {
   const [cart, setCart] = useState([]);

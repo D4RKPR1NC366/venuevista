@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import './backgroundgallery.css';
 
-const API_URL = 'http://localhost:5051/api/background-images';
+const API_URL = '/api/background-images';
 
 const BackgroundGallery = () => {
   const [images, setImages] = useState([]);

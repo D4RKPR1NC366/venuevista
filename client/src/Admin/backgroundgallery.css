@@ -8,3 +8,22 @@
   color: #333;
   margin-bottom: 1rem;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .background-gallery {
+    padding: 16px;
+  }
+  .background-gallery h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .background-gallery {
+    padding: 12px;
+  }
+  .background-gallery h2 {
+    font-size: 1.3rem;
+  }
+}

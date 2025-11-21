@@ -13,7 +13,7 @@ export default function Suppliers() {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const res = await fetch('http://localhost:5051/api/suppliers');
+        const res = await fetch('/api/suppliers');
         if (!res.ok) throw new Error('Failed to fetch suppliers');
         const data = await res.json();
         setSuppliers(data);

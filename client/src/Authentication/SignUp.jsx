@@ -142,9 +142,9 @@ const SignUp = () => {
       let endpoint = '';
       if (type === "supplier") {
         payload.companyName = form.companyName.trim();
-        endpoint = 'http://localhost:5051/api/auth/register-supplier';
+        endpoint = '/api/auth/register-supplier';
       } else {
-        endpoint = 'http://localhost:5051/api/auth/register-customer';
+        endpoint = '/api/auth/register-customer';
       }
 
       const response = await fetch(endpoint, {

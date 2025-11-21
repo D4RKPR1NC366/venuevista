@@ -95,7 +95,7 @@ const Booking = () => {
       setForm(f => ({ ...f, products: [] }));
       return;
     }
-    fetch(`http://localhost:5051/api/cart?userEmail=${encodeURIComponent(userEmail)}`)
+    fetch(`/api/cart?userEmail=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         // include additionals from cart items along with product

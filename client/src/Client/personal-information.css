@@ -89,3 +89,51 @@
   border-color: #F3C13A !important;
   border-width: 2px !important;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 900px) {
+  .client-main-content {
+    width: 100%;
+    margin: 16px;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .client-main-content {
+    margin: 12px;
+    padding: 20px 16px;
+  }
+  .personal-info-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .personal-info-title {
+    font-size: 1.3rem;
+  }
+  .personal-info-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+  .personal-info-buttons button {
+    width: 100%;
+  }
+  .personal-info-fields {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .client-main-content {
+    margin: 8px;
+    padding: 16px 12px;
+  }
+  .personal-info-title {
+    font-size: 1.2rem;
+  }
+  .personal-info-field {
+    min-width: 100%;
+  }
+}

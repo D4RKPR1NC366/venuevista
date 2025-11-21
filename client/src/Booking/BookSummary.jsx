@@ -169,7 +169,7 @@ const BookSummary = () => {
                     specialRequest: booking.specialRequest || '',
                     outsidePH: booking.outsidePH || '',
                   };
-                  await fetch('http://localhost:5051/api/bookings/pending', {
+                  await fetch('/api/bookings/pending', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bookingToSend)

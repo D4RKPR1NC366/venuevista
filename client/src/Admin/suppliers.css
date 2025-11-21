@@ -3,3 +3,16 @@
   font-family: 'Poppins', 'Segoe UI', sans-serif;
 
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .admin-suppliers-root {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-suppliers-root {
+    padding: 12px;
+  }
+}

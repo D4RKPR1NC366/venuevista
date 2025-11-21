@@ -14,7 +14,7 @@ import SecondProductsAndServices from './SecondProductsAndServices';
 import ProductDetailsModal from '../Home/ProductDetailsModal';
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:5051/api';
+const API_BASE = '/api';
 
 export default function ProductsAndServices() {
   const [categories, setCategories] = useState([]);
@@ -102,18 +102,27 @@ export default function ProductsAndServices() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-  if (!newTitle.trim()) return;
-  const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents };
+    if (!newTitle.trim()) {
+      alert('Please enter a category title');
+      return;
+    }
+    const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents };
     try {
       const res = await fetch(`${API_BASE}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCat),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const saved = await res.json();
       setCategories([...categories, saved]);
-    } catch {}
-    closeModal();
+      closeModal();
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Failed to add category. Please check your connection and try again.');
+    }
   };
 
   const handleEdit = (idx) => {
@@ -227,9 +236,59 @@ export default function ProductsAndServices() {
     <div className="admin-products-root">
       <Sidebar />
       <div className="admin-products-main">
+        <style>{`
+          @media (max-width: 768px) {
+            .admin-products-root {
+              flex-direction: column;
+            }
+            .admin-products-main {
+              padding: 16px !important;
+              margin-left: 0 !important;
+            }
+            .admin-products-title {
+              font-size: 24px !important;
+            }
+            .admin-add-btn {
+              min-width: 100px !important;
+              font-size: 13px !important;
+              height: 36px !important;
+              padding: 0 10px !important;
+            }
+            .redesign-category-list {
+              grid-template-columns: 1fr !important;
+              gap: 20px !important;
+            }
+            .redesign-category-card {
+              width: 100% !important;
+              max-width: 100% !important;
+              min-width: unset !important;
+              margin: 0 0 16px 0 !important;
+            }
+            .admin-pns-card {
+              width: 100% !important;
+              max-width: 100% !important;
+              min-width: unset !important;
+            }
+            .MuiDialog-paper {
+              margin: 8px !important;
+              max-width: calc(100% - 16px) !important;
+              width: calc(100% - 16px) !important;
+            }
+          }
+          @media (max-width: 480px) {
+            .admin-products-title {
+              font-size: 20px !important;
+            }
+            .admin-add-btn {
+              min-width: 80px !important;
+              font-size: 12px !important;
+              height: 32px !important;
+            }
+          }
+        `}</style>
         {!selectedCategory ? (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
               <h2 className="admin-products-title" style={{ margin: 0, fontWeight: 800, fontSize: 34, color: '#232323', letterSpacing: '-1px' }}>Products & Services</h2>
               <button
                 className="admin-add-btn"
@@ -365,10 +424,32 @@ export default function ProductsAndServices() {
                 </div>
               ))}
             </div>
-            <Dialog open={showModal} onClose={closeModal} maxWidth="xs" fullWidth>
+            <Dialog 
+              open={showModal} 
+              onClose={closeModal} 
+              maxWidth="xs" 
+              fullWidth
+              scroll="paper"
+              PaperProps={{
+                sx: {
+                  maxHeight: '90vh',
+                  margin: '16px',
+                  '@media (max-width: 768px)': {
+                    margin: '8px',
+                    maxHeight: '95vh',
+                    width: 'calc(100vw - 16px)'
+                  },
+                  '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+                    margin: '4px',
+                    maxHeight: '85vh',
+                    width: 'calc(100vw - 8px)'
+                  }
+                }
+              }}
+            >
               <DialogTitle>{editIdx !== null ? 'Edit' : 'Add'} Category</DialogTitle>
               <form onSubmit={editIdx !== null ? handleUpdate : handleAdd}>
-                <DialogContent>
+                <DialogContent dividers>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
                     {(editIdx !== null ? editImage : newImage) ? (
                       <img
@@ -435,7 +516,7 @@ export default function ProductsAndServices() {
         ) : (
           selectedCategory.idx === 0 || selectedCategory.idx > 0 ? (
             <div style={{ padding: '0px 48px 0 0px', maxWidth: 1200, margin: '0 auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
                 <h2 style={{ fontWeight: 900, fontSize: 35, margin: 0 }}>
                   {selectedCategory.title}
                 </h2>
@@ -496,11 +577,25 @@ export default function ProductsAndServices() {
                 onClose={() => setShowProductModal(false)} 
                 maxWidth="md" 
                 fullWidth
+                scroll="paper"
                 PaperProps={{
                   sx: {
                     minWidth: '600px',
                     maxWidth: '900px',
-                    margin: '16px'
+                    margin: '16px',
+                    maxHeight: '90vh',
+                    '@media (max-width: 768px)': {
+                      minWidth: 'unset',
+                      margin: '8px',
+                      maxHeight: '95vh',
+                      width: 'calc(100vw - 16px)'
+                    },
+                    '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+                      minWidth: 'unset',
+                      margin: '4px',
+                      maxHeight: '85vh',
+                      width: 'calc(100vw - 8px)'
+                    }
                   }
                 }}
               >
@@ -780,7 +875,7 @@ export default function ProductsAndServices() {
                   <div style={{ color: '#888', textAlign: 'center' }}>No products/services added yet.</div>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'center' }}>
                       {products.map((prod, idx) => (
                         <div
                           key={idx}
@@ -901,13 +996,22 @@ export default function ProductsAndServices() {
                         open={showEditProductModal} 
                         onClose={() => setShowEditProductModal(false)} 
                         maxWidth={false}
+                        scroll="paper"
                         PaperProps={{
                           sx: {
                             width: '90vw',
                             maxWidth: '800px',
                             margin: '16px',
-                            '& .MuiDialogContent-root': {
-                              overflow: 'hidden'
+                            maxHeight: '90vh',
+                            '@media (max-width: 768px)': {
+                              width: 'calc(100vw - 16px)',
+                              margin: '8px',
+                              maxHeight: '95vh'
+                            },
+                            '@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape)': {
+                              width: 'calc(100vw - 8px)',
+                              margin: '4px',
+                              maxHeight: '85vh'
                             }
                           }
                         }}
@@ -942,6 +1046,7 @@ export default function ProductsAndServices() {
                         setShowEditProductModal(false);
                       }}>
                         <DialogContent 
+                          dividers
                           sx={{ 
                             padding: '24px !important',
                             overflowX: 'hidden',

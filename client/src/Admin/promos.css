@@ -238,3 +238,60 @@
 .promo-form button:hover {
   background: linear-gradient(90deg, #e6c200 0%, #c9b037 100%);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 900px) {
+  .promos-content {
+    margin-left: 0 !important;
+    padding: 1.5rem 1rem !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .promos-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .promos-content h1 {
+    font-size: 1.8rem;
+  }
+  .add-promo-btn {
+    width: 100%;
+  }
+  .promo-modal-container {
+    padding: 1.5rem 1.2rem;
+    min-width: unset;
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+  .promo-form {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+  .promo-modal-title {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .promos-content {
+    padding: 1rem 0.75rem;
+  }
+  .promos-content h1 {
+    font-size: 1.5rem;
+  }
+  .promo-modal-container {
+    padding: 1.2rem 1rem;
+  }
+  .promo-form {
+    padding: 1.2rem;
+    gap: 1rem;
+  }
+  .promo-form input,
+  .promo-form select,
+  .promo-form textarea {
+    font-size: 0.95rem;
+  }
+}

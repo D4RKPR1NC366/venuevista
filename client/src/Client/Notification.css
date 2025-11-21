@@ -59,3 +59,50 @@
   font-size: 0.98rem;
   font-weight: 400;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 900px) {
+  .notification-page {
+    margin-left: 0;
+  }
+  .notification-content {
+    margin-left: 0;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .notification-content {
+    padding: 20px 16px;
+  }
+  .notification-content h2 {
+    font-size: 1.4rem;
+  }
+  .notification-list {
+    gap: 16px;
+  }
+  .notification-card {
+    padding: 12px 18px;
+  }
+  .notification-card h4 {
+    font-size: 1rem;
+  }
+  .notification-card p {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-content {
+    padding: 16px 12px;
+  }
+  .notification-content h2 {
+    font-size: 1.3rem;
+  }
+  .notification-list {
+    gap: 12px;
+  }
+  .notification-card {
+    padding: 10px 16px;
+  }
+}

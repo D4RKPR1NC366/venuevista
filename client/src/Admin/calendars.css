@@ -205,3 +205,59 @@ input[type="date"] {
   background: #fff !important;
   color: #111 !important;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .rbc-toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rbc-toolbar-label {
+    font-size: 1.2rem;
+  }
+  .rbc-btn-group {
+    font-size: 0.9rem;
+  }
+  .rbc-header {
+    font-size: 0.85rem;
+  }
+  .custom-datepicker-popper .react-datepicker {
+    font-size: 0.9rem;
+  }
+  .calendars-modal-content {
+    padding: 24px !important;
+    min-width: unset !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: 95vh !important;
+    margin: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .rbc-toolbar-label {
+    font-size: 1rem;
+  }
+  .rbc-btn-group button {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+  .rbc-header {
+    font-size: 0.75rem;
+    padding: 4px;
+  }
+  .rbc-day-bg {
+    min-height: 60px;
+  }
+}
+
+/* Mobile Landscape Orientation */
+@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape) {
+  .calendars-modal-content {
+    padding: 16px !important;
+    max-height: 85vh !important;
+    margin: 4px !important;
+  }
+  .modal-schedule-scroll {
+    max-height: 50vh !important;
+  }
+}
