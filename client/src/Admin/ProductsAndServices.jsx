@@ -809,7 +809,16 @@ export default function ProductsAndServices() {
                           <IconButton
                             aria-label="Delete"
                             size="small"
-                            onClick={e => { e.stopPropagation(); /* delete logic here */ }}
+                            onClick={async e => { 
+                              e.stopPropagation(); 
+                              if (!window.confirm('Delete this product/service?')) return;
+                              try {
+                                await fetch(`${API_BASE}/products/${prod._id}`, { method: 'DELETE' });
+                                setProducts(products.filter((_, i) => i !== idx));
+                              } catch (error) {
+                                console.error('Error deleting product:', error);
+                              }
+                            }}
                             style={{
                               position: 'absolute',
                               top: 8,
