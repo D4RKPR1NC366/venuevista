@@ -52,6 +52,11 @@ const BookSummary = () => {
             <div className="booking-summary-col">
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Guest Count :</span> <span style={{ color: '#111' }}>{booking?.guestCount || ""}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Total Price:</span> <span style={{ color: '#111' }}>{booking?.totalPrice || ""}</span></div>
+              {booking?.promoTitle && (
+                <div style={{ marginBottom: 12, color: '#388e3c', fontWeight: 'bold' }}>
+                  Promo Applied: {booking.promoTitle} ({booking.promoDiscount}% OFF)
+                </div>
+              )}
             </div>
           </div>
           {/* Services and Products Availed */}

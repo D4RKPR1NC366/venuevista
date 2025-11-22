@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import api from '../services/api';
 // PSGC API endpoints
 const PSGC_API = 'https://psgc.gitlab.io/api';
 import { useNavigate } from "react-router-dom";
@@ -39,6 +40,26 @@ const Booking = () => {
   });
 
   const [provinces, setProvinces] = useState([]);
+  const [promos, setPromos] = useState([]);
+  const [selectedPromoId, setSelectedPromoId] = useState('');
+  // Fetch promos on mount
+  useEffect(() => {
+    api.get('/promos')
+      .then(res => setPromos(res.data))
+      .catch(() => setPromos([]));
+  }, []);
+
+  // Filter promos by selected date
+  const getAvailablePromos = () => {
+    if (!form.date) return [];
+    const selectedDate = (typeof form.date === 'string') ? new Date(form.date) : (form.date?.$d ? new Date(form.date.$d) : form.date);
+    if (!selectedDate || isNaN(selectedDate)) return [];
+    return promos.filter(promo => {
+      const from = new Date(promo.validFrom);
+      const to = new Date(promo.validUntil);
+      return from <= selectedDate && to >= selectedDate;
+    });
+  };
   const [cities, setCities] = useState([]);
   const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState({ provinces: false, cities: false, barangays: false });
@@ -113,14 +134,21 @@ const Booking = () => {
 
 
 
-  // Compute total price from products
+  // Compute total price from products and promo
   const computeTotalPrice = () => {
     if (!form.products || !Array.isArray(form.products)) return 0;
-    return form.products.reduce((sum, item) => {
+    let sum = form.products.reduce((sum, item) => {
       const base = Number(item.price) || 0;
       const adds = Array.isArray(item.__cart_additionals) ? item.__cart_additionals.reduce((a, add) => a + (Number(add.price) || 0), 0) : 0;
       return sum + base + adds;
     }, 0);
+    if (selectedPromoId) {
+      const promo = promos.find(p => p._id === selectedPromoId);
+      if (promo && promo.discountValue) {
+        sum = sum - (sum * (promo.discountValue / 100));
+      }
+    }
+    return Math.round(sum);
   };
 
   // Get event venue as a string from selected location
@@ -150,12 +178,16 @@ const Booking = () => {
       // Optionally show a message here
       return;
     }
-    // Add computed totalPrice and eventVenue to booking object
+    // Add computed totalPrice, eventVenue, and promo info to booking object
+    const promo = promos.find(p => p._id === selectedPromoId);
     const booking = {
       ...form,
       totalPrice: computeTotalPrice(),
       eventVenue: getEventVenue(),
       outsidePH: form.outsidePH || '',
+      promoId: promo ? promo._id : '',
+      promoTitle: promo ? promo.title : '',
+      promoDiscount: promo ? promo.discountValue : '',
     };
     navigate('/booking-summary', { state: { booking } });
   };
@@ -283,6 +315,28 @@ const Booking = () => {
                   inputProps={{ min: 1 }}
                 />
               </div>
+            </div>
+            {/* Promo Dropdown */}
+            <div className="booking-field" style={{ marginBottom: 16, width: '100%' }}>
+              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, marginTop: 0, color: !selectedPromoId ? '#000000ff' : '#333' }}>Promo</div>
+              <FormControl fullWidth size="small">
+                <InputLabel id="promo-label">Select Promo</InputLabel>
+                <Select
+                  labelId="promo-label"
+                  label="Select Promo"
+                  value={selectedPromoId}
+                  onChange={e => setSelectedPromoId(e.target.value)}
+                  disabled={!form.date}
+                >
+                  <MenuItem value="">No Promo</MenuItem>
+                  {getAvailablePromos().map(promo => (
+                    <MenuItem key={promo._id} value={promo._id}>{promo.title} ({promo.discountValue}% OFF)</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {!form.date && (
+                <div style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>Select a date to see available promos.</div>
+              )}
             </div>
             <div className="booking-field" style={{ marginBottom: 0 }}>
               <FormControl component="fieldset" fullWidth>
@@ -424,6 +478,11 @@ const Booking = () => {
         >
           Confirm
         </button>
+        {selectedPromoId && (
+          <div style={{ marginLeft: 24, color: '#388e3c', fontWeight: 600, fontSize: 16 }}>
+            Promo Applied: {promos.find(p => p._id === selectedPromoId)?.title} ({promos.find(p => p._id === selectedPromoId)?.discountValue}% OFF)
+          </div>
+        )}
       </div>
     </div>
   );

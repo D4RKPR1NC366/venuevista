@@ -9,6 +9,7 @@ import api from '../services/api';
 import './booking-description.css';
 
 export default function BookingDescription({ open, onClose, booking, onSave }) {
+  const [promos, setPromos] = React.useState([]);
   const [editData, setEditData] = React.useState(booking || {});
   const [isEditing, setIsEditing] = React.useState(false);
   const [provinces, setProvinces] = React.useState([]);
@@ -50,6 +51,13 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       .then(data => setProvinces(data))
       .finally(() => setLoading(l => ({ ...l, provinces: false })))
       .catch(console.error);
+  }, []);
+
+  // Load all promos from the database for the dropdown
+  React.useEffect(() => {
+    api.get('/promos')
+      .then(res => setPromos(res.data))
+      .catch(() => setPromos([]));
   }, []);
 
   // Handle booking data updates - reset everything when booking changes
@@ -519,32 +527,49 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     </select>
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
-                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Discount:</span>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Promo:</span>
                     <select
-                      style={{ 
-                        marginLeft: 8, 
-                        color: '#222', 
-                        fontSize: 15, 
-                        borderRadius: 4, 
-                        border: '1px solid #ccc', 
-                        padding: '2px 8px', 
+                      style={{
+                        marginLeft: 8,
+                        color: '#222',
+                        fontSize: 15,
+                        borderRadius: 4,
+                        border: '1px solid #ccc',
+                        padding: '2px 8px',
                         background: '#fff'
                       }}
-                      value={editData.discountType || ''}
-                      onChange={(e) => {
-                        const discountType = e.target.value;
-                        const totals = calculateTotal(editData.products, null, discountType);
+                      value={editData.promoId || ''}
+                      onChange={e => {
+                        const promoId = e.target.value;
+                        const selectedPromo = promos.find(p => p._id === promoId);
+                        let discountType = '';
+                        let discount = 0;
+                        let totalPrice = 0;
+                        if (selectedPromo) {
+                          discountType = selectedPromo.discountValue?.toString() || '';
+                          const totals = calculateTotal(editData.products, null, discountType);
+                          discount = totals.discount;
+                          totalPrice = totals.finalTotal;
+                        } else {
+                          // If no promo, recalculate with no discount
+                          const totals = calculateTotal(editData.products, null, '');
+                          discount = totals.discount;
+                          totalPrice = totals.finalTotal;
+                        }
                         setEditData(prev => ({
                           ...prev,
+                          promoId,
+                          promoTitle: selectedPromo ? selectedPromo.title : '',
                           discountType,
-                          discount: totals.discount,
-                          totalPrice: totals.finalTotal
+                          discount,
+                          totalPrice
                         }));
                       }}
                     >
-                      <option value="">No Discount</option>
-                      <option value="10">10% Discount</option>
-                      <option value="20">20% Discount</option>
+                      <option value="">No Promo</option>
+                      {promos.map(promo => (
+                        <option key={promo._id} value={promo._id}>{promo.title} ({promo.discountValue}% OFF)</option>
+                      ))}
                     </select>
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
@@ -578,7 +603,14 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Email Address:</span> <span style={{ color: '#222' }}>{editData.email || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Payment Mode:</span> <span style={{ color: '#222' }}>{editData.paymentMode || 'Not set'}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Sub Total:</span> <span style={{ color: '#222' }}>PHP {editData.subTotal || editData.totalPrice || ''}</span></div>
-                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Discount Applied:</span> <span style={{ color: '#222' }}>{editData.discountType ? `${editData.discountType}%` : 'None'}</span></div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Promo:</span>
+                    <span style={{ color: '#222' }}>
+                      {isEditing
+                        ? null
+                        : (editData.promoTitle ? `${editData.promoTitle} (${editData.discountType || 0}% OFF)` : '')}
+                    </span>
+                  </div>
                   {editData.discount > 0 && (
                     <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Discount Amount:</span> <span style={{ color: '#e53935' }}>- PHP {editData.discount}</span></div>
                   )}
