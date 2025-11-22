@@ -30,13 +30,22 @@ const BookSummary = () => {
   const displayName = booking?.name || fullName || '';
   const displayContact = booking?.contact || user?.contact || user?.phone || '';
   const displayEmail = booking?.email || user?.email || '';
+  // Calculate subtotal and total
+  const subtotal = (booking?.products || []).reduce((sum, item) => {
+    const base = Number(item.price) || 0;
+    const adds = Array.isArray(item.__cart_additionals) ? item.__cart_additionals.reduce((a, add) => a + (Number(add.price) || 0), 0) : 0;
+    return sum + base + adds;
+  }, 0);
+  const promoDiscount = booking?.promoDiscount ? Number(booking.promoDiscount) : 0;
+  const totalWithPromo = subtotal - (subtotal * (promoDiscount / 100));
+
   return (
     <div className="booking-root">
       <TopBar />
       <div className="booking-header">
         <h2>BOOKING SUMMARY</h2>
       </div>
-  <div className="booking-summary-container" style={{ boxShadow: 'none' }}>
+      <div className="booking-summary-container" style={{ boxShadow: 'none' }}>
         <div>
           <div className="booking-summary-row">
             <div className="booking-summary-col">
@@ -51,12 +60,13 @@ const BookSummary = () => {
             </div>
             <div className="booking-summary-col">
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Guest Count :</span> <span style={{ color: '#111' }}>{booking?.guestCount || ""}</span></div>
-              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Total Price:</span> <span style={{ color: '#111' }}>{booking?.totalPrice || ""}</span></div>
+              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Subtotal:</span> <span style={{ color: '#111' }}>PHP {subtotal}</span></div>
               {booking?.promoTitle && (
                 <div style={{ marginBottom: 12, color: '#388e3c', fontWeight: 'bold' }}>
                   Promo Applied: {booking.promoTitle} ({booking.promoDiscount}% OFF)
                 </div>
               )}
+              <div style={{ marginBottom: 12, color: '#111', fontWeight: 'bold' }}>Total Price (after promo): <span style={{ color: '#111', fontWeight: 500 }}>PHP {Math.round(totalWithPromo)}</span></div>
             </div>
           </div>
           {/* Services and Products Availed */}
@@ -169,7 +179,9 @@ const BookSummary = () => {
                       : (typeof booking.date === 'string' ? booking.date : new Date(booking.date).toISOString()),
                     eventVenue: booking.eventVenue || '',
                     guestCount: booking.guestCount || 0,
-                    totalPrice: booking.totalPrice || 0,
+                    subtotal: subtotal,
+                    promoDiscount: promoDiscount,
+                    totalPrice: Math.round(totalWithPromo),
                     products: productsWithAdd,
                     specialRequest: booking.specialRequest || '',
                     outsidePH: booking.outsidePH || '',

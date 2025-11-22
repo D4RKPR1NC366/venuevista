@@ -23,6 +23,7 @@ const bookingBaseSchema = new mongoose.Schema({
     discountType: String,
     discount: { type: Number, default: 0 },
     subTotal: { type: Number, default: 0 },
+    promoDiscount: { type: Number, default: 0 },
     totalPrice: Number,
     // Payment details object
     paymentDetails: {

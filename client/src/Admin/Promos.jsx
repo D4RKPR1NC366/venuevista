@@ -14,16 +14,25 @@ import EditIcon from '@mui/icons-material/Edit';
 
 
 export default function Promos() {
-	const [form, setForm] = useState({
-		title: '',
-		discount: '',
-		description: '',
-		startDate: '',
-		endDate: ''
-	});
-	const [showForm, setShowForm] = useState(false);
-	const [editingPromoId, setEditingPromoId] = useState(null);
-	const [promos, setPromos] = useState([]);
+
+		const [form, setForm] = useState({
+			title: '',
+			discount: '',
+			description: '',
+			startDate: '',
+			endDate: ''
+		});
+		const [showForm, setShowForm] = useState(false);
+		const [editingPromoId, setEditingPromoId] = useState(null);
+		const [promos, setPromos] = useState([]);
+		const [promoFilter, setPromoFilter] = useState('active'); // 'active' or 'inactive'
+	// Helper to check promo status
+	const isPromoActive = (promo) => {
+		const now = dayjs();
+		const start = promo.validFrom ? dayjs(promo.validFrom) : null;
+		const end = promo.validUntil ? dayjs(promo.validUntil) : null;
+		return start && end && now.isAfter(start) && now.isBefore(end.add(1, 'day'));
+	};
 
 
 	useEffect(() => {
@@ -104,124 +113,134 @@ export default function Promos() {
 			setShowForm(true);
 		};
 
-	return (
-		<div className="admin-promos-container">
-			<Sidebar />
-			<div className="promos-content">
-				<div className="promos-header">
-					<h1>Promotions</h1>
-					{!showForm && (
-						<button className="add-promo-btn" onClick={handleAddPromoClick}>
-							Add Promo
-						</button>
-					)}
-				</div>
-				{/* Removed: <p>Manage your current promotions here.</p> */}
-							{showForm && (
-								<div className="promo-modal-overlay">
-									<form className="promo-modal-container promo-form" onSubmit={handleSubmit}>
-										<div className="promo-modal-header">
-											<span className="promo-modal-title">{editingPromoId ? 'Edit Promo' : 'Add Promo'}</span>
-											<button className="promo-modal-close" type="button" onClick={() => { setShowForm(false); setEditingPromoId(null); }}>&times;</button>
-										</div>
-										<label>
-											Promo Title
-											<input
-												type="text"
-												name="title"
-												value={form.title}
-												onChange={handleChange}
-												placeholder="Enter promo title"
-												required
-											/>
-										</label>
-										<label>
-											Discount (%)
-											<input type="number" name="discount" value={form.discount} onChange={handleChange} min="0" max="100" required />
-										</label>
-										<label>
-											Description
-											<textarea name="description" value={form.description} onChange={handleChange} required />
-										</label>
-										<LocalizationProvider dateAdapter={AdapterDayjs}>
-											<label>
-												Start Date
-												<DatePicker
-													value={form.startDate ? dayjs(form.startDate) : null}
-													onChange={value => handleDateChange('startDate', value)}
-													disableOpenPicker={false}
-													slotProps={{ textField: { fullWidth: true, required: true, inputProps: { readOnly: true } } }}
-												/>
-											</label>
-											<label>
-												End Date
-												<DatePicker
-													value={form.endDate ? dayjs(form.endDate) : null}
-													onChange={value => handleDateChange('endDate', value)}
-													disableOpenPicker={false}
-													slotProps={{ textField: { fullWidth: true, required: true, inputProps: { readOnly: true } } }}
-												/>
-											</label>
-										</LocalizationProvider>
-										<button type="submit">
-											{editingPromoId ? 'Update Promotion' : 'Create Promotion'}
-										</button>
-									</form>
-								</div>
-							)}
-
-			{/* Promo Cards List */}
-			<div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '2rem' }}>
-				   {promos.map((promo) => (
-					   <div
-						   key={promo._id}
-						   className="promo-card"
-					   >
-						{/* Edit Icon */}
-						<button
-							style={{
-								position: 'absolute',
-								top: '10px',
-								right: '40px',
-								background: 'transparent',
-								border: 'none',
-								cursor: 'pointer',
-								color: '#fff',
-								padding: 0,
-							}}
-							title="Edit Promo"
-							onClick={() => handleEditPromo(promo)}
-						>
-							<EditIcon />
-						</button>
-						{/* Delete Icon */}
-						<button
-							style={{
-								position: 'absolute',
-								top: '10px',
-								right: '10px',
-								background: 'transparent',
-								border: 'none',
-								cursor: 'pointer',
-								color: '#fff',
-								padding: 0,
-							}}
-							title="Delete Promo"
-							onClick={() => handleDeletePromo(promo._id)}
-						>
-							<DeleteIcon />
-						</button>
-						<div style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: '0.3rem' }}>{promo.title}</div>
-						<div style={{ fontWeight: 500, color: '#fff' }}>{promo.discountValue}% OFF</div>
-						<div style={{ fontSize: '0.98rem', marginBottom: '0.5rem' }}>{promo.description}</div>
-						<div style={{ fontSize: '0.9rem', color: '#555' }}>
-							{promo.validFrom ? `From: ${promo.validFrom.slice(0, 10)}` : ''}<br />
-							{promo.validUntil ? `To: ${promo.validUntil.slice(0, 10)}` : ''}
-						</div>
+		return (
+			<div className="admin-promos-container">
+				<Sidebar />
+				<div className="promos-content">
+					<div className="promos-header">
+						<h1>Promotions</h1>
+						{!showForm && (
+							<button className="add-promo-btn" onClick={handleAddPromoClick}>
+								Add Promo
+							</button>
+						)}
 					</div>
-				))}
+					{/* Promo Filter UI */}
+					<div style={{ margin: '1rem 0' }}>
+						<label style={{ fontWeight: 500, marginRight: '1rem' }}>Show:</label>
+						<select value={promoFilter} onChange={e => setPromoFilter(e.target.value)} style={{ padding: '0.3rem 0.7rem', borderRadius: '5px', background: '#fff', color: '#222' }}>
+							<option value="active">Active Promos</option>
+							<option value="inactive">Inactive Promos</option>
+						</select>
+					</div>
+					{/* Removed: <p>Manage your current promotions here.</p> */}
+					{showForm && (
+						<div className="promo-modal-overlay">
+							<form className="promo-modal-container promo-form" onSubmit={handleSubmit}>
+								<div className="promo-modal-header">
+									<span className="promo-modal-title">{editingPromoId ? 'Edit Promo' : 'Add Promo'}</span>
+									<button className="promo-modal-close" type="button" onClick={() => { setShowForm(false); setEditingPromoId(null); }}>&times;</button>
+								</div>
+								<label>
+									Promo Title
+									<input
+										type="text"
+										name="title"
+										value={form.title}
+										onChange={handleChange}
+										placeholder="Enter promo title"
+										required
+									/>
+								</label>
+								<label>
+									Discount (%)
+									<input type="number" name="discount" value={form.discount} onChange={handleChange} min="0" max="100" required />
+								</label>
+								<label>
+									Description
+									<textarea name="description" value={form.description} onChange={handleChange} required />
+								</label>
+								<LocalizationProvider dateAdapter={AdapterDayjs}>
+									<label>
+										Start Date
+										<DatePicker
+											value={form.startDate ? dayjs(form.startDate) : null}
+											onChange={value => handleDateChange('startDate', value)}
+											disableOpenPicker={false}
+											slotProps={{ textField: { fullWidth: true, required: true, inputProps: { readOnly: true } } }}
+										/>
+									</label>
+									<label>
+										End Date
+										<DatePicker
+											value={form.endDate ? dayjs(form.endDate) : null}
+											onChange={value => handleDateChange('endDate', value)}
+											disableOpenPicker={false}
+											slotProps={{ textField: { fullWidth: true, required: true, inputProps: { readOnly: true } } }}
+										/>
+									</label>
+								</LocalizationProvider>
+								<button type="submit">
+									{editingPromoId ? 'Update Promotion' : 'Create Promotion'}
+								</button>
+							</form>
+						</div>
+					)}
+
+					{/* Promo Cards List */}
+					<div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '2rem' }}>
+						{promos
+							.filter(promo => promoFilter === 'active' ? isPromoActive(promo) : !isPromoActive(promo))
+							.map((promo) => (
+								<div
+									key={promo._id}
+									className="promo-card"
+								>
+									{/* Edit Icon */}
+									<button
+										style={{
+											position: 'absolute',
+											top: '10px',
+											right: '40px',
+											background: 'transparent',
+											border: 'none',
+											cursor: 'pointer',
+											color: '#fff',
+											padding: 0,
+										}}
+										title="Edit Promo"
+										onClick={() => handleEditPromo(promo)}
+									>
+										<EditIcon />
+									</button>
+									{/* Delete Icon */}
+									<button
+										style={{
+											position: 'absolute',
+											top: '10px',
+											right: '10px',
+											background: 'transparent',
+											border: 'none',
+											cursor: 'pointer',
+											color: '#fff',
+											padding: 0,
+										}}
+										title="Delete Promo"
+										onClick={() => handleDeletePromo(promo._id)}
+									>
+										<DeleteIcon />
+									</button>
+									<div style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: '0.3rem' }}>{promo.title}</div>
+									<div style={{ fontWeight: 500, color: '#fff' }}>{promo.discountValue}% OFF</div>
+									<div style={{ fontSize: '0.98rem', marginBottom: '0.5rem' }}>{promo.description}</div>
+									<div style={{ fontSize: '0.9rem', color: '#555' }}>
+										{promo.validFrom ? `From: ${promo.validFrom.slice(0, 10)}` : ''}<br />
+										{promo.validUntil ? `To: ${promo.validUntil.slice(0, 10)}` : ''}
+									</div>
+								</div>
+							))}
+					</div>
+				</div>
 			</div>
-			</div>
-		</div>
-	);
+		);
 }

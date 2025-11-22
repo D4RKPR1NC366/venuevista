@@ -42,24 +42,19 @@ const Booking = () => {
   const [provinces, setProvinces] = useState([]);
   const [promos, setPromos] = useState([]);
   const [selectedPromoId, setSelectedPromoId] = useState('');
+  // Helper to check promo status
+  const isPromoActive = (promo) => {
+    const now = dayjs();
+    const start = promo.validFrom ? dayjs(promo.validFrom) : null;
+    const end = promo.validUntil ? dayjs(promo.validUntil) : null;
+    return start && end && now.isAfter(start) && now.isBefore(end.add(1, 'day'));
+  };
   // Fetch promos on mount
   useEffect(() => {
     api.get('/promos')
       .then(res => setPromos(res.data))
       .catch(() => setPromos([]));
   }, []);
-
-  // Filter promos by selected date
-  const getAvailablePromos = () => {
-    if (!form.date) return [];
-    const selectedDate = (typeof form.date === 'string') ? new Date(form.date) : (form.date?.$d ? new Date(form.date.$d) : form.date);
-    if (!selectedDate || isNaN(selectedDate)) return [];
-    return promos.filter(promo => {
-      const from = new Date(promo.validFrom);
-      const to = new Date(promo.validUntil);
-      return from <= selectedDate && to >= selectedDate;
-    });
-  };
   const [cities, setCities] = useState([]);
   const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState({ provinces: false, cities: false, barangays: false });
@@ -317,7 +312,7 @@ const Booking = () => {
               </div>
             </div>
             {/* Promo Dropdown */}
-            <div className="booking-field" style={{ marginBottom: 16, width: '100%' }}>
+            <div className="booking-field" style={{ marginBottom: 16, width: '50%' }}>
               <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, marginTop: 0, color: !selectedPromoId ? '#000000ff' : '#333' }}>Promo</div>
               <FormControl fullWidth size="small">
                 <InputLabel id="promo-label">Select Promo</InputLabel>
@@ -326,17 +321,13 @@ const Booking = () => {
                   label="Select Promo"
                   value={selectedPromoId}
                   onChange={e => setSelectedPromoId(e.target.value)}
-                  disabled={!form.date}
                 >
                   <MenuItem value="">No Promo</MenuItem>
-                  {getAvailablePromos().map(promo => (
+                  {promos.filter(isPromoActive).map(promo => (
                     <MenuItem key={promo._id} value={promo._id}>{promo.title} ({promo.discountValue}% OFF)</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              {!form.date && (
-                <div style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>Select a date to see available promos.</div>
-              )}
             </div>
             <div className="booking-field" style={{ marginBottom: 0 }}>
               <FormControl component="fieldset" fullWidth>
