@@ -161,8 +161,8 @@ export default function PnSDetails() {
           transform: translateY(-8px);
         }
       `}</style>
-                {prod.image ? (
-                  <img src={prod.image} alt={prod.title} style={{
+                {(prod.images?.[0] || prod.image) ? (
+                  <img src={prod.images?.[0] || prod.image} alt={prod.title} style={{
                     display: 'block',
                     width: '100%',
                     height: 220,

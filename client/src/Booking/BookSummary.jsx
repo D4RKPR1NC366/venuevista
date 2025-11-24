@@ -86,7 +86,7 @@ const BookSummary = () => {
                     gap: 16
                   }}>
                     {item.image && (
-                      <img src={item.image} alt={item.title} style={{ width: 60, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+                      <img src={item.images?.[0] || item.image} alt={item.title} style={{ width: 60, height: 48, objectFit: 'cover', borderRadius: 4 }} />
                     )}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600 }}>{item.title}</div>

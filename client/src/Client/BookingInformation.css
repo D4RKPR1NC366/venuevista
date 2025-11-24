@@ -138,6 +138,11 @@
     width: 100% !important;
   }
   
+  .booking-content h2 {
+    font-size: 1.5rem !important;
+  }
+}
+  
   /* Modal overlay - position below mobile header */
   .booking-modal-content {
     padding: 16px !important;
@@ -181,6 +186,10 @@
 @media (max-width: 768px) {
   .booking-content {
     padding: 20px 16px !important;
+  }
+  
+  .booking-content h2 {
+    font-size: 1.4rem !important;
   }
   
   .booking-details,

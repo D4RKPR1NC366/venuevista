@@ -565,7 +565,17 @@ export default function ProductsAndServices() {
                       justifyContent: 'center',
                       transition: 'background 0.2s',
                     }}
-                    onClick={() => setShowProductModal(true)}
+                    onClick={() => {
+                      // Reset form when opening
+                      setProductImages([]);
+                      setCurrentImageIndex(0);
+                      setProductTitle("");
+                      setProductDescription("");
+                      setProductPrice("");
+                      setAdditionals([{ description: '', price: '' }]);
+                      setShowAdditionals(false);
+                      setShowProductModal(true);
+                    }}
                   >
                     Add Product/Service
                   </button>
@@ -574,7 +584,17 @@ export default function ProductsAndServices() {
               {/* Product/Service Modal */}
               <Dialog 
                 open={showProductModal} 
-                onClose={() => setShowProductModal(false)} 
+                onClose={() => {
+                  // Reset form when closing via backdrop/escape
+                  setProductImages([]);
+                  setCurrentImageIndex(0);
+                  setProductTitle("");
+                  setProductDescription("");
+                  setProductPrice("");
+                  setAdditionals([{ description: '', price: '' }]);
+                  setShowAdditionals(false);
+                  setShowProductModal(false);
+                }} 
                 maxWidth="md" 
                 fullWidth
                 scroll="paper"
@@ -621,6 +641,8 @@ export default function ProductsAndServices() {
                     setProducts(prev => [...prev, saved]);
                   } catch {}
                   setShowProductModal(false);
+                  setProductImages([]);
+                  setCurrentImageIndex(0);
                   setProductImage("");
                   setProductTitle("");
                   setProductDescription("");
@@ -864,7 +886,17 @@ export default function ProductsAndServices() {
                     )}
                   </DialogContent>
                   <DialogActions>
-                    <Button onClick={() => setShowProductModal(false)} color="secondary">Cancel</Button>
+                    <Button onClick={() => {
+                      // Reset form when canceling
+                      setProductImages([]);
+                      setCurrentImageIndex(0);
+                      setProductTitle("");
+                      setProductDescription("");
+                      setProductPrice("");
+                      setAdditionals([{ description: '', price: '' }]);
+                      setShowAdditionals(false);
+                      setShowProductModal(false);
+                    }} color="secondary">Cancel</Button>
                     <Button type="submit" variant="contained">Add</Button>
                   </DialogActions>
                 </form>

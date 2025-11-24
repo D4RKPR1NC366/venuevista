@@ -65,24 +65,32 @@
   .notification-page {
     margin-left: 0 !important;
     display: block !important;
+    min-height: 100vh !important;
   }
   .notification-content {
     margin-left: 0 !important;
     margin-top: 80px !important;
-    padding: 24px 20px !important;
+    padding: 24px 20px 100px 20px !important;
     width: 100% !important;
+    min-height: calc(100vh - 80px) !important;
+  }
+  
+  .notification-list {
+    padding-bottom: 60px;
   }
 }
 
 @media (max-width: 768px) {
   .notification-content {
-    padding: 20px 16px;
+    padding: 20px 16px 80px 16px !important;
+    min-height: calc(100vh - 80px) !important;
   }
   .notification-content h2 {
     font-size: 1.4rem;
   }
   .notification-list {
     gap: 16px;
+    padding-bottom: 50px;
   }
   .notification-card {
     padding: 12px 18px;
@@ -97,15 +105,28 @@
 
 @media (max-width: 480px) {
   .notification-content {
-    padding: 16px 12px;
+    padding: 16px 12px 80px 12px !important;
+    min-height: calc(100vh - 80px) !important;
   }
   .notification-content h2 {
     font-size: 1.3rem;
   }
   .notification-list {
     gap: 12px;
+    padding-bottom: 50px;
   }
   .notification-card {
     padding: 10px 16px;
+  }
+}
+
+/* Landscape mode */
+@media (max-width: 900px) and (orientation: landscape) {
+  .notification-content {
+    padding: 20px 20px 60px 20px !important;
+  }
+  
+  .notification-list {
+    padding-bottom: 40px;
   }
 }

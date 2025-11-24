@@ -192,8 +192,25 @@ export default function MFASettings() {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, border: '1px solid #eee', borderRadius: 1 }}>
-        <Box>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          p: 2, 
+          border: '1px solid #eee', 
+          borderRadius: 1,
+          cursor: 'pointer',
+          userSelect: 'none',
+          WebkitTapHighlightColor: 'transparent',
+          '@media (max-width: 768px)': {
+            minHeight: 72,
+            p: 3
+          }
+        }}
+        onClick={handleToggleMFA}
+      >
+        <Box sx={{ flex: 1, pr: 2 }}>
           <Typography variant="body1" sx={{ fontWeight: 500 }}>
             Enable Two-Factor Authentication
           </Typography>
@@ -202,9 +219,21 @@ export default function MFASettings() {
           </Typography>
         </Box>
         <Switch
-          checked={mfaEnabled || false}  // Ensure it's always a boolean
-          onChange={handleToggleMFA}
+          checked={mfaEnabled || false}
+          onChange={(e) => {
+            e.stopPropagation();
+            handleToggleMFA();
+          }}
+          onClick={(e) => e.stopPropagation()}
           sx={{
+            flexShrink: 0,
+            '@media (max-width: 768px)': {
+              transform: 'scale(1.2)',
+              ml: 1
+            },
+            '& .MuiSwitch-switchBase': {
+              padding: '9px'
+            },
             '& .MuiSwitch-switchBase.Mui-checked': {
               color: '#F7C04A'
             },

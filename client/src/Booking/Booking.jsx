@@ -193,7 +193,7 @@ const Booking = () => {
       <div className="booking-header">
         <h2>BOOK NOW</h2>
       </div>
-      <div className="booking-center-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', width: '100%' }}>
+      <div className="booking-center-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
         <div className="booking-main-row" style={{ display: 'flex', gap: 0, maxWidth: 1050, width: '100%', justifyContent: 'center', marginBottom: 32 }}>
           <div className="booking-calendar-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'stretch', height: 340 }}>
             <h3 style={{ color: '#111', fontWeight: 700, textAlign: 'left', marginLeft: 0, marginBottom: 8 }}>Choose your event date</h3>
@@ -393,8 +393,8 @@ const Booking = () => {
                     alignItems: 'center',
                     gap: 16
                   }}>
-                    {item.image && (
-                      <img src={item.image} alt={item.title} style={{ width: 60, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+                    {(item.images?.[0] || item.image) && (
+                      <img src={item.images?.[0] || item.image} alt={item.title} style={{ width: 60, height: 48, objectFit: 'cover', borderRadius: 4 }} />
                     )}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600 }}>{item.title}</div>

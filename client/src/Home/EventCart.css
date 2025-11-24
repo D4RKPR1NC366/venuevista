@@ -153,6 +153,21 @@
 }
 
 @media (max-width: 900px) {
+  .event-cart-root {
+    padding: 20px 16px;
+    margin-top: 80px;
+  }
+  
+  .event-cart-main {
+    flex-direction: column;
+    margin-right: 0;
+    gap: 20px;
+  }
+  
+  .event-cart-items {
+    gap: 16px;
+  }
+  
   .event-cart-summary {
     position: static;
     top: unset;
@@ -161,36 +176,90 @@
     min-width: unset;
     max-width: unset;
     min-height: unset;
-    margin-top: 2vw;
-    padding: 3vw 2vw;
+    margin-top: 0;
+    padding: 24px 20px;
+  }
+  
+  .event-cart-item {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .event-cart-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .event-cart-root {
-    padding: 2vw 1vw;
+    padding: 16px 12px;
   }
-  .event-cart-main {
-    margin-right: 0;
-  }
+  
   .event-cart-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2vw;
-    padding: 2vw 1vw; /* Less vertical padding for smaller height */
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
   }
+  
   .event-cart-item img {
-    width: 100%;
-    min-width: 0;
-    max-width: 100vw;
-    height: 24vw;
-    min-height: 60px;
-    max-height: 140px;
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    height: 64px;
+    min-height: 64px;
+    max-height: 64px;
+    flex-shrink: 0;
   }
+  
   .event-cart-summary {
-    padding: 3vw 2vw;
+    padding: 20px 16px;
   }
+  
+  .event-cart-summary-list {
+    max-height: none;
+    padding-right: 0;
+  }
+  
   .event-cart-title {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .event-cart-root {
+    padding: 12px 8px;
+  }
+  
+  .event-cart-item {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+  
+  .event-cart-item img {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+    height: 56px;
+    min-height: 56px;
+    max-height: 56px;
+  }
+  
+  .event-cart-summary {
+    padding: 16px 12px;
+  }
+  
+  .event-cart-title {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+  }
+  
+  .event-cart-item-title {
+    font-size: 0.95rem;
+  }
+  
+  .event-cart-item-price {
+    font-size: 0.85rem;
   }
 }
