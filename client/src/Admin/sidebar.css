@@ -72,14 +72,29 @@
     background-position: 0% 100%;
   }
 }
+/* Desktop header */
+.admin-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 30px;
+  padding: 0 30px;
+}
+
 .admin-sidebar-title {
   font-family: 'Poppins', 'Segoe UI', sans-serif;
   font-weight: 800;
   font-size: 1.2rem;
-
-margin: 0px 0px 30px 30px;
   letter-spacing: 0.5px;
+  display: block;
 }
+
+/* Hide toggle button on desktop */
+.sidebar-toggle-mobile {
+  display: none;
+}
+
 .admin-sidebar nav ul {
   list-style: none;
   padding: 0;
@@ -139,12 +154,13 @@ margin: 0px 0px 30px 30px;
   }
 
   /* Mobile header with title and toggle button */
-  .admin-sidebar-header-mobile {
+  .admin-sidebar-header {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
     width: 100% !important;
     margin-bottom: 0 !important;
+    padding: 0 !important;
   }
 
   .admin-sidebar-title {
@@ -155,8 +171,9 @@ margin: 0px 0px 30px 30px;
     display: block !important;
   }
 
-  /* Toggle button for mobile */
+  /* Show toggle button on mobile */
   .sidebar-toggle-mobile {
+    display: flex !important;
     background: rgba(255, 255, 255, 0.2) !important;
     border: none !important;
     border-radius: 6px !important;

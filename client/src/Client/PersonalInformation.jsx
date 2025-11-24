@@ -502,6 +502,8 @@ const PersonalInformation = () => {
           onClose={() => setShowConfirmationModal(false)}
           onSuccess={() => {
             setShowConfirmationModal(false);
+            // Set flag to indicate navigation from client profile
+            sessionStorage.setItem('fromClientProfile', 'true');
             navigate('/forgot-password');
           }}
           email={user.email}

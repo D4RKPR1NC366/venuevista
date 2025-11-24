@@ -179,7 +179,7 @@ const BookSummary = () => {
                       : (typeof booking.date === 'string' ? booking.date : new Date(booking.date).toISOString()),
                     eventVenue: booking.eventVenue || '',
                     guestCount: booking.guestCount || 0,
-                    subtotal: subtotal,
+                    subTotal: subtotal,
                     promoDiscount: promoDiscount,
                     totalPrice: Math.round(totalWithPromo),
                     products: productsWithAdd,

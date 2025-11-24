@@ -246,6 +246,11 @@ export default function AdminBooking() {
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
                       <div className="booking-card-date">Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
+                      <div className="booking-card-price" style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 14, color: '#666' }}>Sub Total: <span style={{ fontWeight: 600, color: '#222' }}>PHP {booking.subTotal || booking.totalPrice || 0}</span></div>
+                        {booking.discount > 0 && <div style={{ fontSize: 14, color: '#e53935' }}>Discount: <span style={{ fontWeight: 600 }}>- PHP {booking.discount}</span></div>}
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#222', marginTop: 4 }}>Total: PHP {booking.totalPrice || 0}</div>
+                      </div>
                     </div>
                     <div className="booking-card-actions">
                       <button
@@ -298,6 +303,11 @@ export default function AdminBooking() {
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
                       <div className="booking-card-date">Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
+                      <div className="booking-card-price" style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 14, color: '#666' }}>Sub Total: <span style={{ fontWeight: 600, color: '#222' }}>PHP {booking.subTotal || booking.totalPrice || 0}</span></div>
+                        {booking.discount > 0 && <div style={{ fontSize: 14, color: '#e53935' }}>Discount: <span style={{ fontWeight: 600 }}>- PHP {booking.discount}</span></div>}
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#222', marginTop: 4 }}>Total: PHP {booking.totalPrice || 0}</div>
+                      </div>
                     </div>
                     <div className="booking-card-actions">
                       <button
@@ -347,6 +357,11 @@ export default function AdminBooking() {
                       <div style={{ fontWeight: 500, fontSize: 18 }}>{booking.eventType || booking.title}</div>
                       <div style={{ fontSize: 15, marginTop: 2, color: '#444' }}>Booker: {booking.name || 'N/A'}</div>
                       <div style={{ fontSize: 14, marginTop: 4 }}>Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 14, color: '#666' }}>Sub Total: <span style={{ fontWeight: 600, color: '#222' }}>PHP {booking.subTotal || booking.totalPrice || 0}</span></div>
+                        {booking.discount > 0 && <div style={{ fontSize: 14, color: '#e53935' }}>Discount: <span style={{ fontWeight: 600 }}>- PHP {booking.discount}</span></div>}
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#222', marginTop: 4 }}>Total: PHP {booking.totalPrice || 0}</div>
+                      </div>
                     </div>
                   </li>
                 ))}

@@ -426,7 +426,13 @@ app.get('/api/bookings/pending', async (req, res) => {
   res.json(bookings);
 });
 app.post('/api/bookings/pending', async (req, res) => {
-  const booking = new PendingBooking(req.body);
+  const bookingData = { ...req.body };
+  // Normalize field names: handle both 'subtotal' and 'subTotal'
+  if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
+    bookingData.subTotal = bookingData.subtotal;
+    delete bookingData.subtotal;
+  }
+  const booking = new PendingBooking(bookingData);
   await booking.save();
   res.status(201).json(booking);
 });
@@ -441,7 +447,13 @@ app.get('/api/bookings/approved', async (req, res) => {
   res.json(bookings);
 });
 app.post('/api/bookings/approved', async (req, res) => {
-  const booking = new ApprovedBooking(req.body);
+  const bookingData = { ...req.body };
+  // Normalize field names: handle both 'subtotal' and 'subTotal'
+  if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
+    bookingData.subTotal = bookingData.subtotal;
+    delete bookingData.subtotal;
+  }
+  const booking = new ApprovedBooking(bookingData);
   await booking.save();
   res.status(201).json(booking);
 });
@@ -456,7 +468,13 @@ app.get('/api/bookings/finished', async (req, res) => {
   res.json(bookings);
 });
 app.post('/api/bookings/finished', async (req, res) => {
-  const booking = new FinishedBooking(req.body);
+  const bookingData = { ...req.body };
+  // Normalize field names: handle both 'subtotal' and 'subTotal'
+  if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
+    bookingData.subTotal = bookingData.subtotal;
+    delete bookingData.subtotal;
+  }
+  const booking = new FinishedBooking(bookingData);
   await booking.save();
   res.status(201).json(booking);
 });

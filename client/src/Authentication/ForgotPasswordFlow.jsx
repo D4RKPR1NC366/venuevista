@@ -10,6 +10,9 @@ export default function ForgotPasswordFlow() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  
+  // Check if navigated from client profile page
+  const fromClientProfile = sessionStorage.getItem('fromClientProfile') === 'true';
 
   const handleSubmit = async () => {
     if (!email) {
@@ -64,9 +67,16 @@ export default function ForgotPasswordFlow() {
                   background: 'rgba(247, 192, 74, 0.1)'
                 }
               }}
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                sessionStorage.removeItem('fromClientProfile');
+                if (fromClientProfile) {
+                  navigate("/personal-information");
+                } else {
+                  navigate("/login");
+                }
+              }}
             >
-              Return to Login
+              {fromClientProfile ? "Return to Profile" : "Return to Login"}
             </Button>
           </>
         ) : (
@@ -111,9 +121,16 @@ export default function ForgotPasswordFlow() {
                   background: 'rgba(247, 192, 74, 0.1)'
                 }
               }}
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                sessionStorage.removeItem('fromClientProfile');
+                if (fromClientProfile) {
+                  navigate("/personal-information");
+                } else {
+                  navigate("/login");
+                }
+              }}
             >
-              Return to Login
+              {fromClientProfile ? "Return to Profile" : "Return to Login"}
             </Button>
           </>
         )}
