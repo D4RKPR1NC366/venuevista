@@ -262,6 +262,10 @@
 
 /* Mobile Responsive Styles */
 @media (max-width: 900px) {
+  .admin-promos-container {
+    flex-direction: column !important;
+  }
+  
   .promos-content {
     margin-left: 0 !important;
     padding: 1.5rem 1rem !important;

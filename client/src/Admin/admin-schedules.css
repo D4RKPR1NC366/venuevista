@@ -58,6 +58,10 @@
 
 /* Mobile responsive styles */
 @media (max-width: 900px) {
+  .admin-schedules-layout {
+    flex-direction: column !important;
+  }
+  
   .admin-schedules-page {
     margin-left: 0 !important;
     width: 100% !important;

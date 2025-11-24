@@ -281,12 +281,14 @@
     max-height: 0 !important;
     opacity: 0 !important;
     margin-top: 0 !important;
+    pointer-events: none !important;
   }
 
   /* Hide desktop-only elements on mobile */
   .admin-sidebar:not(.sidebar-open) nav,
   .admin-sidebar:not(.sidebar-open) .admin-logout-btn {
-    display: none;
+    display: none !important;
+    pointer-events: none !important;
   }
 }
 
