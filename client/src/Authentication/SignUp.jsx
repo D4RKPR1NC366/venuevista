@@ -290,7 +290,14 @@ const SignUp = () => {
               <FormGroup className="auth-checkbox-group">
                 <FormControlLabel
                   control={<Checkbox name="agree" checked={form.agree} onChange={handleChange} required />}
-                  label={<span>I agree to the <a href="#">terms & policy</a></span>}
+                  label={
+                    <span>
+                      I agree to the{' '}
+                      <Link to="/policy" target="_blank" rel="noopener noreferrer" style={{ color: '#e6b800', textDecoration: 'underline' }}>
+                        terms & policy
+                      </Link>
+                    </span>
+                  }
                 />
               </FormGroup>
               <Button

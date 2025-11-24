@@ -124,53 +124,77 @@ margin-right: 100px;
 
 @media (max-width: 768px) {
   .topbar {
-    padding: 12px 16px;
-    flex-wrap: wrap;
+    padding: 12px 16px !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
   }
+  
   .topbar.topbar-expanded {
-    height: auto;
-    padding: 24px 16px;
+    height: auto !important;
+    padding: 16px !important;
   }
+  
   .topbar-logo {
-    font-size: 1.2rem;
+    font-size: 1.1rem !important;
+    order: 1 !important;
+    flex: 0 0 auto !important;
   }
-  .topbar-center {
-    gap: 20px;
-    order: 3;
-    width: 100%;
-    margin-top: 12px;
-    justify-content: space-around;
-  }
-  .topbar-link {
-    font-size: 14px;
-  }
-  .topbar-link-sub {
-    font-size: 0.7rem;
-  }
+  
   .topbar-right {
-    margin-right: 0;
-    order: 2;
+    margin-right: 0 !important;
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    gap: 20px !important;
+  }
+  
+  .topbar-center {
+    gap: 16px !important;
+    order: 3 !important;
+    width: 100% !important;
+    margin-top: 12px !important;
+    justify-content: space-around !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .topbar-link {
+    font-size: 13px !important;
+    white-space: nowrap !important;
+  }
+  
+  .topbar-link-sub {
+    display: none !important;
+  }
+  
+  .topbar-link-group {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
 }
 
 @media (max-width: 480px) {
   .topbar {
-    padding: 10px 12px;
+    padding: 10px 12px !important;
   }
+  
   .topbar.topbar-expanded {
-    padding: 20px 12px;
+    padding: 14px 12px !important;
   }
+  
   .topbar-logo {
-    font-size: 1rem;
+    font-size: 0.95rem !important;
   }
+  
   .topbar-center {
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 8px !important;
+    font-size: 11px !important;
   }
+  
   .topbar-link {
-    font-size: 12px;
+    font-size: 11px !important;
   }
-  .topbar-link-sub {
-    display: none;
+  
+  .topbar-right {
+    gap: 16px !important;
   }
 }
