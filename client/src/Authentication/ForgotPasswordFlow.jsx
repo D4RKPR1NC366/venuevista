@@ -70,7 +70,7 @@ export default function ForgotPasswordFlow() {
               onClick={() => {
                 sessionStorage.removeItem('fromClientProfile');
                 if (fromClientProfile) {
-                  navigate("/personal-information");
+                  navigate("/client/personal-information");
                 } else {
                   navigate("/login");
                 }
@@ -124,7 +124,7 @@ export default function ForgotPasswordFlow() {
               onClick={() => {
                 sessionStorage.removeItem('fromClientProfile');
                 if (fromClientProfile) {
-                  navigate("/personal-information");
+                  navigate("/client/personal-information");
                 } else {
                   navigate("/login");
                 }

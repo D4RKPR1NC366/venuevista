@@ -6,16 +6,17 @@ import MessageIcon from '@mui/icons-material/Message';
 import InfoIcon from '@mui/icons-material/Info';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 import { Link, useLocation } from 'react-router-dom';
 
 const navLinks = [
   { label: 'Profile ', icon: <PersonIcon />, to: '/client/personal-information' },
   { label: 'Booking ', icon: <InfoIcon />, to: '/client/booking-information' },
-  { label: 'Calendar', icon: <InfoIcon />, to: '/client/calendar' }, // Calendar link for both users
+  { label: 'Calendar', icon: <InfoIcon />, to: '/client/calendar' },
   { label: 'Notification', icon: <NotificationsIcon />, to: '/client/notification' },
   { label: 'Home', icon: <HomeIcon />, to: '/client/home' },
   { label: 'Log out', icon: <LogoutIcon />, onClick: () => {
-    // Clear all auth data
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('userEmail');
@@ -25,59 +26,48 @@ const navLinks = [
 
 const ClientSidebar = () => {
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  
   return (
-    <div className="client-sidebar">
+    <aside className={`client-sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="client-sidebar-header">
-        <h2 className="profile-title">Goldust Creations</h2>
+        <div className="client-sidebar-title">Goldust Creations</div>
+        <button 
+          className="sidebar-toggle-mobile" 
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+        >
+          {isOpen ? <CloseIcon /> : <MenuIcon />}
+        </button>
       </div>
-      <ul>
-        {/* Render all links except Home and Log out */}
-        {navLinks.filter(link => link.label !== 'Home' && link.label !== 'Log out').map((link) => {
+      <nav className={`client-sidebar-nav ${isOpen ? 'nav-visible' : 'nav-hidden'}`}>
+        <ul>
+        {navLinks.filter(link => link.label !== 'Log out').map((link) => {
           const isActive = location.pathname === link.to;
-          // Add extra space below Notification link
-          const extraStyle = link.label === 'Notification' ? { marginBottom: '32px' } : {};
           return (
-            <li key={link.label} className={isActive ? 'active' : ''} style={extraStyle}>
-              <span className="icon">{link.icon}</span>
-              <Link to={link.to} style={{ textDecoration: 'none', color: 'inherit' }}>{link.label}</Link>
+            <li key={link.label} className={isActive ? 'active' : ''}>
+              <Link to={link.to} onClick={() => setIsOpen(false)}>
+                <span className="sidebar-icon">{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
             </li>
           );
         })}
-        {/* Home link above Log out */}
-        {(() => {
-          const homeLink = navLinks.find(link => link.label === 'Home');
-          const isActive = location.pathname === homeLink.to;
-          return (
-            <li key={homeLink.label} className={isActive ? 'active' : ''}>
-              <span className="icon">{homeLink.icon}</span>
-              <Link to={homeLink.to} style={{ textDecoration: 'none', color: 'inherit' }}>{homeLink.label}</Link>
-            </li>
-          );
-        })()}
-        {/* Log out link at the bottom */}
-        {(() => {
-          const logoutLink = navLinks.find(link => link.label === 'Log out');
-          return (
-            <li key={logoutLink.label}>
-              <span className="icon">{logoutLink.icon}</span>
-              <button 
-                onClick={logoutLink.onClick}
-                style={{ 
-                  background: 'none',
-                  border: 'none',
-                  color: 'inherit',
-                  font: 'inherit',
-                  cursor: 'pointer',
-                  padding: 0
-                }}
-              >
-                {logoutLink.label}
-              </button>
-            </li>
-          );
-        })()}
-      </ul>
-    </div>
+        </ul>
+      </nav>
+      <button 
+        className={`client-logout-btn ${isOpen ? 'logout-visible' : 'logout-hidden'}`} 
+        onClick={() => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('userEmail');
+          window.location.href = '/login';
+        }}
+      >
+        <span className="sidebar-icon"><LogoutIcon fontSize="small" /></span>
+        <span>Log Out</span>
+      </button>
+    </aside>
   );
 };
 

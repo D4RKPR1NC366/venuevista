@@ -122,7 +122,7 @@ const PersonalInformation = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div className="personal-info-page">
       <ClientSidebar />
   <div className="client-main-content client-personal-info" style={{ background: '#fff', border: 'none', boxShadow: 'none', borderRadius: 0 }}>
         <div className="personal-info-header">

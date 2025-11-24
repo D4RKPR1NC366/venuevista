@@ -63,11 +63,14 @@
 /* Mobile Responsive Styles */
 @media (max-width: 900px) {
   .notification-page {
-    margin-left: 0;
+    margin-left: 0 !important;
+    display: block !important;
   }
   .notification-content {
-    margin-left: 0;
-    padding: 24px 20px;
+    margin-left: 0 !important;
+    margin-top: 80px !important;
+    padding: 24px 20px !important;
+    width: 100% !important;
   }
 }
 

@@ -15,9 +15,22 @@ const PasswordConfirmationModal = ({ open, onClose, onSuccess, email }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
-  // Get user role from localStorage
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isSupplier = user.role === 'supplier';
+  // Decode JWT token to get the actual role (only once using useMemo would be better, but keeping it simple)
+  const getIsSupplier = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    try {
+      // JWT tokens have 3 parts separated by dots: header.payload.signature
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role === 'supplier';
+    } catch (e) {
+      console.error('Failed to decode token:', e);
+      return false;
+    }
+  };
+  
+  const isSupplier = getIsSupplier();
 
   const handleVerify = async () => {
     try {
@@ -39,9 +52,8 @@ const PasswordConfirmationModal = ({ open, onClose, onSuccess, email }) => {
         setError('');
       }
     } catch (err) {
-      console.error('Verification error:', err);
-      setError('Invalid password');
-      toast.error('Failed to verify identity');
+      const errorMsg = err.response?.data?.error || 'Invalid password';
+      setError(errorMsg);
     }
   };
 
