@@ -16,7 +16,7 @@ function Modal({ open, onClose, children }) {
 }
 
 export default function Reminders() {
-  // Reminders are fetched from schedules backend
+  // Reminders are fetched from schedules and approved bookings
   const [reminders, setReminders] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
@@ -25,10 +25,26 @@ export default function Reminders() {
   useEffect(() => {
     async function fetchReminders() {
       try {
-        const res = await fetch('/api/schedules');
-        if (!res.ok) throw new Error('Failed to fetch schedules');
-        const data = await res.json();
-        setReminders(Array.isArray(data) ? data : []);
+        // Fetch schedules
+        const schedulesRes = await fetch('/api/schedules');
+        const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+        // Fetch approved bookings
+        const bookingsRes = await fetch('/api/bookings/approved');
+        const bookings = bookingsRes.ok ? await bookingsRes.json() : [];
+        // Map bookings to reminder-like objects
+        const bookingReminders = Array.isArray(bookings)
+          ? bookings.map(b => ({
+              _id: b._id,
+              title: b.eventType || 'Booking',
+              date: b.date,
+              type: 'Booking',
+              person: b.name || '',
+              location: b.eventVenue || '',
+              description: b.specialRequest || '',
+            }))
+          : [];
+        // Combine and set reminders
+        setReminders([...(Array.isArray(schedules) ? schedules : []), ...bookingReminders]);
       } catch (err) {
         setReminders([]);
       }
@@ -39,12 +55,16 @@ export default function Reminders() {
   const getFilteredReminders = () => {
     const now = new Date();
     now.setHours(0,0,0,0); // normalize to midnight
+    // Always show reminders for bookings within the next 7 days (including today)
+    const sevenDaysFromNow = new Date(now);
+    sevenDaysFromNow.setDate(now.getDate() + 7);
     let filtered = reminders.filter(reminder => {
       if (!reminder.date) return false;
       const reminderDate = new Date(reminder.date);
       reminderDate.setHours(0,0,0,0);
-      return reminderDate >= now; // only today and future
+      return reminderDate >= now && reminderDate <= sevenDaysFromNow;
     });
+    // If filter is not 'all', further restrict by filter
     if (filter !== 'all') {
       let endDate;
       if (filter === '1week') {
@@ -94,7 +114,7 @@ export default function Reminders() {
               <li style={{ color: '#888', fontSize: 16, textAlign: 'center', marginTop: 18 }}>No reminders found.</li>
             ) : (
               getFilteredReminders().map(reminder => {
-                // Calculate if due today or tomorrow
+                // Calculate if due today or tomorrow (urgent)
                 let dueLabel = '';
                 let isDueSoon = false;
                 if (reminder.date) {
@@ -102,6 +122,8 @@ export default function Reminders() {
                   today.setHours(0,0,0,0);
                   const tomorrow = new Date(today);
                   tomorrow.setDate(today.getDate() + 1);
+                  const dayAfterTomorrow = new Date(today);
+                  dayAfterTomorrow.setDate(today.getDate() + 2);
                   const reminderDate = new Date(reminder.date);
                   reminderDate.setHours(0,0,0,0);
                   if (reminderDate.getTime() === today.getTime()) {
@@ -110,6 +132,9 @@ export default function Reminders() {
                   } else if (reminderDate.getTime() === tomorrow.getTime()) {
                     isDueSoon = true;
                     dueLabel = 'Due Tomorrow';
+                  } else if (reminderDate.getTime() === dayAfterTomorrow.getTime()) {
+                    isDueSoon = true;
+                    dueLabel = 'Due in 2 Days';
                   }
                 }
                 return (

@@ -9,6 +9,35 @@ import api from '../services/api';
 import './booking-description.css';
 
 export default function BookingDescription({ open, onClose, booking, onSave }) {
+    // Contract picture state
+    const [contractPreview, setContractPreview] = React.useState(booking?.contractPicture || '');
+    const contractInputRef = React.useRef(null);
+
+    // Update contract preview when booking changes
+    React.useEffect(() => {
+      setContractPreview(booking?.contractPicture || '');
+    }, [booking]);
+
+    // Handle contract picture upload
+    const handleContractUpload = (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const base64 = ev.target.result;
+          setContractPreview(base64);
+          setEditData(prev => ({ ...prev, contractPicture: base64 }));
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    // Remove contract picture
+    const handleRemoveContract = () => {
+      setContractPreview('');
+      setEditData(prev => ({ ...prev, contractPicture: '' }));
+      if (contractInputRef.current) contractInputRef.current.value = '';
+    };
   const [promos, setPromos] = React.useState([]);
   const [editData, setEditData] = React.useState(booking || {});
   const [isEditing, setIsEditing] = React.useState(false);
@@ -386,7 +415,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         guestCount: editData.guestCount || 0,
         products: editData.products || [],
         specialRequest: editData.specialRequest || '',
-        outsidePH: editData.outsidePH || ''
+        outsidePH: editData.outsidePH || '',
+        contractPicture: editData.contractPicture || '' // Always include contractPicture
       };
 
       console.log('Saving booking:', dataToSave);
@@ -608,7 +638,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     <span style={{ color: '#222' }}>
                       {isEditing
                         ? null
-                        : (editData.promoTitle ? `${editData.promoTitle} (${editData.discountType || 0}% OFF)` : '')}
+                        : (editData.promoTitle ? editData.promoTitle : '')}
                     </span>
                   </div>
                   {editData.discount > 0 && (
@@ -882,6 +912,51 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
               </div>
             </div>
           )}
+
+          {/* Contract Picture Upload (optional) */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 12, color: '#222' }}>Contract Picture (optional)</div>
+            {isEditing ? (
+              <>
+                <input
+                  ref={contractInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleContractUpload}
+                />
+                {contractPreview ? (
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
+                    <img
+                      src={contractPreview}
+                      alt="Contract Preview"
+                      style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: 8, border: '2px solid #ccc', objectFit: 'contain', display: 'block' }}
+                    />
+                    <button
+                      onClick={handleRemoveContract}
+                      style={{ position: 'absolute', top: 8, right: 8, background: '#e53935', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+                    >×</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => contractInputRef.current?.click()}
+                    style={{ padding: '10px 20px', borderRadius: 8, border: '2px dashed #ccc', background: '#f9f9f9', cursor: 'pointer', fontSize: 15, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
+                  >📎 Upload Contract Picture</button>
+                )}
+                <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Upload signed contract, agreement, or related document (image only)</div>
+              </>
+            ) : (
+              contractPreview ? (
+                <img
+                  src={contractPreview}
+                  alt="Contract Preview"
+                  style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: 8, border: '2px solid #ccc', objectFit: 'contain', display: 'block' }}
+                />
+              ) : (
+                <div style={{ color: '#888', fontSize: 15 }}>No contract picture uploaded.</div>
+              )
+            )}
+          </div>
 
           {/* Edit/Save/Cancel/Payment Buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, gap: 12, alignItems: 'center' }}>
