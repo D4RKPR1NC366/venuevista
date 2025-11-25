@@ -46,6 +46,7 @@ const bookingBaseSchema = new mongoose.Schema({
     service: String,
     details: Object,
     outsidePH: String,
+    contractPicture: { type: String }, // base64 image string
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -75,6 +76,18 @@ router.put('/:id', async (req, res) => {
         }
         if (updateData.totalPrice !== undefined) {
             updateData.totalPrice = Number(updateData.totalPrice) || 0;
+        }
+        // Ensure promo name and discount are always present
+        if (updateData.promoTitle !== undefined) {
+            updateData.promoTitle = String(updateData.promoTitle);
+        }
+        if (updateData.promoDiscount !== undefined) {
+            updateData.promoDiscount = Number(updateData.promoDiscount) || 0;
+        }
+
+        // Handle contract picture
+        if (updateData.contractPicture !== undefined) {
+            updateData.contractPicture = String(updateData.contractPicture);
         }
 
         // Handle payment details object

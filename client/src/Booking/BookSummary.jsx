@@ -63,7 +63,7 @@ const BookSummary = () => {
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Subtotal:</span> <span style={{ color: '#111' }}>PHP {subtotal}</span></div>
               {booking?.promoTitle && (
                 <div style={{ marginBottom: 12, color: '#388e3c', fontWeight: 'bold' }}>
-                  Promo Applied: {booking.promoTitle} ({booking.promoDiscount}% OFF)
+                  Promo Applied: {booking.promoTitle}
                 </div>
               )}
               <div style={{ marginBottom: 12, color: '#111', fontWeight: 'bold' }}>Total Price (after promo): <span style={{ color: '#111', fontWeight: 500 }}>PHP {Math.round(totalWithPromo)}</span></div>
@@ -180,6 +180,7 @@ const BookSummary = () => {
                     eventVenue: booking.eventVenue || '',
                     guestCount: booking.guestCount || 0,
                     subTotal: subtotal,
+                    promoTitle: booking.promoTitle || '',
                     promoDiscount: promoDiscount,
                     totalPrice: Math.round(totalWithPromo),
                     products: productsWithAdd,

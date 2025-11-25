@@ -184,18 +184,24 @@ const BookingInformation = () => {
               <div style={{background: '#ffe066', borderRadius: 12, padding: 20, marginBottom: 24}}>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
                   <div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Name:</strong> {selectedBooking.name}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Contact Number:</strong> {selectedBooking.contact}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Email Address:</strong> {selectedBooking.email}</div>
-                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Total Price:</strong> PHP {selectedBooking.totalPrice}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Payment Mode:</strong> {selectedBooking.paymentMode || 'Not set'}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Sub Total:</strong> PHP {selectedBooking.subTotal || selectedBooking.totalPrice || 0}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Promo:</strong> {selectedBooking.promoTitle || selectedBooking.promo || ''}</div>
+                    {selectedBooking.discount > 0 && (
+                      <div style={{marginBottom: 10, fontSize: '0.95rem', color: '#e53935'}}><strong>Discount Amount:</strong> - PHP {selectedBooking.discount}</div>
+                    )}
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Total Price:</strong> <span style={{fontWeight: 'bold'}}>PHP {selectedBooking.totalPrice || 0}</span></div>
                   </div>
                   <div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Type:</strong> {selectedBooking.eventType}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Date:</strong> {selectedBooking.date ? new Date(selectedBooking.date).toLocaleDateString() : ''}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Venue:</strong> {selectedBooking.eventVenue}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Guest Count:</strong> {selectedBooking.guestCount}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Appointment Method:</strong> {selectedBooking.outsidePH === 'yes' ? 'Face to Face' : selectedBooking.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</div>
                   </div>
-                </div>
-                <div style={{marginTop: 10, fontSize: '0.95rem'}}>
-                  <strong>Appointment Method:</strong> {selectedBooking.outsidePH === 'yes' ? 'Face to Face' : selectedBooking.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}
                 </div>
               </div>
               <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Services and Products Availed</h3>
