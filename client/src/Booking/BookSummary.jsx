@@ -175,8 +175,14 @@ const BookSummary = () => {
                     email: booking.email || user?.email || '',
                     eventType: booking.eventType || '',
                     date: booking.date?.$d
-                      ? new Date(booking.date.$d).toISOString()
-                      : (typeof booking.date === 'string' ? booking.date : new Date(booking.date).toISOString()),
+                      ? (() => {
+                          const d = new Date(booking.date.$d);
+                          return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+                        })()
+                      : (typeof booking.date === 'string' ? booking.date : (() => {
+                          const d = new Date(booking.date);
+                          return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+                        })()),
                     eventVenue: booking.eventVenue || '',
                     guestCount: booking.guestCount || 0,
                     subTotal: subtotal,

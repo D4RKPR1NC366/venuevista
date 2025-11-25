@@ -413,19 +413,25 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         throw new Error('No booking ID found');
       }
 
-      // Parse and format the date properly
+      // Parse and format the date properly without timezone issues
       let formattedDate;
       if (editData.date) {
-        // If date is in DD/MM/YYYY format, parse it correctly
+        // If date is in DD/MM/YYYY format, convert to YYYY-MM-DD (no timezone conversion)
         if (editData.date.includes('/')) {
           const [day, month, year] = editData.date.split('/').map(Number);
-          const dateObj = new Date(year, month - 1, day, 12, 0, 0); // Set to noon to avoid timezone issues
-          formattedDate = dateObj.toISOString();
+          // Store as YYYY-MM-DD string to avoid timezone issues
+          formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        } else if (editData.date.includes('-')) {
+          // Already in YYYY-MM-DD format
+          formattedDate = editData.date;
         } else {
-          // Try to parse as is if it's in a different format
+          // Try to parse and convert to YYYY-MM-DD
           const dateObj = new Date(editData.date);
           if (!isNaN(dateObj)) {
-            formattedDate = dateObj.toISOString();
+            const year = dateObj.getFullYear();
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            formattedDate = `${year}-${month}-${day}`;
           }
         }
       }
