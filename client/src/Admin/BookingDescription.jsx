@@ -274,7 +274,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
     }, 0) || 0;
 
     const subTotal = productsTotal + additionalsTotal;
-    const discountPercentage = discountType === '10' ? 0.10 : discountType === '20' ? 0.20 : 0;
+    // Parse discount percentage from discountType (supports any percentage value)
+    const discountPercentage = discountType ? (Number(discountType) / 100) : 0;
     const discountAmount = subTotal * discountPercentage;
     const finalTotal = subTotal - discountAmount;
 
