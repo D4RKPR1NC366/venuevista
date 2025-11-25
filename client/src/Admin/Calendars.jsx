@@ -60,6 +60,9 @@ export default function Calendars() {
   const [eventDetailsModalOpen, setEventDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  // Bookings state for calendar
+  const [bookings, setBookings] = useState([]);
+
   // Form state
   const [form, setForm] = useState({
     title: '',
@@ -96,19 +99,43 @@ export default function Calendars() {
       fetchLists();
     }, [modalOpen]);
 
-  // Load events from backend API
+  // Load events from backend API and bookings
   useEffect(() => {
-    async function fetchEvents() {
+    async function fetchEventsAndBookings() {
       try {
-        const res = await fetch('/api/schedules');
-        if (!res.ok) throw new Error('Failed to fetch schedules');
-        const data = await res.json();
-        setEvents(Array.isArray(data) ? data : []);
+        const [schedulesRes, pendingRes, approvedRes, finishedRes] = await Promise.all([
+          fetch('/api/schedules'),
+          fetch('/api/bookings/pending'),
+          fetch('/api/bookings/approved'),
+          fetch('/api/bookings/finished'),
+        ]);
+        const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+        const pending = pendingRes.ok ? await pendingRes.json() : [];
+        const approved = approvedRes.ok ? await approvedRes.json() : [];
+        const finished = finishedRes.ok ? await finishedRes.json() : [];
+        setBookings([...pending, ...approved, ...finished]);
+
+        // Map bookings to calendar event format
+        const bookingEvents = [...pending, ...approved, ...finished]
+          .filter(b => b.date)
+          .map(b => ({
+            _id: b._id,
+            title: b.eventType || b.title || 'Booking',
+            type: 'Booking',
+            person: b.name || b.contact || b.email || '',
+            date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+            location: b.eventVenue || '',
+            description: b.specialRequest || b.details || '',
+            status: b.status || '',
+          }));
+
+        // Merge schedules and booking events
+        setEvents(Array.isArray(schedules) ? [...schedules, ...bookingEvents] : bookingEvents);
       } catch (err) {
-        console.error('Error fetching schedules:', err);
+        console.error('Error fetching schedules/bookings:', err);
       }
     }
-    fetchEvents();
+    fetchEventsAndBookings();
   }, []);
 
   // Optionally, remove localStorage saving logic
