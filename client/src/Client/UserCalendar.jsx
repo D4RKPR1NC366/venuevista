@@ -34,26 +34,46 @@ const UserCalendar = () => {
 	const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
 	useEffect(() => {
-		async function fetchEvents() {
+		async function fetchEventsAndBookings() {
 			try {
-				const res = await fetch('/api/schedules');
-				if (!res.ok) throw new Error('Failed to fetch schedules');
-				const data = await res.json();
-				// Filter events for this user by name or email for both Customer and Supplier
-				const filtered = data.filter(ev => {
+				const [schedulesRes, pendingRes, approvedRes, finishedRes] = await Promise.all([
+					fetch('/api/schedules'),
+					fetch('/api/bookings/pending'),
+					fetch('/api/bookings/approved'),
+					fetch('/api/bookings/finished'),
+				]);
+				const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+				const pending = pendingRes.ok ? await pendingRes.json() : [];
+				const approved = approvedRes.ok ? await approvedRes.json() : [];
+				const finished = finishedRes.ok ? await finishedRes.json() : [];
+				// Filter events for this user by name or email
+				const filteredSchedules = schedules.filter(ev => {
 					if (ev.type === 'Customer' || ev.type === 'Supplier') {
 						return (ev.person === userEmail || ev.person === userName);
 					}
 					return false;
 				});
-				setEvents(Array.isArray(filtered) ? filtered : []);
+				// Filter bookings for this client
+				const allBookings = [...pending, ...approved, ...finished].filter(b => b.email === userEmail || b.name === userName);
+				// Map bookings to calendar event format
+				const bookingEvents = allBookings.filter(b => b.date).map(b => ({
+					_id: b._id,
+					title: b.eventType || b.title || 'Booking',
+					type: 'Booking',
+					person: b.name || b.contact || b.email || '',
+					date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+					location: b.eventVenue || '',
+					description: b.specialRequest || b.details || '',
+					status: b.status || '',
+				}));
+				setEvents([...filteredSchedules, ...bookingEvents]);
 			} catch (err) {
 				setEvents([]);
 			} finally {
 				setLoading(false);
 			}
 		}
-		if (userEmail) fetchEvents();
+		if (userEmail) fetchEventsAndBookings();
 	}, [userEmail, userName]);
 
 	// Get events for a specific date (compare as string)
