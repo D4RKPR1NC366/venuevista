@@ -65,7 +65,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
   });
   const [paymentProofPreview, setPaymentProofPreview] = React.useState('');
   const paymentProofInputRef = React.useRef(null);
-  const eventTypes = ['Birthday', 'Wedding', 'Corporate', 'Anniversary', 'Other'];
+  const eventTypes = ['Wedding', 'Birthday', 'Debut', 'Corporate', 'Anniversary', 'Reunion', 'Baptism'];
   const paymentModes = ['Cash', 'Bank Transfer', 'GCash'];
   const paymentStatuses = ['Pending', 'Partially Paid', 'Fully Paid', 'Refunded'];
 
@@ -615,7 +615,12 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                       }}
                     >
                       <option value="">No Promo</option>
-                      {promos.map(promo => (
+                      {promos.filter(promo => {
+                        const now = new Date();
+                        const start = promo.validFrom ? new Date(promo.validFrom) : null;
+                        const end = promo.validUntil ? new Date(promo.validUntil) : null;
+                        return start && end && now >= start && now <= end;
+                      }).map(promo => (
                         <option key={promo._id} value={promo._id}>{promo.title} ({promo.discountValue}% OFF)</option>
                       ))}
                     </select>

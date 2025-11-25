@@ -1,3 +1,24 @@
+.home-promos-carousel {
+  scrollbar-width: thin;
+  scrollbar-color: #fff #fff;
+  gap: 0.25rem !important;
+}
+.home-promos-carousel::-webkit-scrollbar {
+  height: 12px;
+  background: #fff;
+}
+.home-promos-carousel::-webkit-scrollbar-thumb {
+  background: #fff;
+  border-radius: 6px;
+}
+.home-promos-carousel-wrapper::-webkit-scrollbar {
+  height: 12px;
+  background: #fff;
+}
+.home-promos-carousel-wrapper::-webkit-scrollbar-thumb {
+  background: #fff;
+  border-radius: 6px;
+}
 /* Review Section Styles */
 .home-reviews-section {
   margin: 48px auto 0 auto;
@@ -533,6 +554,16 @@ body {
   .home-promos-carousel {
     min-width: unset !important;
     width: 100%;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  .home-promos-carousel::-webkit-scrollbar {
+    height: 12px;
+    background: #fff;
+  }
+  .home-promos-carousel::-webkit-scrollbar-thumb {
+    background: #fff;
+    border-radius: 6px;
   }
   
   .home-reviews-section {

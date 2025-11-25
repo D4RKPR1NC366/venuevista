@@ -214,7 +214,6 @@ const Home = () => {
             padding: '1rem 0',
             margin: '0 12px',
             alignItems: 'center',
-            minWidth: '900px',
             justifyContent: 'flex-start'
           }}>
             {activePromos.length === 0 && <div style={{ color: '#888' }}>No active promos.</div>}

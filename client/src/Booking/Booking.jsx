@@ -194,8 +194,8 @@ const Booking = () => {
         <h2>BOOK NOW</h2>
       </div>
       <div className="booking-center-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-        <div className="booking-main-row" style={{ display: 'flex', gap: 0, maxWidth: 1050, width: '100%', justifyContent: 'center', marginBottom: 32 }}>
-          <div className="booking-calendar-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'stretch', height: 'auto', minHeight: 400 }}>
+        <div className="booking-main-row" style={{ display: 'flex', gap: 0, maxWidth: 1050, width: '100%', justifyContent: 'center', marginBottom: 32, marginTop: 40 }}>
+          <div className="booking-calendar-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'stretch', height: 'auto', minHeight: 400, marginTop: 16 }}>
             <h3 style={{ color: '#111', fontWeight: 700, textAlign: 'left', marginLeft: 0, marginBottom: 8 }}>Choose your event date</h3>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <StaticDatePicker
@@ -220,7 +220,7 @@ const Booking = () => {
               />
             </LocalizationProvider>
           </div>
-          <div className="booking-form-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', padding: '24px 32px', boxSizing: 'border-box', height: 400, justifyContent: 'center' }}>
+          <div className="booking-form-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', padding: '24px 32px', boxSizing: 'border-box', minHeight: 400, justifyContent: 'center', marginTop: 16 }}>
             <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 20 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8, marginTop: 8, color: !form.province ? '#000000ff' : '#333' }}>Event Venue</div>
@@ -350,7 +350,7 @@ const Booking = () => {
             {/* Special Request field moved to services card below */}
           </div>
         </div>
-        <div className="booking-services-box" style={{ maxWidth: 900, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 auto' }}>
+        <div className="booking-services-box" style={{ maxWidth: 1050, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 0 }}>
             <h3 style={{ fontWeight: 700, margin: 0 }}>Services and Products Availed</h3>
             {form.products && form.products.length > 0 && (
