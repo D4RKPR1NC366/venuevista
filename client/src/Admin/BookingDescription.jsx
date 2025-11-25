@@ -95,8 +95,22 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       // Reset edit mode when switching bookings
       setIsEditing(false);
       
-      // Reset edit data to the new booking
-      setEditData(booking);
+      // Find matching promo by title if promoTitle exists but promoId doesn't
+      let matchedPromoId = booking.promoId || '';
+      if (booking.promoTitle && !booking.promoId && promos.length > 0) {
+        const matchedPromo = promos.find(p => p.title === booking.promoTitle);
+        if (matchedPromo) {
+          matchedPromoId = matchedPromo._id;
+        }
+      }
+      
+      // Reset edit data to the new booking with promo fields mapped
+      setEditData({
+        ...booking,
+        promoId: matchedPromoId,
+        promoTitle: booking.promoTitle || '',
+        discountType: booking.discountType || ''
+      });
       
       // Initialize payment details from booking data
       setPaymentDetails(prev => ({
@@ -135,7 +149,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       // Reset venue dropdown
       setVenueDropdown({ province: '', city: '', barangay: '' });
     }
-  }, [booking]);
+  }, [booking, promos]);
 
   // Handle payment proof file upload
   const handlePaymentProofUpload = (e) => {
@@ -408,6 +422,9 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         discount: totals.discount || 0,
         subTotal: totals.subTotal || 0,
         totalPrice: totals.finalTotal || 0,
+        // Promo fields
+        promoId: editData.promoId || '',
+        promoTitle: editData.promoTitle || '',
         // Ensure other fields have fallback values
         name: editData.name || '',
         contact: editData.contact || '',
@@ -985,7 +1002,18 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                 <button 
                   onClick={() => {
                     setIsEditing(false);
-                    setEditData(booking || {}); // Reset changes
+                    // Reset with proper promoId matching
+                    let matchedPromoId = booking.promoId || '';
+                    if (booking.promoTitle && !booking.promoId && promos.length > 0) {
+                      const matchedPromo = promos.find(p => p.title === booking.promoTitle);
+                      if (matchedPromo) matchedPromoId = matchedPromo._id;
+                    }
+                    setEditData({
+                      ...booking,
+                      promoId: matchedPromoId,
+                      promoTitle: booking.promoTitle || '',
+                      discountType: booking.discountType || ''
+                    });
                   }} 
                   style={{ 
                     background: '#fff', 

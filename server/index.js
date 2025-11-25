@@ -375,8 +375,10 @@ const bookingBaseSchema = new mongoose.Schema({
   eventVenue: String,
   guestCount: Number,
   subTotal: Number, // undiscounted price
+  promoId: String, // reference to the promo
   promoTitle: String, // name of the promo
-  promoDiscount: Number, // percent discount
+  discountType: String, // percent discount (e.g., "15")
+  discount: Number, // calculated discount amount
   totalPrice: Number, // discounted price
   products: [
     {
