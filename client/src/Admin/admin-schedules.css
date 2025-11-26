@@ -124,3 +124,26 @@
     margin-bottom: 8px !important;
   }
 }
+.admin-appointment-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+  color: #444;
+}
+
+.filter-btn.active {
+  background: #4CAF50;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
