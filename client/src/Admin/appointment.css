@@ -1,0 +1,52 @@
+.admin-appointment-root {
+  padding: 32px 24px;
+}
+.admin-appointment-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  color: #e6b800;
+}
+.admin-appointment-section {
+  margin-bottom: 36px;
+}
+.admin-appointment-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #222;
+}
+.admin-appointment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.admin-appointment-card {
+  background: #fffbe6;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(230, 184, 0, 0.10);
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  font-size: 1rem;
+  color: #222;
+}
+.admin-appointment-card.finished {
+  background: #e6e6e6;
+  color: #888;
+}
+.admin-appointment-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #e6b800;
+}
+.admin-appointment-empty {
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+.admin-appointment-loading {
+  color: #e6b800;
+  font-size: 1.1rem;
+  margin-bottom: 18px;
+}

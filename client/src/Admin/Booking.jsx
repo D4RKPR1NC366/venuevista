@@ -132,7 +132,21 @@ export default function AdminBooking() {
       await fetch(`/api/bookings/pending/${booking._id}`, {
         method: 'DELETE'
       });
-      // 3. Update frontend state
+      // 3. Save appointment to calendar DB
+      await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: booking._id,
+          clientEmail: booking.email,
+          clientName: booking.name,
+          date: typeof date === 'string' ? date : date.toISOString().slice(0, 10),
+          description: desc,
+          location: booking.eventVenue,
+          status: 'approved'
+        })
+      });
+      // 4. Update frontend state
       setBookings(prev => prev.map(b =>
         b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc } : b
       ));

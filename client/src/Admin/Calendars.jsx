@@ -103,16 +103,18 @@ export default function Calendars() {
   useEffect(() => {
     async function fetchEventsAndBookings() {
       try {
-        const [schedulesRes, pendingRes, approvedRes, finishedRes] = await Promise.all([
+        const [schedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
           fetch('/api/schedules'),
           fetch('/api/bookings/pending'),
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
+          fetch('/api/appointments'),
         ]);
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
         const pending = pendingRes.ok ? await pendingRes.json() : [];
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
+        const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
         setBookings([...pending, ...approved, ...finished]);
 
         // Map bookings to calendar event format
@@ -129,10 +131,22 @@ export default function Calendars() {
             status: b.status || '',
           }));
 
-        // Merge schedules and booking events
-        setEvents(Array.isArray(schedules) ? [...schedules, ...bookingEvents] : bookingEvents);
+        // Map appointments to calendar event format
+        const appointmentEvents = appointments.map(a => ({
+          _id: a._id,
+          title: 'Appointment',
+          type: 'Appointment',
+          person: a.clientName || a.clientEmail,
+          date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
+          location: a.location || '',
+          description: a.description || '',
+          status: a.status || '',
+        }));
+
+        // Merge schedules, booking events, and appointment events
+        setEvents(Array.isArray(schedules) ? [...schedules, ...bookingEvents, ...appointmentEvents] : [...bookingEvents, ...appointmentEvents]);
       } catch (err) {
-        console.error('Error fetching schedules/bookings:', err);
+        console.error('Error fetching schedules/bookings/appointments:', err);
       }
     }
     fetchEventsAndBookings();

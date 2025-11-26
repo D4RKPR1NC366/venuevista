@@ -36,16 +36,18 @@ const UserCalendar = () => {
 	useEffect(() => {
 		async function fetchEventsAndBookings() {
 			try {
-				const [schedulesRes, pendingRes, approvedRes, finishedRes] = await Promise.all([
+				const [schedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
 					fetch('/api/schedules'),
 					fetch('/api/bookings/pending'),
 					fetch('/api/bookings/approved'),
 					fetch('/api/bookings/finished'),
+					fetch('/api/appointments/user/' + encodeURIComponent(userEmail)),
 				]);
 				const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
 				const pending = pendingRes.ok ? await pendingRes.json() : [];
 				const approved = approvedRes.ok ? await approvedRes.json() : [];
 				const finished = finishedRes.ok ? await finishedRes.json() : [];
+				const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
 				// Filter events for this user by name or email
 				const filteredSchedules = schedules.filter(ev => {
 					if (ev.type === 'Customer' || ev.type === 'Supplier') {
@@ -66,7 +68,18 @@ const UserCalendar = () => {
 					description: b.specialRequest || b.details || '',
 					status: b.status || '',
 				}));
-				setEvents([...filteredSchedules, ...bookingEvents]);
+				// Map appointments to calendar event format
+				const appointmentEvents = appointments.map(a => ({
+					_id: a._id,
+					title: 'Appointment',
+					type: 'Appointment',
+					person: a.clientName || a.clientEmail,
+					date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
+					location: a.location || '',
+					description: a.description || '',
+					status: a.status || '',
+				}));
+				setEvents([...filteredSchedules, ...bookingEvents, ...appointmentEvents]);
 			} catch (err) {
 				setEvents([]);
 			} finally {

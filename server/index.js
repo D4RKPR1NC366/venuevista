@@ -60,6 +60,13 @@ const scheduleSchema = require('./models/Schedule').schema;
 const Schedule = scheduleConnection.model('Schedule', scheduleSchema);
 const { SupplierAcceptedSchedule, SupplierDeclinedSchedule } = require('./models/SupplierSchedule');
 
+// Load Appointment model using scheduleConnection
+const appointmentSchema = require('./models/Appointment').schema;
+const Appointment = scheduleConnection.model('Appointment', appointmentSchema);
+// Register appointments API route with correct model
+const appointmentsRouter = require('./routes/appointments')(Appointment);
+app.use('/api/appointments', appointmentsRouter);
+
 // Initialize models for accepted and declined schedules
 const SupplierAccepted = scheduleConnection.model('SupplierAcceptedSchedule', require('./models/SupplierSchedule').SupplierAcceptedSchedule.schema);
 const SupplierDeclined = scheduleConnection.model('SupplierDeclinedSchedule', require('./models/SupplierSchedule').SupplierDeclinedSchedule.schema);
