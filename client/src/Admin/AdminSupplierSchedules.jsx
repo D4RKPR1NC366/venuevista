@@ -30,6 +30,16 @@ const AdminSupplierSchedules = () => {
     fetchSchedules();
   }, []);
 
+  // Cancel accepted schedule
+  async function handleCancel(id) {
+    try {
+      const res = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAccepted(prev => prev.filter(sch => sch._id !== id));
+      }
+    } catch {}
+  }
+
   return (
     <div className="admin-schedules-layout">
       <Sidebar />
@@ -61,6 +71,7 @@ const AdminSupplierSchedules = () => {
                       <div>{sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#4CAF50'}}>Accepted</span></div>
+                      <button style={{marginTop:'8px',background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer',display:'inline-block'}} onClick={() => handleCancel(sch._id)}>Cancel</button>
                     </div>
                   ))}
                 </div>

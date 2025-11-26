@@ -3,6 +3,9 @@ import Sidebar from './Sidebar';
 import './dashboard.css';
 
 export default function Dashboard() {
+    // Appointment counts
+    const [upcomingAppointments, setUpcomingAppointments] = useState(null);
+    const [finishedAppointments, setFinishedAppointments] = useState(null);
   // Months for chart labels
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   // Helper to get filter label for cards
@@ -56,6 +59,29 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+        // Fetch appointments for upcoming/finished count
+        fetch('/api/appointments')
+          .then(res => res.json())
+          .then(data => {
+            const startDate = getStartDate(filter);
+            const now = new Date();
+            const upcoming = data.filter(a => {
+              if (!a.date) return false;
+              const d = new Date(a.date);
+              return d >= startDate && a.status === 'upcoming';
+            }).length;
+            const finished = data.filter(a => {
+              if (!a.date) return false;
+              const d = new Date(a.date);
+              return d >= startDate && a.status === 'finished';
+            }).length;
+            setUpcomingAppointments(upcoming);
+            setFinishedAppointments(finished);
+          })
+          .catch(() => {
+            setUpcomingAppointments(0);
+            setFinishedAppointments(0);
+          });
     // Fetch urgent reminders (schedules due today or tomorrow)
     fetch('/api/schedules')
       .then(res => res.json())
@@ -210,6 +236,14 @@ export default function Dashboard() {
           <div className="admin-dashboard-card">
             <div className="admin-dashboard-card-title">Total Suppliers <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
             <div className="admin-dashboard-card-value">{totalSuppliers !== null ? totalSuppliers : '-'}</div>
+          </div>
+          <div className="admin-dashboard-card">
+            <div className="admin-dashboard-card-title">Upcoming Appointments <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
+            <div className="admin-dashboard-card-value" style={{ color: '#22c55e', fontWeight: 700 }}>{upcomingAppointments !== null ? upcomingAppointments : '-'}</div>
+          </div>
+          <div className="admin-dashboard-card">
+            <div className="admin-dashboard-card-title">Finished Appointments <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
+            <div className="admin-dashboard-card-value" style={{ color: '#f43f5e', fontWeight: 700 }}>{finishedAppointments !== null ? finishedAppointments : '-'}</div>
           </div>
         </div>
         
