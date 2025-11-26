@@ -7,7 +7,7 @@ const AppointmentSchema = new mongoose.Schema({
   date: { type: String, required: true }, // ISO date string
   description: { type: String },
   location: { type: String },
-  status: { type: String, default: 'approved' },
+  status: { type: String, default: 'upcoming' },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -19,7 +19,7 @@
 }
 /* Logout button styling */
 .admin-logout-btn {
-  margin-top: 2rem;
+  margin-top: .5rem;
   margin-left: 35px;
   width: calc(100% - 70px);
   padding: 0.5rem 0.75rem;

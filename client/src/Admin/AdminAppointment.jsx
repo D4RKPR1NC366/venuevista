@@ -9,11 +9,35 @@ function formatDate(dateStr) {
 }
 
 export default function AdminAppointment() {
+    // Handle deleting appointment
+    async function handleDelete(id) {
+      try {
+        const res = await fetch(`/api/appointments/${id}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          setAppointments(prev => prev.filter(a => a._id !== id));
+        }
+      } catch {}
+    }
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // NEW: filter state (default: upcoming)
   const [filter, setFilter] = useState("upcoming");
+
+  // Handle marking appointment as finished
+  async function handleDone(id) {
+    try {
+      const res = await fetch(`/api/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'finished' })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setAppointments(prev => prev.map(a => a._id === id ? updated : a));
+      }
+    } catch {}
+  }
 
   useEffect(() => {
     async function fetchAppointments() {
@@ -90,6 +114,16 @@ export default function AdminAppointment() {
                         <div><b>Location:</b> {a.location}</div>
                         <div><b>Description:</b> {a.description}</div>
                         <div><b>Status:</b> {a.status}</div>
+                        {filter === "upcoming" && a.status !== "finished" && (
+                          <button className="admin-appointment-done-btn" onClick={() => handleDone(a._id)}>
+                            Done
+                          </button>
+                        )}
+                        {filter === "finished" && (
+                          <button className="admin-appointment-done-btn" style={{background:'#d9534f'}} onClick={() => handleDelete(a._id)}>
+                            Delete
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
