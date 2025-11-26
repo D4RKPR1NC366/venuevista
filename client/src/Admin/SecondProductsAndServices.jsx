@@ -31,7 +31,7 @@ export default function SecondProductsAndServices(props) {
         <img
           src={category.image}
           alt={category.title}
-          style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 16, border: '1px solid #ccc' }}
+          style={{ width: 120, height: 120, maxWidth: 120, maxHeight: 120, objectFit: 'contain', borderRadius: 8, marginBottom: 16, border: '1px solid #ccc', display: 'block', background: '#fff' }}
         />
         <h2 style={{ fontWeight: 700, fontSize: 28, margin: 0 }}>{category.title}</h2>
         <div style={{ display: 'flex', gap: 16, marginTop: 32 }}>

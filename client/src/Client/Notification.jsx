@@ -18,10 +18,11 @@ const Notification = () => {
     async function fetchReminders() {
       try {
         // Fetch all types of schedules
-        const [schedulesRes, acceptedRes, declinedRes] = await Promise.all([
+        const [schedulesRes, acceptedRes, declinedRes, appointmentsRes] = await Promise.all([
           fetch('/api/schedules'),
           userRole === 'supplier' ? fetch('/api/schedules/status/accepted?supplierId=' + userEmail) : null,
-          userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : null
+          userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : null,
+          userRole === 'customer' ? fetch('/api/appointments/user/' + userEmail) : null
         ].filter(Boolean));
 
         if (!schedulesRes.ok) throw new Error('Failed to fetch reminders');
@@ -45,6 +46,21 @@ const Notification = () => {
           }
         } else {
           filtered = data.filter(rem => rem.type === 'Customer' && (rem.person === userEmail || rem.person === userName));
+          
+          // Add appointments for customers
+          if (appointmentsRes && appointmentsRes.ok) {
+            const appointments = await appointmentsRes.json();
+            const appointmentNotifications = appointments.map(a => ({
+              _id: a._id,
+              title: 'Appointment',
+              type: 'Appointment',
+              person: a.clientName || a.clientEmail || '',
+              date: a.date,
+              location: a.location || '',
+              description: a.description || ''
+            }));
+            filtered = [...filtered, ...appointmentNotifications];
+          }
         }
 
         setNotifications(filtered);

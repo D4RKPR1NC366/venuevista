@@ -120,28 +120,48 @@ export default function Calendars() {
         // Map bookings to calendar event format
         const bookingEvents = [...pending, ...approved, ...finished]
           .filter(b => b.date)
-          .map(b => ({
-            _id: b._id,
-            title: b.eventType || b.title || 'Booking',
-            type: 'Booking',
-            person: b.name || b.contact || b.email || '',
-            date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
-            location: b.eventVenue || '',
-            description: b.specialRequest || b.details || '',
-            status: b.status || '',
-          }));
+          .map(b => {
+            let dateStr = '';
+            if (typeof b.date === 'string') {
+              dateStr = b.date.slice(0, 10);
+            } else {
+              // Convert Date to YYYY-MM-DD without timezone conversion
+              const d = new Date(b.date);
+              dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            return {
+              _id: b._id,
+              title: b.eventType || b.title || 'Booking',
+              type: 'Booking',
+              person: b.name || b.contact || b.email || '',
+              date: dateStr,
+              location: b.eventVenue || '',
+              description: b.specialRequest || b.details || '',
+              status: b.status || '',
+            };
+          });
 
         // Map appointments to calendar event format
-        const appointmentEvents = appointments.map(a => ({
-          _id: a._id,
-          title: 'Appointment',
-          type: 'Appointment',
-          person: a.clientName || a.clientEmail,
-          date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
-          location: a.location || '',
-          description: a.description || '',
-          status: a.status || '',
-        }));
+        const appointmentEvents = appointments.map(a => {
+          let dateStr = '';
+          if (typeof a.date === 'string') {
+            dateStr = a.date;
+          } else {
+            // Convert Date to YYYY-MM-DD without timezone conversion
+            const d = new Date(a.date);
+            dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          }
+          return {
+            _id: a._id,
+            title: 'Appointment',
+            type: 'Appointment',
+            person: a.clientName || a.clientEmail,
+            date: dateStr,
+            location: a.location || '',
+            description: a.description || '',
+            status: a.status || '',
+          };
+        });
 
         // Merge schedules, booking events, and appointment events
         setEvents(Array.isArray(schedules) ? [...schedules, ...bookingEvents, ...appointmentEvents] : [...bookingEvents, ...appointmentEvents]);

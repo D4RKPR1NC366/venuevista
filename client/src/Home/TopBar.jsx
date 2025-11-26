@@ -13,14 +13,21 @@ const TopBar = () => {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      if (window.scrollY === 0) {
-        setExpanded(true);
-      } else {
-        setExpanded(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY === 0) {
+            setExpanded(true);
+          } else if (window.scrollY > 10) {
+            setExpanded(false);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll(); // set initial state
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);

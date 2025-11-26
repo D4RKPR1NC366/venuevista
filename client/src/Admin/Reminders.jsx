@@ -31,6 +31,9 @@ export default function Reminders() {
         // Fetch approved bookings
         const bookingsRes = await fetch('/api/bookings/approved');
         const bookings = bookingsRes.ok ? await bookingsRes.json() : [];
+        // Fetch appointments
+        const appointmentsRes = await fetch('/api/appointments');
+        const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
         // Map bookings to reminder-like objects
         const bookingReminders = Array.isArray(bookings)
           ? bookings.map(b => ({
@@ -43,8 +46,20 @@ export default function Reminders() {
               description: b.specialRequest || '',
             }))
           : [];
+        // Map appointments to reminder-like objects
+        const appointmentReminders = Array.isArray(appointments)
+          ? appointments.map(a => ({
+              _id: a._id,
+              title: 'Appointment',
+              date: a.date,
+              type: 'Appointment',
+              person: a.clientName || a.clientEmail || '',
+              location: a.location || '',
+              description: a.description || '',
+            }))
+          : [];
         // Combine and set reminders
-        setReminders([...(Array.isArray(schedules) ? schedules : []), ...bookingReminders]);
+        setReminders([...(Array.isArray(schedules) ? schedules : []), ...bookingReminders, ...appointmentReminders]);
       } catch (err) {
         setReminders([]);
       }

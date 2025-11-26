@@ -82,23 +82,37 @@ export default function Dashboard() {
             setUpcomingAppointments(0);
             setFinishedAppointments(0);
           });
-    // Fetch urgent reminders (schedules due today or tomorrow)
-    fetch('/api/schedules')
-      .then(res => res.json())
-      .then(data => {
+    // Fetch urgent reminders (schedules and appointments due today or tomorrow)
+    Promise.all([
+      fetch('/api/schedules'),
+      fetch('/api/appointments')
+    ])
+      .then(([schedRes, apptRes]) => Promise.all([schedRes.json(), apptRes.json()]))
+      .then(([schedules, appointments]) => {
         const today = new Date();
         today.setHours(0,0,0,0);
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
-        const count = data.filter(sch => {
+        
+        // Count urgent schedules
+        const urgentSchedules = schedules.filter(sch => {
           if (!sch.date) return false;
-          // sch.date is expected to be 'YYYY-MM-DD'
           const [year, month, day] = sch.date.split('-').map(Number);
           const schedDate = new Date(year, month - 1, day);
           schedDate.setHours(0,0,0,0);
           return schedDate.getTime() === today.getTime() || schedDate.getTime() === tomorrow.getTime();
         }).length;
-        setUrgentReminders(count);
+        
+        // Count urgent appointments
+        const urgentAppointments = appointments.filter(appt => {
+          if (!appt.date || appt.status !== 'upcoming') return false;
+          const [year, month, day] = appt.date.split('-').map(Number);
+          const apptDate = new Date(year, month - 1, day);
+          apptDate.setHours(0,0,0,0);
+          return apptDate.getTime() === today.getTime() || apptDate.getTime() === tomorrow.getTime();
+        }).length;
+        
+        setUrgentReminders(urgentSchedules + urgentAppointments);
       })
       .catch(() => setUrgentReminders(0));
     // Fetch revenue data (monthly, filtered)
