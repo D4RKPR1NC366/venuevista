@@ -16,6 +16,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import DiscountIcon from '@mui/icons-material/Discount';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 
 const navItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon fontSize="small" /> },
@@ -28,6 +29,7 @@ const navItems = [
   { label: 'Users / Clients', path: '/admin/user-clients', icon: <GroupIcon fontSize="small" /> },
   { label: 'Background Gallery', path: '/admin/background-gallery', icon: <PhotoLibraryIcon fontSize="small" /> },
   { label: 'Supplier Schedules', path: '/admin/supplier-schedules', icon: <AlarmIcon fontSize="small" /> },
+  { label: 'Appointments', path: '/admin/appointments', icon: <AppRegistrationIcon fontSize="small" /> },
   { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
 ];
 

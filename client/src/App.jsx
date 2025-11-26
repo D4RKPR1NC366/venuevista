@@ -25,6 +25,7 @@ import BackgroundGallery from "./Admin/BackgroundGallery";
 import Promos from "./Admin/Promos";
 import AdminSupplierSchedules from "./Admin/AdminSupplierSchedules";
 import Policy from "./Home/Policy";
+import AdminAppointment from "./Admin/AdminAppointment";
 import "./App.css";
 
 import PersonalInformation from "./Client/PersonalInformation";
@@ -60,6 +61,7 @@ function App() {
     <Route path="/admin/calendars" element={<Calendars />} />
     <Route path="/admin/suppliers" element={<Suppliers />} />
     <Route path="/admin/user-clients" element={<UserClients />} />
+    <Route path="/admin/appointments" element={<AdminAppointment />} />
   <Route path="/admin/background-gallery" element={<BackgroundGallery />} />
   <Route path="/admin/supplier-schedules" element={<AdminSupplierSchedules />} />
   <Route path="/admin/promos" element={<Promos />} />
