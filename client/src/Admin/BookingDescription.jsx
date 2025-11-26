@@ -97,10 +97,32 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       
       // Find matching promo by title if promoTitle exists but promoId doesn't
       let matchedPromoId = booking.promoId || '';
-      if (booking.promoTitle && !booking.promoId && promos.length > 0) {
+      let promoTitle = booking.promoTitle || '';
+      let discountType = booking.discountType || '';
+      
+      if (booking.promoTitle && promos.length > 0) {
         const matchedPromo = promos.find(p => p.title === booking.promoTitle);
+        
+        // Check if promo exists and is still valid
         if (matchedPromo) {
-          matchedPromoId = matchedPromo._id;
+          const now = new Date();
+          const start = matchedPromo.validFrom ? new Date(matchedPromo.validFrom) : null;
+          const end = matchedPromo.validUntil ? new Date(matchedPromo.validUntil) : null;
+          
+          // If promo is expired, clear it
+          if (start && end && (now < start || now > end)) {
+            console.log('Promo expired, clearing:', matchedPromo.title);
+            matchedPromoId = '';
+            promoTitle = '';
+            discountType = '';
+          } else {
+            matchedPromoId = matchedPromo._id;
+          }
+        } else {
+          // Promo not found in database, clear it
+          matchedPromoId = '';
+          promoTitle = '';
+          discountType = '';
         }
       }
       
@@ -108,8 +130,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       setEditData({
         ...booking,
         promoId: matchedPromoId,
-        promoTitle: booking.promoTitle || '',
-        discountType: booking.discountType || ''
+        promoTitle: promoTitle,
+        discountType: discountType
       });
       
       // Initialize payment details from booking data
@@ -391,19 +413,25 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         throw new Error('No booking ID found');
       }
 
-      // Parse and format the date properly
+      // Parse and format the date properly without timezone issues
       let formattedDate;
       if (editData.date) {
-        // If date is in DD/MM/YYYY format, parse it correctly
+        // If date is in DD/MM/YYYY format, convert to YYYY-MM-DD (no timezone conversion)
         if (editData.date.includes('/')) {
           const [day, month, year] = editData.date.split('/').map(Number);
-          const dateObj = new Date(year, month - 1, day, 12, 0, 0); // Set to noon to avoid timezone issues
-          formattedDate = dateObj.toISOString();
+          // Store as YYYY-MM-DD string to avoid timezone issues
+          formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        } else if (editData.date.includes('-')) {
+          // Already in YYYY-MM-DD format
+          formattedDate = editData.date;
         } else {
-          // Try to parse as is if it's in a different format
+          // Try to parse and convert to YYYY-MM-DD
           const dateObj = new Date(editData.date);
           if (!isNaN(dateObj)) {
-            formattedDate = dateObj.toISOString();
+            const year = dateObj.getFullYear();
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            formattedDate = `${year}-${month}-${day}`;
           }
         }
       }
@@ -418,13 +446,13 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         date: formattedDate || editData.date,
         // Payment related fields
         paymentMode: editData.paymentMode || '',
-        discountType: editData.discountType || '',
+        discountType: editData.discountType ? editData.discountType : '',
         discount: totals.discount || 0,
         subTotal: totals.subTotal || 0,
         totalPrice: totals.finalTotal || 0,
-        // Promo fields
-        promoId: editData.promoId || '',
-        promoTitle: editData.promoTitle || '',
+        // Promo fields - explicitly set empty strings to clear database fields
+        promoId: editData.promoId ? editData.promoId : '',
+        promoTitle: editData.promoTitle ? editData.promoTitle : '',
         // Ensure other fields have fallback values
         name: editData.name || '',
         contact: editData.contact || '',
@@ -460,6 +488,9 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
           discount: dataToSave.discount,
           subTotal: dataToSave.subTotal,
           totalPrice: dataToSave.totalPrice,
+          // Preserve promo fields (use what we sent, not what came back)
+          promoId: dataToSave.promoId,
+          promoTitle: dataToSave.promoTitle,
           // Preserve other important data
           eventVenue: updatedBooking.eventVenue || editData.eventVenue,
           products: updatedBooking.products || editData.products,
@@ -599,16 +630,17 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                           discount = totals.discount;
                           totalPrice = totals.finalTotal;
                         } else {
-                          // If no promo, recalculate with no discount
+                          // If no promo, recalculate with no discount and clear all promo fields
                           const totals = calculateTotal(editData.products, null, '');
                           discount = totals.discount;
                           totalPrice = totals.finalTotal;
+                          discountType = ''; // Explicitly clear
                         }
                         setEditData(prev => ({
                           ...prev,
-                          promoId,
+                          promoId: promoId || '', // Ensure empty string, not undefined
                           promoTitle: selectedPromo ? selectedPromo.title : '',
-                          discountType,
+                          discountType: discountType || '', // Ensure empty string
                           discount,
                           totalPrice
                         }));
