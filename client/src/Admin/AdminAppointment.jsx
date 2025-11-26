@@ -58,10 +58,10 @@ export default function AdminAppointment() {
   // Split appointments
   const now = new Date();
   const upcoming = appointments.filter(
-    a => new Date(a.date) >= now && a.status !== 'finished'
+    a => a.status === 'upcoming' && new Date(a.date) >= now
   );
   const finished = appointments.filter(
-    a => a.status === 'finished' || new Date(a.date) < now
+    a => a.status === 'finished' || (new Date(a.date) < now && a.status !== 'upcoming')
   );
 
   // NEW: determine which list to show
