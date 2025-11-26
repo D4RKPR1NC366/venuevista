@@ -49,48 +49,33 @@ const Notification = () => {
         let filtered = [];
         if (userRole === 'supplier') {
           filtered = data.filter(rem => rem.type === 'Supplier' && (rem.person === userEmail || rem.person === userName));
-          
           // Fetch accepted and declined schedules if supplier
           if (acceptedRes && acceptedRes.ok) {
             const acceptedData = await acceptedRes.json();
             setAcceptedNotifications(acceptedData);
           }
-          
           if (declinedRes && declinedRes.ok) {
             const declinedData = await declinedRes.json();
             setDeclinedNotifications(declinedData);
           }
         } else {
           filtered = data.filter(rem => rem.type === 'Customer' && (rem.person === userEmail || rem.person === userName));
-          console.log('Filtered customer schedules:', filtered);
-          
           // Add appointments for customers (and admins testing)
           if (appointmentsRes && appointmentsRes.ok) {
             const appointments = await appointmentsRes.json();
-            console.log('Raw appointments from API:', appointments);
-            console.log('Appointments length:', appointments.length);
-            console.log('Current user email:', userEmail);
-            
-            // Log each appointment to see if emails match
-            appointments.forEach(a => {
-              console.log(`Appointment: ${a._id}, clientEmail: "${a.clientEmail}", matches: ${a.clientEmail === userEmail}`);
-            });
-            
-            const appointmentNotifications = appointments.map(a => ({
-              _id: a._id,
-              title: `Appointment - ${a.status || 'upcoming'}`,
-              type: 'Appointment',
-              person: a.clientName || a.clientEmail || '',
-              date: a.date,
-              location: a.location || '',
-              description: a.description || 'No description provided'
-            }));
-            
-            console.log('Mapped appointment notifications:', appointmentNotifications);
+            // Only show appointments that are not finished
+            const appointmentNotifications = appointments
+              .filter(a => a.status !== 'finished')
+              .map(a => ({
+                _id: a._id,
+                title: `Appointment - ${a.status || 'upcoming'}`,
+                type: 'Appointment',
+                person: a.clientName || a.clientEmail || '',
+                date: a.date,
+                location: a.location || '',
+                description: a.description || 'No description provided'
+              }));
             filtered = [...filtered, ...appointmentNotifications];
-            console.log('Final filtered notifications (schedules + appointments):', filtered);
-          } else {
-            console.log('No appointments response or not OK:', appointmentsRes?.status);
           }
         }
 
