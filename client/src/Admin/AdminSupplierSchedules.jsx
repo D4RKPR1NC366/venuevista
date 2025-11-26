@@ -32,12 +32,20 @@ const AdminSupplierSchedules = () => {
 
   // Cancel accepted schedule
   async function handleCancel(id) {
+    if (!window.confirm('Are you sure you want to cancel this accepted schedule?')) {
+      return;
+    }
     try {
       const res = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setAccepted(prev => prev.filter(sch => sch._id !== id));
+        alert('Schedule cancelled successfully');
+      } else {
+        throw new Error('Failed to cancel schedule');
       }
-    } catch {}
+    } catch (err) {
+      alert('Error cancelling schedule: ' + err.message);
+    }
   }
 
   return (

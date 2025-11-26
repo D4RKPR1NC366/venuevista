@@ -160,7 +160,7 @@ export default function Reminders() {
                     title="Click to view details"
                   >
                     <div className="reminder-card-title">{reminder.title}</div>
-                    <div className="reminder-card-date">Due: {reminder.date}</div>
+                    <div className="reminder-card-date">Due: {typeof reminder.date === 'string' && reminder.date.includes('T') ? reminder.date.split('T')[0] : reminder.date}</div>
                     {isDueSoon && (
                       <div className="reminder-card-due-label">{dueLabel}</div>
                     )}
@@ -175,7 +175,7 @@ export default function Reminders() {
                 <h2 className="reminder-modal-title">{selectedReminder.title}</h2>
                 <div className="reminder-modal-row"><span className="reminder-modal-label">Type:</span> <span className="reminder-modal-value">{selectedReminder.type}</span></div>
                 <div className="reminder-modal-row"><span className="reminder-modal-label">{selectedReminder.type} Name:</span> <span className="reminder-modal-value">{selectedReminder.person}</span></div>
-                <div className="reminder-modal-row"><span className="reminder-modal-label">Date:</span> <span className="reminder-modal-value">{selectedReminder.date}</span></div>
+                <div className="reminder-modal-row"><span className="reminder-modal-label">Date:</span> <span className="reminder-modal-value">{typeof selectedReminder.date === 'string' && selectedReminder.date.includes('T') ? selectedReminder.date.split('T')[0] : selectedReminder.date}</span></div>
                 <div className="reminder-modal-row"><span className="reminder-modal-label">Location:</span> <span className="reminder-modal-value">{selectedReminder.location}</span></div>
                 <div className="reminder-modal-row"><span className="reminder-modal-label">Description:</span> <span className="reminder-modal-value">{selectedReminder.description}</span></div>
               </div>

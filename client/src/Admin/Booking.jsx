@@ -6,10 +6,12 @@ import 'react-datepicker/dist/react-datepicker.css';
 function ApproveModal({ open, onClose, onApprove, booking }) {
   const [date, setDate] = useState(null);
   const [desc, setDesc] = useState('');
+  const [location, setLocation] = useState('');
   React.useEffect(() => {
     if (open) {
       setDate(null); // Always blank for admin to pick
       setDesc('');
+      setLocation('');
     }
   }, [open]);
   if (!open) return null;
@@ -41,12 +43,23 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
           </div>
         </div>
         <div className="approve-modal-section">
+          <label className="approve-modal-label">Meeting Location</label>
+          <input 
+            type="text" 
+            value={location} 
+            onChange={e => setLocation(e.target.value)} 
+            placeholder="Enter the meeting location for the client"
+            className="approve-modal-input"
+            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem' }}
+          />
+        </div>
+        <div className="approve-modal-section">
           <label className="approve-modal-label">Description</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} className="approve-modal-textarea" />
         </div>
         <div className="approve-modal-actions">
           <button type="button" onClick={onClose} className="approve-modal-cancel">Cancel</button>
-          <button type="button" onClick={() => onApprove(date, desc)} className="approve-modal-approve" disabled={!date}>Approve</button>
+          <button type="button" onClick={() => onApprove(date, desc, location)} className="approve-modal-approve" disabled={!date || !location}>Approve</button>
         </div>
       </div>
     </div>
@@ -101,7 +114,27 @@ export default function AdminBooking() {
       endpoint = `/api/bookings/finished/${id}`;
     }
     try {
+      // 1. Delete the booking
       await fetch(endpoint, { method: 'DELETE' });
+      
+      // 2. If approved or finished, also delete the associated appointment
+      if (booking.status === 'approved' || booking.status === 'finished') {
+        try {
+          // Find and delete appointment by bookingId
+          const appointmentsRes = await fetch('/api/appointments');
+          const appointments = await appointmentsRes.json();
+          const relatedAppointment = appointments.find(a => a.bookingId === id);
+          
+          if (relatedAppointment) {
+            await fetch(`/api/appointments/${relatedAppointment._id}`, { method: 'DELETE' });
+            console.log('Associated appointment deleted:', relatedAppointment._id);
+          }
+        } catch (err) {
+          console.error('Error deleting associated appointment:', err);
+          // Continue anyway - booking is already deleted
+        }
+      }
+      
       setBookings(prev => prev.filter(b => b._id !== id));
       if (selectedBooking && selectedBooking._id === id) setSelectedBooking(null);
     } catch (err) {
@@ -113,7 +146,7 @@ export default function AdminBooking() {
   const [approveModal, setApproveModal] = useState({ open: false, booking: null });
   const openApproveModal = (booking) => setApproveModal({ open: true, booking });
   const closeApproveModal = () => setApproveModal({ open: false, booking: null });
-  const handleApprove = async (date, desc) => {
+  const handleApprove = async (date, desc, location) => {
     // Move booking to approved in backend
     const booking = approveModal.booking;
     try {
@@ -132,8 +165,8 @@ export default function AdminBooking() {
       await fetch(`/api/bookings/pending/${booking._id}`, {
         method: 'DELETE'
       });
-      // 3. Save appointment to calendar DB
-      await fetch('/api/appointments', {
+      // 3. Save appointment to calendar DB with meeting location
+      const appointmentRes = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,10 +175,13 @@ export default function AdminBooking() {
           clientName: booking.name,
           date: typeof date === 'string' ? date : date.toISOString().slice(0, 10),
           description: desc,
-          location: booking.eventVenue,
-          status: 'approved'
+          location: location // Meeting location from admin input
         })
       });
+      if (!appointmentRes.ok) {
+        throw new Error('Failed to create appointment');
+      }
+      console.log('Appointment created for client:', booking.email, 'at location:', location);
       // 4. Update frontend state
       setBookings(prev => prev.map(b =>
         b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc } : b

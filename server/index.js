@@ -92,13 +92,26 @@ app.post('/api/schedules', async (req, res) => {
   }
 });
 
-// DELETE endpoint for schedules
+// DELETE endpoint for schedules (checks all collections)
 app.delete('/api/schedules/:id', async (req, res) => {
   try {
-    const deleted = await Schedule.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Schedule not found' });
+    // Try deleting from regular schedules first
+    let deleted = await Schedule.findByIdAndDelete(req.params.id);
+    
+    // If not found, try accepted schedules
+    if (!deleted) {
+      deleted = await SupplierAccepted.findByIdAndDelete(req.params.id);
+    }
+    
+    // If still not found, try declined schedules
+    if (!deleted) {
+      deleted = await SupplierDeclined.findByIdAndDelete(req.params.id);
+    }
+    
+    if (!deleted) return res.status(404).json({ error: 'Schedule not found in any collection' });
     res.json({ success: true });
   } catch (err) {
+    console.error('Error deleting schedule:', err);
     res.status(500).json({ error: 'Failed to delete schedule' });
   }
 });

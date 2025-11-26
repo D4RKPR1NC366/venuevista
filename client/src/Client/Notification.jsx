@@ -12,21 +12,37 @@ const Notification = () => {
   // Get logged-in user info
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userEmail = user.email;
-  const userRole = user.role || (user.companyName ? 'supplier' : 'customer');
+  // Determine role: if user has explicit role use it, if admin then admin, else if has companyName then supplier, else customer
+  const userRole = user.role === 'admin' ? 'admin' : (user.companyName ? 'supplier' : 'customer');
+
+  // Helper function to format dates
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    if (typeof dateStr === 'string' && dateStr.includes('T')) {
+      return dateStr.split('T')[0];
+    }
+    return dateStr;
+  };
 
   useEffect(() => {
     async function fetchReminders() {
       try {
+        console.log('=== Notification Debug ===');
+        console.log('User:', user);
+        console.log('User email:', userEmail, 'Role:', userRole);
+        console.log('Is customer?', userRole === 'customer');
+        
         // Fetch all types of schedules
-        const [schedulesRes, acceptedRes, declinedRes, appointmentsRes] = await Promise.all([
-          fetch('/api/schedules'),
-          userRole === 'supplier' ? fetch('/api/schedules/status/accepted?supplierId=' + userEmail) : null,
-          userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : null,
-          userRole === 'customer' ? fetch('/api/appointments/user/' + userEmail) : null
-        ].filter(Boolean));
+        const schedulesRes = await fetch('/api/schedules');
+        const acceptedRes = userRole === 'supplier' ? await fetch('/api/schedules/status/accepted?supplierId=' + userEmail) : null;
+        const declinedRes = userRole === 'supplier' ? await fetch('/api/schedules/status/declined?supplierId=' + userEmail) : null;
+        const appointmentsRes = (userRole === 'customer' || userRole === 'admin') ? await fetch('/api/appointments/user/' + encodeURIComponent(userEmail)) : null;
+        
+        console.log('appointmentsRes:', appointmentsRes, 'Status:', appointmentsRes?.status);
 
         if (!schedulesRes.ok) throw new Error('Failed to fetch reminders');
         const data = await schedulesRes.json();
+        console.log('Schedules data:', data);
 
         // Get user's name and email
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -46,20 +62,35 @@ const Notification = () => {
           }
         } else {
           filtered = data.filter(rem => rem.type === 'Customer' && (rem.person === userEmail || rem.person === userName));
+          console.log('Filtered customer schedules:', filtered);
           
-          // Add appointments for customers
+          // Add appointments for customers (and admins testing)
           if (appointmentsRes && appointmentsRes.ok) {
             const appointments = await appointmentsRes.json();
+            console.log('Raw appointments from API:', appointments);
+            console.log('Appointments length:', appointments.length);
+            console.log('Current user email:', userEmail);
+            
+            // Log each appointment to see if emails match
+            appointments.forEach(a => {
+              console.log(`Appointment: ${a._id}, clientEmail: "${a.clientEmail}", matches: ${a.clientEmail === userEmail}`);
+            });
+            
             const appointmentNotifications = appointments.map(a => ({
               _id: a._id,
-              title: 'Appointment',
+              title: `Appointment - ${a.status || 'upcoming'}`,
               type: 'Appointment',
               person: a.clientName || a.clientEmail || '',
               date: a.date,
               location: a.location || '',
-              description: a.description || ''
+              description: a.description || 'No description provided'
             }));
+            
+            console.log('Mapped appointment notifications:', appointmentNotifications);
             filtered = [...filtered, ...appointmentNotifications];
+            console.log('Final filtered notifications (schedules + appointments):', filtered);
+          } else {
+            console.log('No appointments response or not OK:', appointmentsRes?.status);
           }
         }
 
@@ -259,7 +290,7 @@ const Notification = () => {
                   {notif.location && (
                     <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
                   )}
-                  <div style={{fontSize: '0.9rem', color: '#888'}}>{notif.date}</div>
+                  <div style={{fontSize: '0.9rem', color: '#888'}}>{formatDate(notif.date)}</div>
                 </div>
                 {userRole === 'supplier' && (
                   <div style={{display: 'flex', gap: '8px'}}>
