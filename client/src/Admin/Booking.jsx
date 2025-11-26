@@ -50,7 +50,7 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
             onChange={e => setLocation(e.target.value)} 
             placeholder="Enter the meeting location for the client"
             className="approve-modal-input"
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem' }}
+            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', background: '#fff' }}
           />
         </div>
         <div className="approve-modal-section">
@@ -102,6 +102,9 @@ export default function AdminBooking() {
   }, []);
   // Delete booking handler
   const handleDeleteBooking = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+      return;
+    }
     // Find booking to get its status
     const booking = bookings.find(b => b._id === id);
     let endpoint = '';
