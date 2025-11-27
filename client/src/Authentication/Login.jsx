@@ -115,13 +115,15 @@ const Login = () => {
         form.emailOrPhone === 'goldustadmin@gmail.com' &&
         form.password === 'admin123'
       ) {
-        // Save admin info
+        // Save admin info with a token
         localStorage.setItem('user', JSON.stringify({
           email: 'goldustadmin@gmail.com',
           role: 'admin',
           firstName: 'Goldust',
           lastName: 'Admin'
         }));
+        localStorage.setItem('token', 'admin-hardcoded-token');
+        localStorage.setItem('userEmail', 'goldustadmin@gmail.com');
         navigate('/admin/dashboard');
         return;
       }

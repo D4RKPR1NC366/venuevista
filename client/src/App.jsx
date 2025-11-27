@@ -36,44 +36,54 @@ import UserCalendar from "./Client/UserCalendar";
 import Reviews from "./Home/Reviews";
 
 import { Navigate } from "react-router-dom";
+import { AdminRoute, ClientRoute, AuthenticatedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Router>
   <Routes>
+    {/* Public routes - accessible to everyone */}
     <Route path="/" element={<Home />} />
-    <Route path="/login" element={<Login />} />
-    <Route path="/signup" element={<SignUp />} />
     <Route path="/home" element={<Home />} />
-    <Route path="/booking" element={<Booking />} />
-    <Route path="/booking-summary" element={<BookSummary />} />
-    <Route path="/book-appointment" element={<BookAppointment />} />
     <Route path="/policy" element={<Policy />} />
-    <Route path="/pns-details" element={<PnSDetails />} />
-    <Route path="/event-cart" element={<EventCart />} />
-  <Route path="/reviews" element={<Reviews />} />
-    {/* Admin routes */}
-    <Route path="/admin/dashboard" element={<Dashboard />} />
-    <Route path="/admin/booking" element={<AdminBooking />} />
-    <Route path="/admin/products-services" element={<ProductsAndServices />} />
-    <Route path="/admin/second-products-and-services/:categoryId" element={<SecondProductsAndServices />} />
-    <Route path="/admin/reminders" element={<Reminders />} />
-    <Route path="/admin/calendars" element={<Calendars />} />
-    <Route path="/admin/suppliers" element={<Suppliers />} />
-    <Route path="/admin/user-clients" element={<UserClients />} />
-    <Route path="/admin/appointments" element={<AdminAppointment />} />
-  <Route path="/admin/background-gallery" element={<BackgroundGallery />} />
-  <Route path="/admin/supplier-schedules" element={<AdminSupplierSchedules />} />
-  <Route path="/admin/promos" element={<Promos />} />
+    <Route path="/reviews" element={<Reviews />} />
+    
+    {/* Auth routes - only accessible when NOT logged in */}
+    <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+    <Route path="/signup" element={<PublicOnlyRoute><SignUp /></PublicOnlyRoute>} />
     <Route path="/forgot-password" element={<ForgotPasswordFlow />} />
     <Route path="/reset-password" element={<ResetPassword />} />
-    {/* Client routes */}
-    <Route path="/client/home" element={<Home />} />
-    <Route path="/client/personal-information" element={<PersonalInformation />} />
-    <Route path="/client/profile" element={<PersonalInformation />} />
-    <Route path="/client/booking-information" element={<BookingInformation />} />
-    <Route path="/client/notification" element={<Notification />} />
-    <Route path="/client/calendar" element={<UserCalendar />} />
+    
+    {/* Authenticated user routes - requires login */}
+    <Route path="/booking" element={<AuthenticatedRoute><Booking /></AuthenticatedRoute>} />
+    <Route path="/booking-summary" element={<AuthenticatedRoute><BookSummary /></AuthenticatedRoute>} />
+    <Route path="/book-appointment" element={<AuthenticatedRoute><BookAppointment /></AuthenticatedRoute>} />
+    <Route path="/pns-details" element={<AuthenticatedRoute><PnSDetails /></AuthenticatedRoute>} />
+    <Route path="/event-cart" element={<AuthenticatedRoute><EventCart /></AuthenticatedRoute>} />
+    
+    {/* Admin routes - requires admin role */}
+    <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+    <Route path="/admin/booking" element={<AdminRoute><AdminBooking /></AdminRoute>} />
+    <Route path="/admin/products-services" element={<AdminRoute><ProductsAndServices /></AdminRoute>} />
+    <Route path="/admin/second-products-and-services/:categoryId" element={<AdminRoute><SecondProductsAndServices /></AdminRoute>} />
+    <Route path="/admin/reminders" element={<AdminRoute><Reminders /></AdminRoute>} />
+    <Route path="/admin/calendars" element={<AdminRoute><Calendars /></AdminRoute>} />
+    <Route path="/admin/suppliers" element={<AdminRoute><Suppliers /></AdminRoute>} />
+    <Route path="/admin/user-clients" element={<AdminRoute><UserClients /></AdminRoute>} />
+    <Route path="/admin/appointments" element={<AdminRoute><AdminAppointment /></AdminRoute>} />
+    <Route path="/admin/background-gallery" element={<AdminRoute><BackgroundGallery /></AdminRoute>} />
+    <Route path="/admin/supplier-schedules" element={<AdminRoute><AdminSupplierSchedules /></AdminRoute>} />
+    <Route path="/admin/promos" element={<AdminRoute><Promos /></AdminRoute>} />
+    
+    {/* Client routes - requires customer/supplier role (not admin) */}
+    <Route path="/client/home" element={<ClientRoute><Home /></ClientRoute>} />
+    <Route path="/client/personal-information" element={<ClientRoute><PersonalInformation /></ClientRoute>} />
+    <Route path="/client/profile" element={<ClientRoute><PersonalInformation /></ClientRoute>} />
+    <Route path="/client/booking-information" element={<ClientRoute><BookingInformation /></ClientRoute>} />
+    <Route path="/client/notification" element={<ClientRoute><Notification /></ClientRoute>} />
+    <Route path="/client/calendar" element={<ClientRoute><UserCalendar /></ClientRoute>} />
+    
+    {/* Logout */}
     <Route path="/logout" element={<Navigate to="/login" replace />} />
   </Routes>
     </Router>
