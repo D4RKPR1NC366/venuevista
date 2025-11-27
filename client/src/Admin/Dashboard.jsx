@@ -282,9 +282,9 @@ export default function Dashboard() {
 
         <div className="admin-dashboard-revenue-card">
           <div className="admin-dashboard-card-title">Annual Revenue Chart</div>
-          <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '320px', minHeight: '200px' }}>
+          <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '450px', minHeight: '300px' }}>
             {/* Functional SVG line chart for revenue */}
-            <svg width="100%" height="320" viewBox="0 0 500 320">
+            <svg width="100%" height="450" viewBox="0 0 500 450">
               {/* Calculate points for polyline */}
               {(() => {
                 if (!Array.isArray(revenueData) || revenueData.length === 0) return null;
@@ -293,19 +293,19 @@ export default function Dashboard() {
                   const maxValue = Math.max(...revenueData.map(d => d.value || 0), 1);
                   const points = revenueData.map((d, i) => {
                     const x = i * (400 / (months.length - 1));
-                    const y = 120 - ((d.value || 0) / maxValue) * 100;
+                    const y = 300 - ((d.value || 0) / maxValue) * 250;
                     return `${x},${y}`;
                   }).join(' ');
-                  return <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={points} />;
+                  return <polyline fill="none" stroke="#3b82f6" strokeWidth="3" points={points} />;
                 } catch (error) {
                   console.error('Error rendering revenue chart:', error);
                   return null;
                 }
               })()}
               {/* Month labels */}
-              <g fontSize="10" fill="#888">
+              <g fontSize="12" fill="#888">
                 {months.map((m, i) => (
-                  <text key={m} x={i * (400 / (months.length - 1))} y="135">{m}</text>
+                  <text key={m} x={i * (400 / (months.length - 1))} y="330">{m}</text>
                 ))}
               </g>
             </svg>
