@@ -47,7 +47,7 @@
   top: 0;
   width: 270px;
   height: 100vh;
-  background: linear-gradient(135deg, #e2b23a 0%, #e86d9e 100%);
+  background: linear-gradient(120deg, #ffd500 0%, #fba560 25%, #ffd500 70%, #ffd500 100%);
   background-size: 200% 200%;
   animation: gold-pink-gradient-move 8s ease-in-out infinite;
   backdrop-filter: blur(16px) saturate(160%);
