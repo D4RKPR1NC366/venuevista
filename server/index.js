@@ -36,6 +36,9 @@ app.use('/api/gallery', galleryRouter);
 const path = require('path');
 app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 
+// Serve review uploads statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Create a separate connection for promos database
 const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
   useNewUrlParser: true,

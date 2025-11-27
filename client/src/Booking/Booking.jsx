@@ -42,6 +42,8 @@ const Booking = () => {
   const [provinces, setProvinces] = useState([]);
   const [promos, setPromos] = useState([]);
   const [selectedPromoId, setSelectedPromoId] = useState('');
+  const [bookingsPerDay, setBookingsPerDay] = useState({});
+  
   // Helper to check promo status
   const isPromoActive = (promo) => {
     const now = dayjs();
@@ -49,11 +51,41 @@ const Booking = () => {
     const end = promo.validUntil ? dayjs(promo.validUntil) : null;
     return start && end && now.isAfter(start) && now.isBefore(end.add(1, 'day'));
   };
+  
   // Fetch promos on mount
   useEffect(() => {
     api.get('/promos')
       .then(res => setPromos(res.data))
       .catch(() => setPromos([]));
+  }, []);
+  
+  // Fetch only active bookings (pending and approved) to count bookings per day
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const [pending, approved] = await Promise.all([
+          fetch('/api/bookings/pending').then(r => r.json()),
+          fetch('/api/bookings/approved').then(r => r.json())
+        ]);
+        
+        // Only count pending and approved bookings, not finished ones
+        const activeBookings = [...pending, ...approved];
+        const countByDate = {};
+        
+        activeBookings.forEach(booking => {
+          if (booking.date) {
+            const dateStr = dayjs(booking.date).format('YYYY-MM-DD');
+            countByDate[dateStr] = (countByDate[dateStr] || 0) + 1;
+          }
+        });
+        
+        setBookingsPerDay(countByDate);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+      }
+    };
+    
+    fetchBookings();
   }, []);
   const [cities, setCities] = useState([]);
   const [barangays, setBarangays] = useState([]);
@@ -203,6 +235,11 @@ const Booking = () => {
                 value={form.date}
                 onChange={(newValue) => setForm(f => ({ ...f, date: newValue }))}
                 minDate={dayjs().startOf('day')}
+                shouldDisableDate={(date) => {
+                  const dateStr = dayjs(date).format('YYYY-MM-DD');
+                  const count = bookingsPerDay[dateStr] || 0;
+                  return count >= 4; // Disable if 4 or more bookings on this date
+                }}
                 slotProps={{
                   textField: { fullWidth: true, size: 'small' },
                   calendarHeader: { sx: { '& .MuiPickersCalendarHeader-label': { color: '#111' }, '& .MuiPickersArrowSwitcher-button': { color: '#111' } } },

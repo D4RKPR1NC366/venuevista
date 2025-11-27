@@ -15,6 +15,7 @@ const BookingInformation = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [reviewImages, setReviewImages] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +74,29 @@ const BookingInformation = () => {
     setReviewRating(0);
     setReviewText('');
     setIsAnonymous(false);
+    setReviewImages([]);
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + reviewImages.length > 5) {
+      alert('You can only upload up to 5 images');
+      return;
+    }
+    
+    const validFiles = files.filter(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} is too large. Each image must be less than 5MB`);
+        return false;
+      }
+      return true;
+    });
+    
+    setReviewImages(prev => [...prev, ...validFiles]);
+  };
+
+  const handleRemoveImage = (index) => {
+    setReviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmitReview = async () => {
@@ -84,23 +108,32 @@ const BookingInformation = () => {
       ? `${user.firstName} ${user.lastName}`.trim()
       : user.name || user.firstName || user.lastName || 'User';
     
-    const newReview = {
-      name: isAnonymous ? 'Anonymous' : userName,
-      rating: reviewRating,
-      comment: reviewText,
-      date: new Date().toISOString().slice(0, 10),
-      source: 'Customer',
-      logo: null,
-      bookingId: selectedBooking?._id || null,
-      userId: user._id || null
-    };
+    // Use FormData to handle file uploads
+    const formData = new FormData();
+    formData.append('name', isAnonymous ? 'Anonymous' : userName);
+    formData.append('rating', reviewRating);
+    formData.append('comment', reviewText);
+    formData.append('date', new Date().toISOString().slice(0, 10));
+    formData.append('source', 'Customer');
+    formData.append('logo', '');
+    if (selectedBooking?._id) formData.append('bookingId', selectedBooking._id);
+    if (user._id) formData.append('userId', user._id);
+    
+    // Append image files
+    reviewImages.forEach((file) => {
+      formData.append('images', file);
+    });
     
     try {
-      await api.post('/reviews', newReview);
+      await fetch('/api/reviews', {
+        method: 'POST',
+        body: formData
+      });
       setShowReviewModal(false);
       setReviewRating(0);
       setReviewText('');
       setIsAnonymous(false);
+      setReviewImages([]);
       alert('Thank you for your review!');
     } catch (err) {
       alert('Failed to submit review. Please try again.');
@@ -430,6 +463,71 @@ const BookingInformation = () => {
                   onFocus={(e) => e.target.style.borderColor = '#ffe066'}
                   onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                 />
+              </div>
+
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>Add Photos (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  style={{display: 'none'}}
+                  id="review-image-upload"
+                />
+                <label
+                  htmlFor="review-image-upload"
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    background: '#f5f5f5',
+                    border: '2px dashed #ccc',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#666',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#e0e0e0';
+                    e.target.style.borderColor = '#999';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#f5f5f5';
+                    e.target.style.borderColor = '#ccc';
+                  }}
+                >
+                  📷 Upload Images (Max 5)
+                </label>
+                {reviewImages.length > 0 && (
+                  <div style={{display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap'}}>
+                    {reviewImages.map((file, idx) => (
+                      <div key={idx} style={{position: 'relative', width: 80, height: 80}}>
+                        <img src={URL.createObjectURL(file)} alt={`Preview ${idx + 1}`} style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8}} />
+                        <button
+                          onClick={() => handleRemoveImage(idx)}
+                          style={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            background: '#ff4444',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 24,
+                            height: 24,
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            lineHeight: '24px',
+                            padding: 0
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{marginBottom: 24}}>

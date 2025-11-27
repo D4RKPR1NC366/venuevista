@@ -69,7 +69,7 @@ const TopBar = () => {
 
   return (
     <header className={`topbar${expanded ? " topbar-expanded" : ""}`}>
-      <div className="topbar-logo">GOLDUST CREATIONS</div>
+      <div className="topbar-logo">VENUEVISTA, BY GOLDUST CREATIONS</div>
 
       <nav className="topbar-center" style={{ display: 'flex', alignItems: 'center', gap: 48 }}>
         <a href="/" className="topbar-link">Home</a>

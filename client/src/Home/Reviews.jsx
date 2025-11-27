@@ -51,6 +51,26 @@ const Reviews = () => {
                 <span className="review-source">Review from {review.source}</span>
               </div>
               <div className="review-comment">{review.comment}</div>
+              {review.images && review.images.length > 0 && (
+                <div style={{display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap'}}>
+                  {review.images.map((img, imgIdx) => (
+                    <img 
+                      key={imgIdx} 
+                      src={img} 
+                      alt={`Review ${idx + 1} - ${imgIdx + 1}`}
+                      style={{
+                        width: 80, 
+                        height: 80, 
+                        objectFit: 'cover', 
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        border: '1px solid #e0e0e0'
+                      }}
+                      onClick={() => window.open(img, '_blank')}
+                    />
+                  ))}
+                </div>
+              )}
               {review.logo && (
                 <div className="review-logo-row">
                   <img src={review.logo} alt={review.source + ' logo'} className="review-logo" />

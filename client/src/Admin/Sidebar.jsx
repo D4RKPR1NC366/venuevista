@@ -51,7 +51,7 @@ export default function Sidebar() {
   return (
     <aside className={`admin-sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="admin-sidebar-header">
-        <div className="admin-sidebar-title">GOLDUST CREATIONS</div>
+        <div className="admin-sidebar-title">VENUEVISTA</div>
         <button 
           className="sidebar-toggle-mobile" 
           onClick={() => setIsOpen(!isOpen)}

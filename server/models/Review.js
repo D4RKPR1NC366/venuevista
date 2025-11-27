@@ -12,6 +12,7 @@ const reviewSchema = new mongoose.Schema({
   date: { type: String, required: true },
   source: { type: String, default: 'Customer' },
   logo: { type: String, default: null },
+  images: [{ type: String }], // Array of image file paths or URLs
   bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 });

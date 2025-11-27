@@ -318,7 +318,8 @@ const SignUp = () => {
           </Paper>
         </Box>
         <Box className="auth-side-panel">
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Welcome to Goldust Creations</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Welcome to Venuevista</Typography>
+          <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>by Goldust Creations</Typography>
         </Box>
       </Box>
     </Box>

@@ -31,7 +31,7 @@ const ClientSidebar = () => {
   return (
     <aside className={`client-sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="client-sidebar-header">
-        <div className="client-sidebar-title">Goldust Creations</div>
+        <div className="client-sidebar-title">Venuevista</div>
         <button 
           className="sidebar-toggle-mobile" 
           onClick={() => setIsOpen(!isOpen)}

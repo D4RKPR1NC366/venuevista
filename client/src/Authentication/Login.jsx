@@ -112,18 +112,18 @@ const Login = () => {
 
       // Check for hardcoded admin credentials
       if (
-        form.emailOrPhone === 'goldustadmin@gmail.com' &&
+        form.emailOrPhone === 'truegoldustadmin@gmail.com' &&
         form.password === 'admin123'
       ) {
         // Save admin info with a token
         localStorage.setItem('user', JSON.stringify({
-          email: 'goldustadmin@gmail.com',
+          email: 'truegoldustadmin@gmail.com',
           role: 'admin',
           firstName: 'Goldust',
           lastName: 'Admin'
         }));
         localStorage.setItem('token', 'admin-hardcoded-token');
-        localStorage.setItem('userEmail', 'goldustadmin@gmail.com');
+        localStorage.setItem('userEmail', 'truegoldustadmin@gmail.com');
         navigate('/admin/dashboard');
         return;
       }
@@ -237,7 +237,8 @@ const Login = () => {
           </Paper>
         </Box>
         <Box className="auth-side-panel">
-          <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Welcome to Goldust Creations</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Welcome to Venuevista</Typography>
+          <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>by Goldust Creations</Typography>
           
         </Box>
       </Box>

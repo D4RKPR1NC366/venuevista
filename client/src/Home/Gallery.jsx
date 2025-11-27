@@ -24,7 +24,7 @@ const Gallery = () => {
   return (
     <>
       <TopBar />
-      <div className="gallery-page" style={{ padding: '16px', minHeight: '80vh', marginTop: '64px', maxWidth: '1300px', marginLeft: 'auto', marginRight: 'auto' }}>
+      <div className="gallery-page" style={{ padding: '16px', minHeight: '80vh', marginTop: '120px', maxWidth: '1300px', marginLeft: 'auto', marginRight: 'auto' }}>
         <p style={{ textAlign: 'center', marginBottom: '32px', fontSize: 28, fontWeight: 700, color: '#d4af37', letterSpacing: 2 }}>
           Goldust Gallery
         </p>
