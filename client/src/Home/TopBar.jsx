@@ -69,7 +69,23 @@ const TopBar = () => {
 
   return (
     <header className={`topbar${expanded ? " topbar-expanded" : ""}`}>
-      <div className="topbar-logo">VENUEVISTA, BY GOLDUST CREATIONS</div>
+      <div className="topbar-logo">
+        <img 
+          src="/venuevista-logo.png" 
+          alt="Venuevista by Goldust Creations" 
+          style={{
+            height: expanded ? '52px' : '38px',
+            maxWidth: '320px',
+            width: 'auto',
+            objectFit: 'contain',
+            transition: 'height 0.3s ease'
+          }}
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.parentElement.textContent = 'VENUEVISTA, BY GOLDUST CREATIONS';
+          }}
+        />
+      </div>
 
       <nav className="topbar-center" style={{ display: 'flex', alignItems: 'center', gap: 48 }}>
         <a href="/" className="topbar-link">Home</a>

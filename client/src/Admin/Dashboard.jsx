@@ -282,9 +282,9 @@ export default function Dashboard() {
 
         <div className="admin-dashboard-revenue-card">
           <div className="admin-dashboard-card-title">Annual Revenue Chart</div>
-          <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '210px', minHeight: '140px' }}>
+          <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '320px', minHeight: '200px' }}>
             {/* Functional SVG line chart for revenue */}
-            <svg width="100%" height="210" viewBox="0 0 400 210">
+            <svg width="100%" height="320" viewBox="0 0 500 320">
               {/* Calculate points for polyline */}
               {(() => {
                 if (!Array.isArray(revenueData) || revenueData.length === 0) return null;
