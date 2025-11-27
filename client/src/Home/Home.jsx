@@ -249,14 +249,14 @@ const Home = () => {
             style={{ padding: '0.4rem', borderRadius: '4px', background: '#fff', color: '#222', border: '1px solid #ccc' }}
           >
             <option value="all">All Events</option>
-            <option value="debut">Debut</option>
-            <option value="wedding">Wedding</option>
-            <option value="seminar">Seminar</option>
-            <option value="birthday">Birthday</option>
-            <option value="corporate">Corporate</option>
             <option value="anniversary">Anniversary</option>
-            <option value="reunion">Reunion</option>
             <option value="baptism">Baptism</option>
+            <option value="birthday">Birthday</option>
+            <option value="debut">Debut</option>
+            <option value="corporate">Corporate</option>
+            <option value="reunion">Reunion</option>
+            <option value="seminar">Seminar</option>
+            <option value="wedding">Wedding</option>
           </select>
         </div>
         <div className="home-services-grid">

@@ -287,14 +287,14 @@ const Booking = () => {
                       value={form.eventType}
                       onChange={e => setForm(f => ({ ...f, eventType: e.target.value }))}
                     >
-                      
-                      <MenuItem value="Wedding">Wedding</MenuItem>
-                      <MenuItem value="Birthday">Birthday</MenuItem>
-                      <MenuItem value="Debut">Debut</MenuItem>
-                      <MenuItem value="Corporate">Corporate</MenuItem>
                       <MenuItem value="Anniversary">Anniversary</MenuItem>
-                      <MenuItem value="Reunion">Reunion</MenuItem>
                       <MenuItem value="Baptism">Baptism</MenuItem>
+                      <MenuItem value="Birthday">Birthday</MenuItem>
+                      <MenuItem value="Corporate">Corporate</MenuItem>
+                      <MenuItem value="Debut">Debut</MenuItem>
+                      <MenuItem value="Reunion">Reunion</MenuItem>
+                      <MenuItem value="Seminar">Seminar</MenuItem>
+                      <MenuItem value="Wedding">Wedding</MenuItem>
                     </Select>
                   </FormControl>
                 </div>
@@ -311,24 +311,7 @@ const Booking = () => {
                 />
               </div>
             </div>
-            {/* Promo Dropdown */}
-            <div className="booking-field" style={{ marginBottom: 16, width: '50%' }}>
-              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, marginTop: 0, color: !selectedPromoId ? '#000000ff' : '#333' }}>Promo</div>
-              <FormControl fullWidth size="small">
-                <InputLabel id="promo-label">Select Promo</InputLabel>
-                <Select
-                  labelId="promo-label"
-                  label="Select Promo"
-                  value={selectedPromoId}
-                  onChange={e => setSelectedPromoId(e.target.value)}
-                >
-                  <MenuItem value="">No Promo</MenuItem>
-                  {promos.filter(isPromoActive).map(promo => (
-                    <MenuItem key={promo._id} value={promo._id}>{promo.title} ({promo.discountValue}% OFF)</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </div>
+           
             <div className="booking-field" style={{ marginBottom: 0 }}>
               <FormControl component="fieldset" fullWidth>
                 <label style={{ fontWeight: 500, color: '#222', marginBottom: 8, display: 'block', fontSize: '1rem', textAlign: 'left' }}>
