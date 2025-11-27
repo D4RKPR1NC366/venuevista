@@ -25,15 +25,11 @@ body, .auth-container, .auth-form, .MuiTypography-root, .MuiInputBase-root, .Mui
   min-height: 100dvh;
   min-height: 100vh;
   width: 100vw;
-  height: 100dvh;
-  height: 100vh;
   background: #fff;
   padding: 0;
   margin: 0;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .auth-panel {
@@ -44,7 +40,8 @@ body, .auth-container, .auth-form, .MuiTypography-root, .MuiInputBase-root, .Mui
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 32px 0 rgba(60, 60, 60, 0.12);
-  overflow: hidden;
+  overflow: visible;
+  margin: 2rem auto;
 }
 
 .auth-form-panel {
@@ -498,8 +495,7 @@ body, .auth-container, .auth-form, .MuiTypography-root, .MuiInputBase-root, .Mui
 }
 @media (max-width: 600px) {
   .auth-container {
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-height: 100vh;
     align-items: flex-start;
     padding: 0;
   }
@@ -509,6 +505,7 @@ body, .auth-container, .auth-form, .MuiTypography-root, .MuiInputBase-root, .Mui
     border-radius: 0;
     width: 100vw;
     flex-direction: column-reverse;
+    margin: 0;
   }
   
   .auth-side-panel {
@@ -517,7 +514,7 @@ body, .auth-container, .auth-form, .MuiTypography-root, .MuiInputBase-root, .Mui
   }
   
   .auth-form-panel {
-    padding: 1.5rem 1.2rem;
+    padding: 1.5rem 1.2rem 3rem 1.2rem;
     overflow-y: visible;
   }
   
