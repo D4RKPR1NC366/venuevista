@@ -28,6 +28,14 @@ app.use('/api/bookings', bookingsRouter);
 const categoriesRouter = require('./routes/categories');
 app.use('/api/categories', categoriesRouter);
 
+// Gallery routes
+const galleryRouter = require('./routes/gallery');
+app.use('/api/gallery', galleryRouter);
+
+// Serve gallery images statically
+const path = require('path');
+app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
+
 // Create a separate connection for promos database
 const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
   useNewUrlParser: true,

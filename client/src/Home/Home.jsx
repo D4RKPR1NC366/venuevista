@@ -58,6 +58,10 @@ const Home = () => {
 
   const allReviews = userReviews;
 
+  // Calculate review summary
+  const totalReviews = allReviews.length;
+  const avgRating = totalReviews > 0 ? (allReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews) : 0;
+
   useEffect(() => {
     // Fetch categories from API
     api.get('/categories')
@@ -280,9 +284,14 @@ const Home = () => {
 
       {/* Review Section */}
       <section className="home-reviews-section">
-        <div className="home-reviews-header-row">
-          <h2 className="home-reviews-title">Customer Reviews</h2>
-          <button className="home-reviews-see-more" onClick={() => navigate('/reviews')}>See more</button>
+        <div className="home-reviews-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <h2 className="home-reviews-title" style={{ margin: 0 }}>Customer Reviews</h2>
+          <span style={{ fontSize: '1.1rem', color: '#d4af37', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', marginBottom: '6px' }}>
+            {avgRating.toFixed(1)}
+            <span style={{ color: '#d4af37', fontSize: '1.2em', marginLeft: '2px' }}>★</span>
+            <span style={{ color: '#444', fontWeight: 500, fontSize: '1rem', marginLeft: '8px' }}>{totalReviews} reviews</span>
+          </span>
+          <button className="home-reviews-see-more" style={{ alignSelf: 'flex-end' }} onClick={() => navigate('/reviews')}>See more</button>
         </div>
         <div className="home-reviews-carousel-wrapper">
           <button

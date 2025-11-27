@@ -1,0 +1,91 @@
+ .gallery-admin-page {
+  padding: 32px;
+  min-height: 80vh;
+  overflow-x: auto;
+  margin-left: 260px; /* Adjust to match sidebar width */
+ }
+
+
+.gallery-admin-title {
+  color: #d4af37;
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+ .gallery-admin-add-btn {
+  background: #d4af37;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  margin-bottom: 32px;
+  cursor: pointer;
+  display: block;
+  margin-left: 0;
+ }
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  justify-content: start;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.gallery-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  background: #fff;
+  min-width: 200px;
+  max-width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  display: block;
+}
+
+.gallery-card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #d4af37;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-admin-error {
+  color: red;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.gallery-admin-empty {
+  text-align: center;
+  color: #888;
+  font-size: 18px;
+  grid-column: 1 / -1;
+}

@@ -3,9 +3,11 @@ import Sidebar from './Sidebar';
 import './dashboard.css';
 
 export default function Dashboard() {
-    // Appointment counts
-    const [upcomingAppointments, setUpcomingAppointments] = useState(null);
-    const [finishedAppointments, setFinishedAppointments] = useState(null);
+  // Appointment counts
+  const [upcomingAppointments, setUpcomingAppointments] = useState(null);
+  const [finishedAppointments, setFinishedAppointments] = useState(null);
+  // Reviews summary
+  const [reviewSummary, setReviewSummary] = useState({ avg: 0, total: 0 });
   // Months for chart labels
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   // Helper to get filter label for cards
@@ -59,6 +61,15 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+            // Fetch reviews summary
+            fetch('/api/reviews')
+              .then(res => res.json())
+              .then(data => {
+                const total = Array.isArray(data) ? data.length : 0;
+                const avg = total > 0 ? (data.reduce((sum, r) => sum + (r.rating || 0), 0) / total) : 0;
+                setReviewSummary({ avg, total });
+              })
+              .catch(() => setReviewSummary({ avg: 0, total: 0 }));
         // Fetch appointments for upcoming/finished count
         fetch('/api/appointments')
           .then(res => res.json())
@@ -223,6 +234,13 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="admin-dashboard-cards-row" style={{ marginTop: 16 }}>
+          <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #f59e42 60%, #f43f5e 100%)', color: '#fff' }}>
+            <div className="admin-dashboard-card-title" style={{ color: '#fff', fontWeight: 700 }}>Reviews Summary</div>
+            <div className="admin-dashboard-card-value" style={{ color: '#fff', fontWeight: 600, fontSize: '1.2rem' }}>
+              {reviewSummary.avg.toFixed(1)} <span style={{ color: '#ffd700', fontSize: '1.2em', marginLeft: '2px' }}>★</span>
+              <span style={{ color: '#fff', fontWeight: 400, fontSize: '1rem', marginLeft: '10px' }}>{reviewSummary.total} reviews</span>
+            </div>
+          </div>
           <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #f43f5e 60%, #f59e42 100%)', color: '#fff' }}>
             <div className="admin-dashboard-card-title" style={{ color: '#fff', fontWeight: 700 }}>Urgent Reminders <span style={{ color: '#fff', fontWeight: 400 }}>| due today or tomorrow</span></div>
             <div className="admin-dashboard-card-value" style={{ color: '#fff' }}>{urgentReminders}</div>
@@ -261,11 +279,12 @@ export default function Dashboard() {
           </div>
         </div>
         
+
         <div className="admin-dashboard-revenue-card">
-          <div className="admin-dashboard-card-title">Revenue <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
-          <div className="admin-dashboard-revenue-chart">
+          <div className="admin-dashboard-card-title">Annual Revenue Chart</div>
+          <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '210px', minHeight: '140px' }}>
             {/* Functional SVG line chart for revenue */}
-            <svg width="100%" height="140" viewBox="0 0 400 140">
+            <svg width="100%" height="210" viewBox="0 0 400 210">
               {/* Calculate points for polyline */}
               {(() => {
                 if (!Array.isArray(revenueData) || revenueData.length === 0) return null;
@@ -295,6 +314,45 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* Revenue summary cards (filtered by filter selection) */}
+        {Array.isArray(revenueData) && revenueData.length > 0 && (() => {
+          const now = new Date();
+          let filteredData = revenueData;
+          if (filter === 'thisMonth') {
+            filteredData = revenueData.filter(d => d.month === now.getMonth());
+          } else if (filter === 'thisYear') {
+            filteredData = revenueData; // All months in this year
+          } else if (filter === 'this6Months') {
+            // Last 6 months
+            const monthsArr = [];
+            for (let i = 0; i < 6; i++) {
+              let m = now.getMonth() - i;
+              if (m < 0) m += 12;
+              monthsArr.push(m);
+            }
+            filteredData = revenueData.filter(d => monthsArr.includes(d.month));
+          }
+          const totalRevenue = filteredData.reduce((sum, d) => sum + (d.value || 0), 0);
+          const tax = totalRevenue * 0.12;
+          const profit = totalRevenue - tax;
+          return (
+            <div className="admin-dashboard-cards-row" style={{ marginTop: 16 }}>
+              <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #22c55e 60%, #bbf7d0 100%)', color: '#222' }}>
+                <div className="admin-dashboard-card-title">Revenue <span style={{ color: '#fff', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
+                  <div className="admin-dashboard-card-value" style={{ fontWeight: 700, fontSize: '1.2rem', color: '#fff' }}>₱{totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </div>
+              <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #f59e42 60%, #fef3c7 100%)', color: '#222' }}>
+                <div className="admin-dashboard-card-title">Tax (12%) <span style={{ color: '#fff', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
+                  <div className="admin-dashboard-card-value" style={{ fontWeight: 700, fontSize: '1.2rem', color: '#fff' }}>₱{tax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </div>
+              <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #3b82f6 60%, #dbeafe 100%)', color: '#222' }}>
+                <div className="admin-dashboard-card-title">Revenue -Tax <span style={{ color: '#fff', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
+                  <div className="admin-dashboard-card-value" style={{ fontWeight: 700, fontSize: '1.2rem', color: '#fff' }}>₱{profit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </div>
+            </div>
+          );
+        })()}
       </main>
     </div>
   );

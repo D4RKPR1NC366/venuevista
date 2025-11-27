@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./Authentication/Login";
 import SignUp from "./Authentication/SignUp";
 import Home from "./Home/Home";
+import Gallery from "./Home/Gallery";
 import EventCart from "./Home/EventCart";
 import PnSDetails from "./Home/PnSDetails";
 import ForgotPasswordFlow from "./Authentication/ForgotPasswordFlow";
@@ -22,6 +23,7 @@ import Calendars from "./Admin/Calendars";
 import Suppliers from "./Admin/Suppliers";
 import UserClients from "./Admin/UserClients";
 import BackgroundGallery from "./Admin/BackgroundGallery";
+import GoldustGallery from "./Admin/GoldustGallery";
 import Promos from "./Admin/Promos";
 import AdminSupplierSchedules from "./Admin/AdminSupplierSchedules";
 import Policy from "./Home/Policy";
@@ -47,6 +49,7 @@ function App() {
     <Route path="/home" element={<Home />} />
     <Route path="/policy" element={<Policy />} />
     <Route path="/reviews" element={<Reviews />} />
+      <Route path="/gallery" element={<Gallery />} />
     
     {/* Auth routes - only accessible when NOT logged in */}
     <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
@@ -72,6 +75,7 @@ function App() {
     <Route path="/admin/user-clients" element={<AdminRoute><UserClients /></AdminRoute>} />
     <Route path="/admin/appointments" element={<AdminRoute><AdminAppointment /></AdminRoute>} />
     <Route path="/admin/background-gallery" element={<AdminRoute><BackgroundGallery /></AdminRoute>} />
+      <Route path="/admin/goldust-gallery" element={<AdminRoute><GoldustGallery /></AdminRoute>} />
     <Route path="/admin/supplier-schedules" element={<AdminRoute><AdminSupplierSchedules /></AdminRoute>} />
     <Route path="/admin/promos" element={<AdminRoute><Promos /></AdminRoute>} />
     

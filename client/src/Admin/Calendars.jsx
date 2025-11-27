@@ -279,7 +279,7 @@ export default function Calendars() {
               }}
               onClick={() => setModalOpen(true)}
             >
-              Add Event
+              Add Event/ Schedule/ Reminder
             </button>
           </div>
           <div
@@ -311,7 +311,7 @@ export default function Calendars() {
           </div>
           {/* Modal for adding event */}
           <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
-            <h4 style={{ marginTop: 0 }}>Add Event / Meeting / Reminder</h4>
+            <h4 style={{ marginTop: 0 }}>Add Event/ Schedule/ Reminder</h4>
             <form onSubmit={handleAddEvent} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <label style={{ width: '100%', marginBottom: 0 }}>
                 Title:

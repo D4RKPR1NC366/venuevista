@@ -101,8 +101,10 @@
   margin: 0;
   width: 100%;
 }
+/* Desktop sidebar link spacing */
 .admin-sidebar nav ul li {
-  margin-bottom: 7px;
+  margin-bottom: 2px;
+  margin-top: 2px;
   width: 100%;
 }
 .admin-sidebar nav ul li a {
@@ -128,6 +130,10 @@
   .admin-sidebar-title {
     font-size: 1.1rem;
     margin: 0px 0px 30px 24px;
+  }
+  .admin-sidebar nav ul li {
+    margin-bottom: 7px;
+    margin-top: 0;
   }
   .admin-sidebar nav ul li a {
     padding: 9px 24px;
