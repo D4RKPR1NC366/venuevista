@@ -128,8 +128,118 @@ const Home = () => {
           </div>
         )}
       </section>
+      {/* Active Promos Section - moved above Services */}
+      <section className="home-promos-section" style={{ marginBottom: '2rem' }}>
+        <div className="home-promos-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <h2 className="home-promos-title" style={{ fontSize: '2.3rem', fontWeight: 500, textAlign: 'center', margin: 0 }}>Promos</h2>
+        </div>
+        <div className="home-promos-carousel-wrapper" style={{ position: 'relative', margin: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {activePromos.length * 260 > window.innerWidth && (
+            <button
+              className="home-promos-arrow left"
+              style={{
+                background: '#fff',
+                color: '#e91e63',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.7rem',
+                position: 'relative',
+                marginRight: 12,
+                boxShadow: 'none',
+                cursor: 'pointer',
+                zIndex: 2
+              }}
+              onClick={() => {
+                if (promosContainerRef.current) {
+                  promosContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+                }
+              }}
+              aria-label="Scroll left"
+            >&#8592;</button>
+          )}
+          <div className="home-promos-carousel" ref={promosContainerRef} style={{
+            overflowX: 'auto',
+            scrollBehavior: 'smooth',
+            display: 'flex',
+            gap: '1.5rem',
+            padding: '1rem 0',
+            margin: '0 12px',
+            alignItems: 'center',
+            justifyContent: 'flex-start'
+          }}>
+            {activePromos.length === 0 && <div style={{ color: '#888' }}>No active promos.</div>}
+            {activePromos.map((promo, idx) => (
+              <div
+                key={promo._id || idx}
+                className="home-promo-card"
+                style={{
+                  minWidth: 260,
+                  maxWidth: 260,
+                  background: 'linear-gradient(135deg, #ffb3b3 0%, #ff69b4 100%)',
+                  borderRadius: 12,
+                  boxShadow: 'none',
+                  padding: '1.2rem 1rem',
+                  color: '#222',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  margin: '0 8px',
+                  transition: 'transform 0.2s cubic-bezier(.4,2,.3,1)',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-10px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+              >
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.3rem' }}>{promo.title}</div>
+                <div style={{ fontWeight: 900, color: '#d32f2f', fontSize: '2.2rem', marginBottom: '0.5rem', letterSpacing: '-1px' }}>{promo.discountValue}% OFF</div>
+                <div style={{ fontSize: '0.98rem', marginBottom: '0.5rem' }}>{promo.description}</div>
+                <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                  {promo.validUntil ? `Until: ${promo.validUntil.slice(0, 10)}` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+          {activePromos.length * 260 > window.innerWidth && (
+            <button
+              className="home-promos-arrow right"
+              style={{
+                background: '#fff',
+                color: '#e91e63',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.7rem',
+                position: 'relative',
+                marginLeft: 12,
+                boxShadow: 'none',
+                cursor: 'pointer',
+                zIndex: 2
+              }}
+              onClick={() => {
+                if (promosContainerRef.current) {
+                  promosContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+                }
+              }}
+              aria-label="Scroll right"
+            >&#8594;</button>
+          )}
+        </div>
+      </section>
+
       <section className="home-services" id="services">
-        <h2 className="home-services-title">SERVICES</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <h2 className="home-services-title" style={{ fontSize: '2.3rem', fontWeight: 500, textAlign: 'center', margin: 0 }}>Products and Services</h2>
+        </div>
         <div className="home-services-filter-row" style={{ marginBottom: '1rem' }}>
           <label htmlFor="eventType" style={{ marginRight: '0.5rem' }}>Filter by Event:</label>
           <select
@@ -178,114 +288,11 @@ const Home = () => {
           ))}
         </div>
       </section>
-      {/* Active Promos Section */}
-      <section className="home-promos-section" style={{ marginBottom: '2rem' }}>
-        <div className="home-promos-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <h2 className="home-promos-title" style={{ fontSize: '2rem', fontWeight: 700, textAlign: 'center', margin: 0 }}>Promos</h2>
-        </div>
-        <div className="home-promos-carousel-wrapper" style={{ position: 'relative', margin: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <button
-            className="home-promos-arrow left"
-            style={{
-              background: '#fff',
-              color: '#e91e63',
-              border: 'none',
-              borderRadius: '50%',
-              width: 40,
-              height: 40,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.7rem',
-              position: 'relative',
-              marginRight: 12,
-              boxShadow: 'none',
-              cursor: 'pointer',
-              zIndex: 2
-            }}
-            onClick={() => {
-              if (promosContainerRef.current) {
-                promosContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
-              }
-            }}
-            aria-label="Scroll left"
-          >&#8592;</button>
-          <div className="home-promos-carousel" ref={promosContainerRef} style={{
-            overflowX: 'auto',
-            scrollBehavior: 'smooth',
-            display: 'flex',
-            gap: '1.5rem',
-            padding: '1rem 0',
-            margin: '0 12px',
-            alignItems: 'center',
-            justifyContent: 'flex-start'
-          }}>
-            {activePromos.length === 0 && <div style={{ color: '#888' }}>No active promos.</div>}
-            {activePromos.map((promo, idx) => (
-              <div
-                key={promo._id || idx}
-                className="home-promo-card"
-                style={{
-                  minWidth: 260,
-                  maxWidth: 260,
-                  background: 'linear-gradient(135deg, #ffb3b3 0%, #ff69b4 100%)',
-                  borderRadius: 12,
-                  boxShadow: 'none',
-                  padding: '1.2rem 1rem',
-                  color: '#222',
-                  position: 'relative',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  margin: '0 8px',
-                  transition: 'transform 0.2s cubic-bezier(.4,2,.3,1)',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-10px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-              >
-                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.3rem' }}>{promo.title}</div>
-                <div style={{ fontWeight: 900, color: '#d32f2f', fontSize: '2.2rem', marginBottom: '0.5rem', letterSpacing: '-1px' }}>{promo.discountValue}% OFF</div>
-                <div style={{ fontSize: '0.98rem', marginBottom: '0.5rem' }}>{promo.description}</div>
-                <div style={{ fontSize: '0.9rem', color: '#555' }}>
-                  {promo.validUntil ? `Until: ${promo.validUntil.slice(0, 10)}` : ''}
-                </div>
-              </div>
-            ))}
-          </div>
-          <button
-            className="home-promos-arrow right"
-            style={{
-              background: '#fff',
-              color: '#e91e63',
-              border: 'none',
-              borderRadius: '50%',
-              width: 40,
-              height: 40,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.7rem',
-              position: 'relative',
-              marginLeft: 12,
-              boxShadow: 'none',
-              cursor: 'pointer',
-              zIndex: 2
-            }}
-            onClick={() => {
-              if (promosContainerRef.current) {
-                promosContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
-              }
-            }}
-            aria-label="Scroll right"
-          >&#8594;</button>
-        </div>
-      </section>
 
       {/* Review Section */}
       <section className="home-reviews-section">
-        <div className="home-reviews-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'column', alignItems: 'flex-start' }}>
-          <h2 className="home-reviews-title" style={{ margin: 0 }}>Customer Reviews</h2>
+        <div className="home-reviews-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+          <h2 className="home-reviews-title" style={{ fontSize: '2.3rem', fontWeight: 500, margin: 0, textAlign: 'center' }}>Customer Reviews</h2>
           <span style={{ fontSize: '1.1rem', color: '#d4af37', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', marginBottom: '6px' }}>
             {avgRating.toFixed(1)}
             <span style={{ color: '#d4af37', fontSize: '1.2em', marginLeft: '2px' }}>★</span>
