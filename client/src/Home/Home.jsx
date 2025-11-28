@@ -1,11 +1,13 @@
 
 
-import React, { useEffect, useState, useRef } from "react";
 import TopBar from "./TopBar";
 import "./home.css";
 import "../Authentication/auth.css";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from '../services/api';
+
+import Footer from "./Footer";
 
 
 
@@ -342,6 +344,7 @@ const Home = () => {
           >&#8594;</button>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };
