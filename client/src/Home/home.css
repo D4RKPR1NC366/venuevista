@@ -253,15 +253,11 @@
 }
 
 .policy-footer {
-  transform: translateX(-50%);
-  font-size: 3.2rem;
-  color: white;
-  font-weight: 900;
-  margin-bottom: 30px;
-  letter-spacing: 2px;
+  font-size: 1.1rem;
+  color: #666;
   text-align: center;
-  font-family: 'Playfair Display', 'Cinzel', 'Georgia', serif;
-  text-shadow: 2px 2px 8px rgba(0,0,0,0.18), 0 1px 0 #fff;
+  line-height: 1.6;
+  margin-top: 24px;
 }
 
 /* Removed stray properties that were outside of a selector */
