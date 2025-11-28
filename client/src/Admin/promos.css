@@ -187,7 +187,8 @@
 .promos-content {
   flex: 1;
   padding: 2rem;
-  margin-left: 260px; /* Adjust to match sidebar width */
+  margin-left: 290px; /* Increased space from sidebar */
+  margin-top: 15px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;

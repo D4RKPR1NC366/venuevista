@@ -95,7 +95,9 @@ const GoldustGallery = () => {
     <div style={{ display: "flex" }}>
       <Sidebar />
       <div className="gallery-admin-page">
-        <h2 className="gallery-admin-title">Goldust Gallery Admin</h2>
+        <div className="gallery-admin-title-row">
+          <h2 className="gallery-admin-title">Goldust Gallery Admin</h2>
+        </div>
         <div style={{ textAlign: "center" }}>
           <input
             type="file"

@@ -1,14 +1,23 @@
  .gallery-admin-page {
-  padding: 32px;
+  padding: 2px;
+  margin-top: 45px;
   min-height: 80vh;
   overflow-x: auto;
-  margin-left: 260px; /* Adjust to match sidebar width */
+  margin-left: 320px; /* Increased space from sidebar */
  }
 
 
+
+.gallery-admin-title-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 100%;
+}
+
 .gallery-admin-title {
-  color: #d4af37;
-  text-align: center;
+  color: #111;
+  text-align: left;
   margin-bottom: 24px;
   font-size: 2rem;
   font-weight: 700;
