@@ -18,6 +18,7 @@ const BookingInformation = () => {
   const [reviewImages, setReviewImages] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userReviews, setUserReviews] = useState([]);
 
   // Get user info (match Login.jsx logic)
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -26,17 +27,20 @@ const BookingInformation = () => {
   const fetchBookings = async () => {
     try {
       // Fetch all bookings and filter by user email
-      const [pendingRes, approvedRes, finishedRes] = await Promise.all([
+      const [pendingRes, approvedRes, finishedRes, reviewsRes] = await Promise.all([
         api.get('/bookings/pending'),
         api.get('/bookings/approved'),
         api.get('/bookings/finished'),
+        api.get(`/reviews?email=${encodeURIComponent(userEmail)}`)
       ]);
       const pending = pendingRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Pending' }));
       const approved = approvedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Approved' }));
       const finished = finishedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Finished' }));
+      setUserReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
       setBookings([...pending, ...approved, ...finished]);
     } catch (err) {
       setBookings([]);
+      setUserReviews([]);
     } finally {
       setLoading(false);
     }
@@ -172,44 +176,61 @@ const BookingInformation = () => {
             {bookings.length === 0 ? (
               <div>No bookings found.</div>
             ) : (
-              bookings.map((booking, idx) => (
-                <div
-                  key={booking._id || idx}
-                  className="booking-card"
-                  onClick={() => handleCardClick(booking)}
-                  style={{
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                    position: 'relative'
-                  }}
-                >
-                  <div style={{display: 'flex', flexDirection: 'column'}}>
-                    <h4>{booking.eventType || booking.title}</h4>
-                    <div style={{fontSize: '1.05rem', color: '#666'}}>{booking.date ? new Date(booking.date).toLocaleDateString() : ''}</div>
+              bookings.map((booking, idx) => {
+                // Check if a review exists for this booking
+                const hasReview = userReviews.some(r => r.bookingId === booking._id);
+                return (
+                  <div
+                    key={booking._id || idx}
+                    className="booking-card"
+                    onClick={() => handleCardClick(booking)}
+                    style={{
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                      <h4>{booking.eventType || booking.title}</h4>
+                      <div style={{fontSize: '1.05rem', color: '#666'}}>{booking.date ? new Date(booking.date).toLocaleDateString() : ''}</div>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 8}}>
+                      <span className="status">
+                        Status: {booking.status}
+                      </span>
+                      {booking.status === 'Finished' && (
+                        hasReview ? (
+                          <span style={{
+                            background: '#e0e0e0',
+                            borderRadius: 6,
+                            padding: '6px 16px',
+                            fontWeight: 600,
+                            color: '#888',
+                            marginLeft: 8
+                          }}>
+                            Review Submitted
+                          </span>
+                        ) : (
+                          <button
+                            style={{
+                              background: '#ffe066',
+                              border: 'none',
+                              borderRadius: 6,
+                              padding: '6px 16px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+                            }}
+                            onClick={e => handleReviewClick(booking, e)}
+                          >
+                            Write a Review
+                          </button>
+                        )
+                      )}
+                    </div>
                   </div>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 8}}>
-                    <span className="status">
-                      Status: {booking.status}
-                    </span>
-                    {booking.status === 'Finished' && (
-                      <button
-                        style={{
-                          background: '#ffe066',
-                          border: 'none',
-                          borderRadius: 6,
-                          padding: '6px 16px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
-                        }}
-                        onClick={e => handleReviewClick(booking, e)}
-                      >
-                        Write a Review
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

@@ -223,14 +223,12 @@ const Booking = () => {
     <div className="booking-root">
       <TopBar />
       <div className="booking-header">
-         <p className="review-title-script" style={{ textAlign: 'center', marginTop: '30px',marginBottom: '12px', color: '#000000ff', letterSpacing: 2 }}>
-          Book Now
-        </p>
+         <p className="review-title-script booking-title">Book Now</p>
       </div>
-      <div className="booking-center-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-        <div className="booking-main-row" style={{ display: 'flex', gap: 0, maxWidth: 1050, width: '100%', justifyContent: 'center', marginBottom: 32, marginTop: 40 }}>
-          <div className="booking-calendar-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'stretch', height: 'auto', minHeight: 400, marginTop: 16 }}>
-            <h3 style={{ color: '#111', fontWeight: 700, textAlign: 'left', marginLeft: 0, marginBottom: 8 }}>Choose your event date</h3>
+      <div className="booking-center-container">
+        <div className="booking-main-row" style={{ gap: -15 }}>
+          <div className="booking-calendar-box" style={{ width: 300, maxWidth: 300 }}>
+            <h3 className="booking-calendar-title">Choose your event date</h3>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <StaticDatePicker
                 displayStaticWrapperAs="desktop"
@@ -259,10 +257,10 @@ const Booking = () => {
               />
             </LocalizationProvider>
           </div>
-          <div className="booking-form-box" style={{ flex: 1, minWidth: 0, maxWidth: 'none', width: '50%', display: 'flex', flexDirection: 'column', padding: '24px 32px', boxSizing: 'border-box', minHeight: 400, justifyContent: 'center', marginTop: 16 }}>
-            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: 20 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8, marginTop: 8, color: !form.province ? '#000000ff' : '#333' }}>Event Venue</div>
+          <div className="booking-form-box" style={{ width: 400, maxWidth: 400 }}>
+            <div className="booking-form-row">
+              <div className="booking-form-col">
+                <div className={`booking-label ${!form.province ? 'booking-label-highlight' : ''}`}>Event Venue</div>
                 <div className="booking-field">
                   <FormControl fullWidth size="small" style={{ marginBottom: 12 }}>
                     <InputLabel id="province-label">Province</InputLabel>
@@ -312,8 +310,8 @@ const Booking = () => {
                   </FormControl>
                 </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, marginTop: 8, color: !form.eventType ? '#000000ff' : '#000000ff' }}>Event Type</div>
+              <div className="booking-form-col">
+                <div className={`booking-label ${!form.eventType ? 'booking-label-highlight' : ''}`}>Event Type</div>
                 <div className="booking-field">
                   <FormControl fullWidth size="small">
                     <InputLabel id="event-type-label">Choose Event Type</InputLabel>
@@ -337,7 +335,7 @@ const Booking = () => {
                     </Select>
                   </FormControl>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, marginTop: 12, color: !form.guestCount ? '#000000ff' : '#333' }}>Guest Count</div>
+                <div className={`booking-label booking-label-guest ${!form.guestCount ? 'booking-label-highlight' : ''}`}>Guest Count</div>
                 <TextField
                   fullWidth
                   type="number"
@@ -351,18 +349,16 @@ const Booking = () => {
               </div>
             </div>
            
-            <div className="booking-field" style={{ marginBottom: 0 }}>
+            <div className="booking-field booking-method-row">
               <FormControl component="fieldset" fullWidth>
-                <label style={{ fontWeight: 500, color: '#222', marginBottom: 8, display: 'block', fontSize: '1rem', textAlign: 'left' }}>
-                  Choose your Appointment/ Meeting Method
-                </label>
+                <label className="booking-method-label">Choose your Appointment/ Meeting Method</label>
                 <RadioGroup
                   row
                   aria-label="Booking from outside the Philippines?"
                   name="outsidePH"
                   value={form.outsidePH}
                   onChange={e => setForm(f => ({ ...f, outsidePH: e.target.value }))}
-                  style={{ justifyContent: 'flex-start' }}
+                  className="booking-method-radio"
                 >
                   <FormControlLabel value="yes" control={<Radio color="primary" />} label="Face to Face" />
                   <FormControlLabel value="no" control={<Radio color="primary" />} label="Virtual/Online" />
@@ -372,9 +368,9 @@ const Booking = () => {
             {/* Special Request field moved to services card below */}
           </div>
         </div>
-        <div className="booking-services-box" style={{ maxWidth: 1050, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 0 }}>
-            <h3 style={{ fontWeight: 700, margin: 0 }}>Services and Products Availed</h3>
+        <div className="booking-services-box" style={{ width: 1500, maxWidth: '100%' }}>
+          <div className="booking-services-header">
+            <h3 className="booking-services-title">Services and Products Availed</h3>
             {form.products && form.products.length > 0 && (
               <IconButton
                 aria-label="Delete all products/services"
@@ -383,51 +379,35 @@ const Booking = () => {
                     setForm(f => ({ ...f, products: [] }));
                   }
                 }}
-                style={{ color: '#e53935', marginRight: 4, outline: 'none', boxShadow: 'none' }}
+                className="booking-delete-all-btn"
                 title="Delete all products/services"
                 disableFocusRipple
                 disableRipple
               >
                 <DeleteIcon />
-                <span style={{ fontWeight: 700, fontSize: 16, marginLeft: 4, userSelect: 'none' }}>Delete All</span>
-                <style>{`
-                  .MuiIconButton-root:focus,
-                  .MuiIconButton-root:active {
-                    outline: none !important;
-                    box-shadow: none !important;
-                  }
-                `}</style>
+                <span className="booking-delete-all-text">Delete All</span>
               </IconButton>
             )}
           </div>
           {/* Show selected products/services from cart */}
           {form.products && form.products.length > 0 ? (
-            <div style={{ width: '100%' }}>
-              <div style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="booking-products-list">
+              <div className="booking-products-grid">
                 {form.products.map((item, idx) => (
-                  <div key={idx} style={{
-                    background: '#fafafa',
-                    border: '1px solid #eee',
-                    borderRadius: 6,
-                    padding: 12,
-                    marginBottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16
-                  }}>
+                  <div key={idx} className="booking-product-item">
                     {(item.images?.[0] || item.image) && (
-                      <img src={item.images?.[0] || item.image} alt={item.title} style={{ width: 60, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+                      <img src={item.images?.[0] || item.image} alt={item.title} className="booking-product-img" />
                     )}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{item.title}</div>
-                      {item.price && <div style={{ color: '#888', fontWeight: 500 }}>PHP {item.price}</div>}
+                    <div className="booking-product-info">
+                      <div className="booking-product-title">{item.title}</div>
+                      {item.price && <div className="booking-product-price">PHP {item.price}</div>}
                     </div>
                   </div>
                 ))}
               </div>
               {/* New: Selected Additionals Section */}
-              <div style={{ width: '100%', marginTop: 8, background: '#fff', borderRadius: 6, padding: 12, border: '1px solid #eee' }}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Selected Additionals</div>
+              <div className="booking-additionals-section">
+                <div className="booking-additionals-title">Selected Additionals</div>
                 {(() => {
                   // gather all additionals across products
                   const allAdds = [];
@@ -436,27 +416,26 @@ const Booking = () => {
                       p.__cart_additionals.forEach(add => allAdds.push({ productIndex: i, ...add }));
                     }
                   });
-                  if (allAdds.length === 0) return <div style={{ color: '#888' }}>No additionals selected.</div>;
+                  if (allAdds.length === 0) return <div className="booking-additionals-empty">No additionals selected.</div>;
                   return (
                     <div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 32px' }}>
+                      <div className="booking-additionals-grid">
                         {allAdds.map((add, aidx) => (
-                          <div key={add._id || add.title || aidx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                            <div style={{ fontWeight: 600 }}>{add.title}</div>
-                            {add.price ? <div style={{ color: '#888' }}>PHP {add.price}</div> : <div style={{ color: '#888' }}>PHP 0</div>}
+                          <div key={add._id || add.title || aidx} className="booking-additional-item">
+                            <div className="booking-additional-title">{add.title}</div>
+                            {add.price ? <div className="booking-additional-price">PHP {add.price}</div> : <div className="booking-additional-price">PHP 0</div>}
                           </div>
                         ))}
                       </div>
-                      {/* subtotal removed as requested */}
                     </div>
                   );
                 })()}
               </div>
             </div>
           ) : (
-            <div style={{ color: '#888', marginBottom: 16 }}>No products/services selected yet.</div>
+            <div className="booking-products-empty">No products/services selected yet.</div>
           )}
-          <div className="booking-field booking-special-request-row" style={{ width: '100%', marginTop: 16 }}>
+          <div className="booking-field booking-special-request-row">
             <TextField
               className="booking-special-request"
               fullWidth
@@ -473,26 +452,16 @@ const Booking = () => {
         </div>
       </div>
       {/* Confirm Button */}
-  <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 16, marginBottom: 80 }}>
+      <div className="booking-confirm-row">
         <button
-          style={{
-            padding: '12px 32px',
-            background: isFormValid() ? '#ffb300' : '#ccc',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            fontWeight: 700,
-            fontSize: 16,
-            cursor: isFormValid() ? 'pointer' : 'not-allowed',
-            minWidth: 180
-          }}
+          className={`booking-confirm-btn${isFormValid() ? '' : ' booking-confirm-btn-disabled'}`}
           onClick={handleNext}
           disabled={!isFormValid()}
         >
           Confirm
         </button>
         {selectedPromoId && (
-          <div style={{ marginLeft: 24, color: '#388e3c', fontWeight: 600, fontSize: 16 }}>
+          <div className="booking-promo-applied">
             Promo Applied: {promos.find(p => p._id === selectedPromoId)?.title} ({promos.find(p => p._id === selectedPromoId)?.discountValue}% OFF)
           </div>
         )}

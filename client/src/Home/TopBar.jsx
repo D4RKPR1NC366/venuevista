@@ -115,11 +115,11 @@ const TopBar = () => {
           )}
         </a>
         {isAdmin ? (
-          <Link to="/admin/dashboard" className="topbar-link" style={{ cursor: 'pointer' }}>Admin Dashboard</Link>
+          <Link to="/admin/dashboard" className="topbar-link" style={{ cursor: 'pointer', marginRight: 0 }}>Admin Dashboard</Link>
         ) : isCustomer ? (
-          <Link to="/client/profile" className="topbar-link" style={{ cursor: 'pointer' }}>{user.firstName} {user.lastName}</Link>
+          <Link to="/client/profile" className="topbar-link" style={{ cursor: 'pointer', marginLeft: 20 ,marginRight: -80 }}>{user.firstName} {user.lastName}</Link>
         ) : (
-          <Link to="/signup" className="topbar-link">Sign up</Link>
+          <Link to="/signup" className="topbar-link" style={{ marginRight: 8 }}>Sign up</Link>
         )}
       </div>
     </header>
