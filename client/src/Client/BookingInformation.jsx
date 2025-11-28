@@ -108,26 +108,41 @@ const BookingInformation = () => {
       ? `${user.firstName} ${user.lastName}`.trim()
       : user.name || user.firstName || user.lastName || 'User';
     
-    // Use FormData to handle file uploads
-    const formData = new FormData();
-    formData.append('name', isAnonymous ? 'Anonymous' : userName);
-    formData.append('rating', reviewRating);
-    formData.append('comment', reviewText);
-    formData.append('date', new Date().toISOString().slice(0, 10));
-    formData.append('source', 'Customer');
-    formData.append('logo', '');
-    if (selectedBooking?._id) formData.append('bookingId', selectedBooking._id);
-    if (user._id) formData.append('userId', user._id);
+    // Convert images to base64
+    const base64Images = [];
+    for (const file of reviewImages) {
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        base64Images.push(base64);
+      } catch (error) {
+        console.error('Error converting image to base64:', error);
+      }
+    }
     
-    // Append image files
-    reviewImages.forEach((file) => {
-      formData.append('images', file);
-    });
+    const reviewData = {
+      name: isAnonymous ? 'Anonymous' : userName,
+      rating: reviewRating,
+      comment: reviewText,
+      date: new Date().toISOString().slice(0, 10),
+      source: 'Customer',
+      logo: '',
+      images: base64Images,
+      ...(selectedBooking?._id && { bookingId: selectedBooking._id }),
+      ...(user._id && { userId: user._id })
+    };
     
     try {
       await fetch('/api/reviews', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reviewData)
       });
       setShowReviewModal(false);
       setReviewRating(0);
