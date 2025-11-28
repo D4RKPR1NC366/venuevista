@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import Sidebar from './Sidebar';
 import './dashboard.css';
 
@@ -218,7 +219,7 @@ export default function Dashboard() {
       <Sidebar />
       <main className="admin-dashboard-main">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-          <h2 style={{ margin: 0 }}>Dashboard</h2>
+          <h2 style={{ margin: 0 }}>Overview</h2>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <label style={{ fontWeight: 500, marginRight: 8 }}>Show:</label>
             <select
@@ -283,33 +284,18 @@ export default function Dashboard() {
         <div className="admin-dashboard-revenue-card">
           <div className="admin-dashboard-card-title">Annual Revenue Chart</div>
           <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '350px', minHeight: '250px' }}>
-            {/* Functional SVG line chart for revenue */}
-            <svg width="100%" height="350" viewBox="0 0 500 350" preserveAspectRatio="xMidYMid meet">
-              {/* Calculate points for polyline */}
-              {(() => {
-                if (!Array.isArray(revenueData) || revenueData.length === 0) return null;
-                try {
-                  // Normalize values for chart height
-                  const maxValue = Math.max(...revenueData.map(d => d.value || 0), 1);
-                  const points = revenueData.map((d, i) => {
-                    const x = i * (400 / (months.length - 1));
-                    const y = 250 - ((d.value || 0) / maxValue) * 200;
-                    return `${x},${y}`;
-                  }).join(' ');
-                  return <polyline fill="none" stroke="#3b82f6" strokeWidth="3" points={points} />;
-                } catch (error) {
-                  console.error('Error rendering revenue chart:', error);
-                  return null;
-                }
-              })()}
-              {/* Month labels */}
-              <g fontSize="12" fill="#888">
-                {months.map((m, i) => (
-                  <text key={m} x={i * (400 / (months.length - 1))} y="280">{m}</text>
-                ))}
-              </g>
-            </svg>
-            {(!revenueData || revenueData.length === 0) && (
+            {Array.isArray(revenueData) && revenueData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={revenueData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tickFormatter={idx => months[idx] || idx} />
+                  <YAxis />
+                  <Tooltip formatter={value => `₱${value.toLocaleString()}`} labelFormatter={idx => months[idx] || idx} />
+                  <Legend />
+                  <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} name="Revenue" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
               <div style={{ color: '#888', textAlign: 'center', marginTop: 32 }}>No revenue data available.</div>
             )}
           </div>

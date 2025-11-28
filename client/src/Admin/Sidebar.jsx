@@ -21,7 +21,7 @@ import CropOriginalIcon from '@mui/icons-material/CropOriginal';
 
 
 const navItems = [
-  { label: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon fontSize="small" /> },
+  { label: 'Overview', path: '/admin/dashboard', icon: <DashboardIcon fontSize="small" /> },
   { label: 'Bookings', path: '/admin/booking', icon: <BookOnlineIcon fontSize="small" /> },
   { label: 'Products & Services', path: '/admin/products-services', icon: <StorefrontIcon fontSize="small" /> },
   { label: 'Promos', path: '/admin/promos', icon: <DiscountIcon fontSize="small" /> },

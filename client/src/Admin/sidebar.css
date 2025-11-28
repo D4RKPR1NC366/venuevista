@@ -1,3 +1,23 @@
+/* Shared admin page title style */
+.admin-page-title {
+  margin-top: 24px;
+  margin-left: 32px;
+  margin-bottom: 24px;
+  text-align: left;
+  font-weight: 800;
+  font-size: 2rem;
+  color: #232323;
+  letter-spacing: -1px;
+}
+/* Sidebar logo padding: sides only, no bottom */
+.sidebar-logo {
+  display: block;
+  width: 80%;
+  padding-left: 16px;
+ 
+  padding-bottom: 0;
+  margin: 0 auto;
+}
 /* Sidebar icon styling */
 .sidebar-link, .admin-logout-btn {
   display: inline-flex;
@@ -45,7 +65,7 @@
   position: fixed;
   left: 0;
   top: 0;
-  width: 240px;
+  width: 280px;
   height: 100vh;
   background: linear-gradient(120deg, #ffd500 0%, #fba560 25%, #ffd500 70%, #ffd500 100%);
   background-size: 200% 200%;
