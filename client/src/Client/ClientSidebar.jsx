@@ -31,7 +31,17 @@ const ClientSidebar = () => {
   return (
     <aside className={`client-sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="client-sidebar-header">
-        <div className="client-sidebar-title">Venuevista</div>
+        <div className="client-sidebar-title">
+          <img 
+            src="/venuevista-logo.png" 
+            alt="Venuevista" 
+            className="sidebar-logo"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.textContent = 'Venuevista';
+            }}
+          />
+        </div>
         <button 
           className="sidebar-toggle-mobile" 
           onClick={() => setIsOpen(!isOpen)}

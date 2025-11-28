@@ -45,7 +45,7 @@
   position: fixed;
   left: 0;
   top: 0;
-  width: 270px;
+  width: 240px;
   height: 100vh;
   background: linear-gradient(120deg, #ffd500 0%, #fba560 25%, #ffd500 70%, #ffd500 100%);
   background-size: 200% 200%;
@@ -56,7 +56,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 32px 0 0 0;
+  padding: 24px 0 0 0;
   z-index: 100;
   box-shadow: 2px 0 8px rgba(0,0,0,0.04);
 }
@@ -78,8 +78,8 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 30px;
-  padding: 0 30px;
+  margin-bottom: 20px;
+  padding: 0 20px;
 }
 
 .admin-sidebar-title {
@@ -87,6 +87,15 @@
   font-weight: 800;
   font-size: 1.2rem;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-sidebar-title .sidebar-logo {
+  height: 38px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
   display: block;
 }
 

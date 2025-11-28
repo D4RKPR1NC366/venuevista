@@ -51,7 +51,17 @@ export default function Sidebar() {
   return (
     <aside className={`admin-sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="admin-sidebar-header">
-        <div className="admin-sidebar-title">VENUEVISTA</div>
+        <div className="admin-sidebar-title">
+          <img 
+            src="/venuevista-logo.png" 
+            alt="Venuevista" 
+            className="sidebar-logo"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.textContent = 'VENUEVISTA';
+            }}
+          />
+        </div>
         <button 
           className="sidebar-toggle-mobile" 
           onClick={() => setIsOpen(!isOpen)}
