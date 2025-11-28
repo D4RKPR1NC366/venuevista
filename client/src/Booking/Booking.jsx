@@ -223,7 +223,9 @@ const Booking = () => {
     <div className="booking-root">
       <TopBar />
       <div className="booking-header">
-        <h2>BOOK NOW</h2>
+         <p className="review-title-script" style={{ textAlign: 'center', marginTop: '30px',marginBottom: '12px', color: '#000000ff', letterSpacing: 2 }}>
+          Book Now
+        </p>
       </div>
       <div className="booking-center-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh', width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
         <div className="booking-main-row" style={{ display: 'flex', gap: 0, maxWidth: 1050, width: '100%', justifyContent: 'center', marginBottom: 32, marginTop: 40 }}>
