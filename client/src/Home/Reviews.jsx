@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import TopBar from "./TopBar";
 import "./review.css";
+import Footer from "./Footer";
 
 
 
@@ -251,6 +252,7 @@ const Reviews = () => {
           </div>
         </div>
       )}
+      <Footer />
     </>
   );
 };

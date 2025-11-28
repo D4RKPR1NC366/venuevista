@@ -1,6 +1,7 @@
 import React from "react";
 import TopBar from "./TopBar";
 import "./home.css";
+import Footer from "./Footer";
 
 const Policy = () => {
   return (
@@ -28,6 +29,7 @@ const Policy = () => {
           </p>
         </div>
       </div>
+      <Footer />
     </>
   );
 };

@@ -1,7 +1,8 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import TopBar from "./TopBar";
 import "./home.css";
+import Footer from "./Footer";
 
 const API_BASE = "/api";
 
@@ -39,6 +40,7 @@ const Gallery = () => {
           )}
         </div>
       </div>
+      <Footer />
     </>
   );
 };
