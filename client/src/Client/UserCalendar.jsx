@@ -36,14 +36,16 @@ const UserCalendar = () => {
 	useEffect(() => {
 		async function fetchEventsAndBookings() {
 			try {
-				const [schedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+				const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
 					fetch('/api/schedules'),
+					fetch('/api/schedules/status/accepted'),
 					fetch('/api/bookings/pending'),
 					fetch('/api/bookings/approved'),
 					fetch('/api/bookings/finished'),
 					fetch('/api/appointments/user/' + encodeURIComponent(userEmail)),
 				]);
 				const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+				const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
 				const pending = pendingRes.ok ? await pendingRes.json() : [];
 				const approved = approvedRes.ok ? await approvedRes.json() : [];
 				const finished = finishedRes.ok ? await finishedRes.json() : [];
@@ -55,6 +57,14 @@ const UserCalendar = () => {
 					}
 					return false;
 				});
+
+				// Filter accepted schedules for this user
+				const filteredAcceptedSchedules = acceptedSchedules.filter(ev => {
+					if (ev.type === 'Customer' || ev.type === 'Supplier') {
+						return (ev.person === userEmail || ev.person === userName);
+					}
+					return false;
+				}).map(ev => ({ ...ev, status: 'accepted' })); // Mark as accepted
 				// Filter bookings for this client
 				const allBookings = [...pending, ...approved, ...finished].filter(b => b.email === userEmail || b.name === userName);
 				// Map bookings to calendar event format
@@ -79,7 +89,7 @@ const UserCalendar = () => {
 					description: a.description || '',
 					status: a.status || '',
 				}));
-				setEvents([...filteredSchedules, ...bookingEvents, ...appointmentEvents]);
+				setEvents([...filteredSchedules, ...filteredAcceptedSchedules, ...bookingEvents, ...appointmentEvents]);
 			} catch (err) {
 				setEvents([]);
 			} finally {

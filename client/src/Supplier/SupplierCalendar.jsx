@@ -33,29 +33,55 @@ const SupplierCalendar = () => {
   useEffect(() => {
     async function fetchEventsAndBookings() {
       try {
-        const [schedulesRes, pendingRes, approvedRes, finishedRes] = await Promise.all([
+        const [schedulesRes, acceptedRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
           fetch('/api/schedules'),
+          fetch(`/api/schedules/status/accepted?supplierId=${encodeURIComponent(userEmail)}`),
           fetch('/api/bookings/pending'),
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
+          fetch('/api/appointments'),
         ]);
+        
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+        const acceptedSchedules = acceptedRes.ok ? await acceptedRes.json() : [];
         const pending = pendingRes.ok ? await pendingRes.json() : [];
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
-        // Filter events for this supplier by name or email
+        const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
+        
+        // Filter pending schedules for this supplier by name or email
         const filteredSchedules = schedules.filter(ev => {
           if (ev.type === 'Supplier') {
             return (ev.person === userEmail || ev.person === userName);
           }
           return false;
         });
+        
+        // Filter accepted schedules for this supplier
+        const filteredAcceptedSchedules = acceptedSchedules.filter(ev => 
+          ev.supplierId === userEmail || ev.supplierName === userName || 
+          (ev.person === userEmail || ev.person === userName)
+        ).map(ev => ({
+          ...ev,
+          title: `${ev.title} ✓`,
+          status: 'accepted'
+        }));
+        
         // Filter bookings for this supplier
-        const allBookings = [...pending, ...approved, ...finished].filter(b => b.supplierEmail === userEmail || b.supplierName === userName);
+        const allBookings = [...pending, ...approved, ...finished].filter(b => 
+          b.supplierEmail === userEmail || b.supplierName === userName
+        );
+        
+        // Filter appointments for this supplier
+        const supplierAppointments = appointments.filter(a => 
+          a.supplierEmail === userEmail || a.supplierName === userName ||
+          (a.supplier && (a.supplier.email === userEmail || a.supplier.name === userName))
+        );
+        
         // Map bookings to calendar event format
         const bookingEvents = allBookings.filter(b => b.date).map(b => ({
           _id: b._id,
-          title: b.eventType || b.title || 'Booking',
+          title: `${b.eventType || b.title || 'Booking'} 📅`,
           type: 'Booking',
           person: b.name || b.contact || b.email || '',
           date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
@@ -63,8 +89,29 @@ const SupplierCalendar = () => {
           description: b.specialRequest || b.details || '',
           status: b.status || '',
         }));
-        setEvents([...filteredSchedules, ...bookingEvents]);
+        
+        // Map appointments to calendar event format
+        const appointmentEvents = supplierAppointments.filter(a => a.date).map(a => ({
+          _id: a._id,
+          title: `${a.service || 'Appointment'} 🕒`,
+          type: 'Appointment',
+          person: a.clientName || a.clientEmail || '',
+          date: typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10),
+          location: a.location || '',
+          description: a.notes || a.description || '',
+          status: a.status || '',
+          time: a.time || '',
+        }));
+        
+        // Combine all events
+        setEvents([
+          ...filteredSchedules, 
+          ...filteredAcceptedSchedules, 
+          ...bookingEvents, 
+          ...appointmentEvents
+        ]);
       } catch (err) {
+        console.error('Error fetching events:', err);
         setEvents([]);
       } finally {
         setLoading(false);
@@ -147,7 +194,7 @@ const SupplierCalendar = () => {
               getEventsForDate(viewEventsDate).map(ev => (
                 <div key={ev._id || ev.id} className="sc-modal-schedule-card">
                   <div
-                    className="sc-modal-schedule-card-main"
+                  <div className="sc-modal-schedule-card-main"
                     onClick={() => {
                       setSelectedEvent(ev);
                       setEventDetailsModalOpen(true);
@@ -156,7 +203,13 @@ const SupplierCalendar = () => {
                   >
                     <div className="sc-modal-schedule-title">{ev.title}</div>
                     <div className="sc-modal-schedule-type">{ev.type}: <span>{ev.person}</span></div>
+                    {ev.time && <div className="sc-modal-schedule-time">Time: {ev.time}</div>}
                     <div className="sc-modal-schedule-location">{ev.location}</div>
+                    {ev.status && (
+                      <div className={`sc-modal-schedule-status status-${ev.status}`}>
+                        Status: {ev.status.charAt(0).toUpperCase() + ev.status.slice(1)}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -172,10 +225,21 @@ const SupplierCalendar = () => {
                 <div className="sc-modal-details-main">
                   <h2 className="sc-modal-details-title">{selectedEvent.title}</h2>
                   <div className="sc-modal-details-row"><span>Type:</span> <span>{selectedEvent.type}</span></div>
-                  <div className="sc-modal-details-row"><span>{selectedEvent.type} Name:</span> <span>{selectedEvent.person}</span></div>
+                  <div className="sc-modal-details-row"><span>Client/Contact:</span> <span>{selectedEvent.person}</span></div>
                   <div className="sc-modal-details-row"><span>Date:</span> <span>{selectedEvent.date}</span></div>
-                  <div className="sc-modal-details-row"><span>Location:</span> <span>{selectedEvent.location}</span></div>
-                  <div className="sc-modal-details-row"><span>Description:</span> <span>{selectedEvent.description}</span></div>
+                  {selectedEvent.time && (
+                    <div className="sc-modal-details-row"><span>Time:</span> <span>{selectedEvent.time}</span></div>
+                  )}
+                  <div className="sc-modal-details-row"><span>Location:</span> <span>{selectedEvent.location || 'Not specified'}</span></div>
+                  {selectedEvent.status && (
+                    <div className="sc-modal-details-row">
+                      <span>Status:</span> 
+                      <span className={`status-badge status-${selectedEvent.status}`}>
+                        {selectedEvent.status.charAt(0).toUpperCase() + selectedEvent.status.slice(1)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="sc-modal-details-row"><span>Description:</span> <span>{selectedEvent.description || 'No additional details'}</span></div>
                 </div>
               </div>
             )}

@@ -103,14 +103,16 @@ export default function Calendars() {
   useEffect(() => {
     async function fetchEventsAndBookings() {
       try {
-        const [schedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+        const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
           fetch('/api/schedules'),
+          fetch('/api/schedules/status/accepted'),
           fetch('/api/bookings/pending'),
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
           fetch('/api/appointments'),
         ]);
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+        const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
         const pending = pendingRes.ok ? await pendingRes.json() : [];
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
@@ -163,8 +165,14 @@ export default function Calendars() {
           };
         });
 
-        // Merge schedules, booking events, and appointment events
-        setEvents(Array.isArray(schedules) ? [...schedules, ...bookingEvents, ...appointmentEvents] : [...bookingEvents, ...appointmentEvents]);
+        // Merge all events: schedules, accepted schedules, booking events, and appointment events
+        const allEvents = [
+          ...(Array.isArray(schedules) ? schedules : []),
+          ...(Array.isArray(acceptedSchedules) ? acceptedSchedules : []),
+          ...bookingEvents,
+          ...appointmentEvents
+        ];
+        setEvents(allEvents);
       } catch (err) {
         console.error('Error fetching schedules/bookings/appointments:', err);
       }
