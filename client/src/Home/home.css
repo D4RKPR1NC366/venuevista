@@ -1,3 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+/* Script font for section titles */
+.home-promos-title,
+.home-services-title,
+.home-reviews-title {
+  font-family: 'Dancing Script', cursive !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.10);
+  color: #111;
+}
+/* Topbar links fancy font */
+.topbar-link {
+  font-family: 'Cinzel', 'Playfair Display', serif !important;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.12);
+}
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Playfair+Display:wght@700&display=swap');
 .home-promos-carousel {
   scrollbar-width: thin;
   scrollbar-color: #fff #fff;
@@ -213,7 +232,7 @@
 .home-services {
   padding: 60px 2vw;
   text-align: center;
-  background-color: #f7f7f7;
+  background-color: #fff;
 }
   color: #333;
   margin-bottom: 16px;
@@ -226,27 +245,24 @@
   font-size: clamp(2rem, 4vw, 2.5rem);
   font-weight: bold;
   margin-bottom: 40px;
-  color: #333;
 }
   font-weight: 600;
   color: #ffc107;
 }
 
 .policy-footer {
-  font-size: 1rem;
-  color: #555;
-  margin-top: 16px;
-}
-/* Minimal dot navigation for hero background */
-.home-hero-dots {
-  position: absolute;
-  left: 50%;
-    bottom: 34px;
   transform: translateX(-50%);
-  display: flex;
-  gap: 15px;
-  z-index: 2;
+  font-size: 3.2rem;
+  color: white;
+  font-weight: 900;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+  text-align: center;
+  font-family: 'Playfair Display', 'Cinzel', 'Georgia', serif;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.18), 0 1px 0 #fff;
 }
+
+/* Removed stray properties that were outside of a selector */
 .home-hero-dot {
   width: 10px;
   height: 10px;
@@ -354,9 +370,10 @@ body {
   font-size: 3.2rem;
   color: white;
   font-weight: 900;
-  margin-bottom: 30px;
-  margin-left: -700px;
   letter-spacing: 2px;
+  text-align: center;
+  font-family: 'Cinzel', 'Playfair Display', serif !important;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.18), 0 1px 0 #fff;
 }
 
 
@@ -385,13 +402,15 @@ body {
 }
 
 .home-services-title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 40px;
-  color: #333;
+  font-size: 3.2rem;
+  color: white;
+  font-weight: 900;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+  text-align: center;
+  font-family: 'Playfair Display', 'Cinzel', 'Georgia', serif;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.18), 0 1px 0 #fff;
 }
-
-
 .home-services-grid {
   display: flex;
   flex-wrap: wrap;
