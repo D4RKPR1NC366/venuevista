@@ -124,7 +124,7 @@ export default function PnSDetails() {
   return (
     <>
       <TopBar />
-      <div style={{ padding: 40, maxWidth: 1000, margin: '0 auto' }}>
+      <div style={{ padding: 40, maxWidth: 1400, margin: '120px auto 40px', width: '100%' }}>
         {categoryTitle && (
           <h2 style={{ textAlign: 'center', fontWeight: 700, fontSize: 32, marginBottom: 32 }}>
             {categoryTitle}
@@ -133,17 +133,17 @@ export default function PnSDetails() {
         {products.length === 0 ? (
           <div style={{ color: '#888', textAlign: 'center', fontSize: 18 }}>No products/services available.</div>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 32, justifyItems: 'center' }}>
             {products.map((prod, idx) => (
               <div
                 key={idx}
                 className="pns-card"
                 style={{
                   border: 'none',
-                  borderRadius: 0,
+                  borderRadius: 8,
                   padding: 0,
-                  minWidth: 340,
-                  maxWidth: 420,
+                  width: '100%',
+                  maxWidth: 380,
                   background: '#fff',
                   boxShadow: '0 4px 24px 0 rgba(0,0,0,0.12)',
                   transition: 'box-shadow 0.2s, transform 0.2s',

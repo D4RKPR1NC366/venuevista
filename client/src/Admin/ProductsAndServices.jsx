@@ -1230,7 +1230,75 @@ export default function ProductsAndServices() {
                             multiline
                             minRows={3}
                           />
-                          {/* Additionals editing can be added here if needed */}
+                          {/* Additionals Section */}
+                          <div style={{ marginTop: 16, width: '100%' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 12, fontSize: '1.1rem' }}>Additionals</div>
+                            {(editProductData.additionals || []).map((add, idx) => (
+                              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, padding: 16, border: '1px solid #ddd', borderRadius: 8, backgroundColor: '#f9f9f9' }}>
+                                <TextField
+                                  label="Title"
+                                  value={add.title || ''}
+                                  onChange={e => {
+                                    const updated = [...(editProductData.additionals || [])];
+                                    updated[idx] = { ...updated[idx], title: e.target.value };
+                                    setEditProductData({ ...editProductData, additionals: updated });
+                                  }}
+                                  fullWidth
+                                  size="small"
+                                />
+                                <TextField
+                                  label="Price"
+                                  type="number"
+                                  value={add.price || ''}
+                                  onChange={e => {
+                                    const updated = [...(editProductData.additionals || [])];
+                                    updated[idx] = { ...updated[idx], price: e.target.value };
+                                    setEditProductData({ ...editProductData, additionals: updated });
+                                  }}
+                                  fullWidth
+                                  size="small"
+                                  inputProps={{ min: 0, step: 'any' }}
+                                />
+                                <TextField
+                                  label="Description"
+                                  value={add.description || ''}
+                                  onChange={e => {
+                                    const updated = [...(editProductData.additionals || [])];
+                                    updated[idx] = { ...updated[idx], description: e.target.value };
+                                    setEditProductData({ ...editProductData, additionals: updated });
+                                  }}
+                                  fullWidth
+                                  size="small"
+                                  multiline
+                                  minRows={2}
+                                />
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  startIcon={<DeleteIcon />}
+                                  onClick={() => {
+                                    const updated = (editProductData.additionals || []).filter((_, i) => i !== idx);
+                                    setEditProductData({ ...editProductData, additionals: updated });
+                                  }}
+                                  sx={{ alignSelf: 'flex-start' }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              variant="outlined"
+                              startIcon={<AddIcon />}
+                              onClick={() => {
+                                const updated = [...(editProductData.additionals || []), { title: '', price: '', description: '' }];
+                                setEditProductData({ ...editProductData, additionals: updated });
+                              }}
+                              sx={{ mt: 1 }}
+                            >
+                              Add Additional
+                            </Button>
+                          </div>
                         </DialogContent>
                         <DialogActions>
                           <Button onClick={() => setShowEditProductModal(false)} color="secondary">Cancel</Button>
