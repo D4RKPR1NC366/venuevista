@@ -38,7 +38,7 @@ const Reviews = () => {
     <>
       <TopBar />
       <div className="reviews-container">
-        <h2>Customer Reviews</h2>
+        <h2 className="review-title-script">Customer Reviews</h2>
         <div className="reviews-list reviews-grid">
           {allReviews.map((review, idx) => (
             <div className="review-card review-card-modern" key={idx}>

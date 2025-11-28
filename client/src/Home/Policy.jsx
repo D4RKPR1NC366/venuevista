@@ -8,7 +8,7 @@ const Policy = () => {
       <TopBar />
       <div className="policy-modern-container">
         <div className="policy-card">
-          <h1 className="policy-title">Goldust Creation System Policy</h1>
+          <h1 className="policy-title review-title-script">Goldust Creation System Policy</h1>
           <p className="policy-intro">
             Welcome to Goldust Creation! Our system is designed to provide a seamless and professional experience for all users, including clients, suppliers, and administrators. Please review our comprehensive policies to ensure a safe, respectful, and efficient environment for everyone:
           </p>

@@ -25,12 +25,10 @@ const Gallery = () => {
     <>
       <TopBar />
       <div className="gallery-page" style={{ padding: '16px', minHeight: '80vh', marginTop: '120px', maxWidth: '1300px', marginLeft: 'auto', marginRight: 'auto' }}>
-        <p style={{ textAlign: 'center', marginBottom: '32px', fontSize: '3.5rem', fontWeight: 800, fontFamily: 'Montserrat, Poppins, Arial, sans-serif', color: 'black', letterSpacing: 2 }}>
+        <p className="review-title-script" style={{ textAlign: 'center', marginBottom: '32px', color: '#000000ff', letterSpacing: 2 }}>
           Goldust Gallery
         </p>
-        <p style={{ textAlign: 'center', marginBottom: '32px' }}>
-          Welcome to the Goldust Creations Gallery! Explore our collection of beautiful moments, events, and creations.
-        </p>
+        
         <div className="gallery-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', justifyContent: 'center' }}>
           {images.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#888', fontSize: 18 }}>No images yet.</div>
