@@ -28,7 +28,9 @@ const Gallery = () => {
         <p className="review-title-script" style={{ textAlign: 'center', marginBottom: '32px', color: '#000000ff', letterSpacing: 2 }}>
           Goldust Gallery
         </p>
-        
+        <p className="review-title-script" style={{ textAlign: 'center', marginBottom: '32px', fontSize: '1.5rem', color: '#fff', textShadow: '1px 1px 8px #222' }}>
+          Everything you need for your event, all in one place.
+        </p>
         <div className="gallery-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', justifyContent: 'center' }}>
           {images.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#888', fontSize: 18 }}>No images yet.</div>

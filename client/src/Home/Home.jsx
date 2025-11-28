@@ -298,7 +298,7 @@ const Home = () => {
       {/* Review Section */}
       <section className="home-reviews-section">
         <div className="home-reviews-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-          <h2 className="home-reviews-title" style={{ fontSize: '3rem', fontWeight: 400, fontFamily: 'Dancing Script, cursive', margin: 0, textAlign: 'center', color: 'black' }}>Customer Reviews</h2>
+          <h2 className="home-reviews-title" style={{ fontSize: '3rem', fontWeight: 500, margin: 0, textAlign: 'center' }}>Customer Reviews</h2>
           <span style={{ fontSize: '1.1rem', color: '#d4af37', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', marginBottom: '6px' }}>
             {avgRating.toFixed(1)}
             <span style={{ color: '#d4af37', fontSize: '1.2em', marginLeft: '2px' }}>★</span>
