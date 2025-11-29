@@ -8,7 +8,20 @@ const { sendOTP } = require('./services/emailService');
 const otpStore = {};
 
 const app = express();
-app.use(cors());
+
+// Configure CORS for split deployment
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'https://seashell-moose-182220.hostingersite.com',
+    'http://seashell-moose-182220.hostingersite.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -250,11 +263,6 @@ app.delete('/api/background-images/:id', async (req, res) => {
   }
 });
 const PORT = process.env.PORT || 5051;
-
-
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
 app.post('/api/auth/login-supplier', async (req, res) => {
