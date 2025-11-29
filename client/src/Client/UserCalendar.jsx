@@ -1,13 +1,16 @@
 
 
 
+
+
+
+
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import ClientSidebar from './ClientSidebar';
 import { Calendar as RsuiteCalendar } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
-import './usercalendar.css';
-
-function Modal({ open, onClose, children }) {
+import './usercalendar.css';function Modal({ open, onClose, children }) {
 	if (!open) return null;
 	return (
 		<div className="uc-modal-overlay">
@@ -73,7 +76,7 @@ const UserCalendar = () => {
 					title: b.eventType || b.title || 'Booking',
 					type: 'Booking',
 					person: b.name || b.contact || b.email || '',
-					date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+					date: typeof b.date === 'string' ? b.date.slice(0, 10) : dayjs(b.date).format('YYYY-MM-DD'),
 					location: b.eventVenue || '',
 					description: b.specialRequest || b.details || '',
 					status: b.status || '',
@@ -84,7 +87,7 @@ const UserCalendar = () => {
 					title: 'Appointment',
 					type: 'Appointment',
 					person: a.clientName || a.clientEmail,
-					date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
+					date: typeof a.date === 'string' ? a.date : dayjs(a.date).format('YYYY-MM-DD'),
 					location: a.location || '',
 					description: a.description || '',
 					status: a.status || '',

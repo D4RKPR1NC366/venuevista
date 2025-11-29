@@ -1,6 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import api from '../services/api';
 import ClientSidebar from './ClientSidebar';
 import './BookingInformation.css';
@@ -132,7 +133,7 @@ const BookingInformation = () => {
       name: isAnonymous ? 'Anonymous' : userName,
       rating: reviewRating,
       comment: reviewText,
-      date: new Date().toISOString().slice(0, 10),
+      date: dayjs().format('YYYY-MM-DD'),
       source: 'Customer',
       logo: '',
       images: base64Images,

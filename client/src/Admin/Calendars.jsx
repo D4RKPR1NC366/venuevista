@@ -68,7 +68,7 @@ export default function Calendars() {
     title: '',
     type: 'Supplier',
     person: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: dayjs().format('YYYY-MM-DD'),
     location: '',
     description: ''
   });
@@ -196,7 +196,7 @@ export default function Calendars() {
       const savedEvent = await res.json();
       setEvents(evts => [...evts, savedEvent]);
       setModalOpen(false);
-      setForm({ title: '', type: 'Supplier', person: '', date: new Date().toISOString().slice(0, 10), location: '', description: '' });
+      setForm({ title: '', type: 'Supplier', person: '', date: dayjs().format('YYYY-MM-DD'), location: '', description: '' });
     } catch (err) {
       console.error('Error adding event:', err);
       // Optionally show error to user

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import Sidebar from '../Admin/Sidebar';
 import { Calendar as RsuiteCalendar } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
@@ -84,7 +85,7 @@ const SupplierCalendar = () => {
           title: `${b.eventType || b.title || 'Booking'} 📅`,
           type: 'Booking',
           person: b.name || b.contact || b.email || '',
-          date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+          date: typeof b.date === 'string' ? b.date.slice(0, 10) : dayjs(b.date).format('YYYY-MM-DD'),
           location: b.eventVenue || '',
           description: b.specialRequest || b.details || '',
           status: b.status || '',
@@ -96,7 +97,7 @@ const SupplierCalendar = () => {
           title: `${a.service || 'Appointment'} 🕒`,
           type: 'Appointment',
           person: a.clientName || a.clientEmail || '',
-          date: typeof a.date === 'string' ? a.date.slice(0, 10) : new Date(a.date).toISOString().slice(0, 10),
+          date: typeof a.date === 'string' ? a.date.slice(0, 10) : dayjs(a.date).format('YYYY-MM-DD'),
           location: a.location || '',
           description: a.notes || a.description || '',
           status: a.status || '',

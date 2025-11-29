@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import dayjs from 'dayjs';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 // Simple modal for approve action
@@ -176,7 +177,7 @@ export default function AdminBooking() {
           bookingId: booking._id,
           clientEmail: booking.email,
           clientName: booking.name,
-          date: typeof date === 'string' ? date : date.toISOString().slice(0, 10),
+          date: typeof date === 'string' ? date : dayjs(date).format('YYYY-MM-DD'),
           description: desc,
           location: location // Meeting location from admin input
         })

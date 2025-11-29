@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 import Sidebar from './Sidebar';
 import './appointment.css';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  return dayjs(dateStr).format('MMMM D, YYYY');
 }
 
 export default function AdminAppointment() {
@@ -56,12 +56,12 @@ export default function AdminAppointment() {
   }, []);
 
   // Split appointments
-  const now = new Date();
+  const now = dayjs();
   const upcoming = appointments.filter(
-    a => a.status === 'upcoming' && new Date(a.date) >= now
+    a => a.status === 'upcoming' && dayjs(a.date).isAfter(now) || dayjs(a.date).isSame(now, 'day')
   );
   const finished = appointments.filter(
-    a => a.status === 'finished' || (new Date(a.date) < now && a.status !== 'upcoming')
+    a => a.status === 'finished' || (dayjs(a.date).isBefore(now, 'day') && a.status !== 'upcoming')
   );
 
   // NEW: determine which list to show

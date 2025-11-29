@@ -2,6 +2,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TopBar from '../Home/TopBar';
+import dayjs from 'dayjs';
 import "./booking.css";
 
 const BookSummary = () => {
@@ -53,7 +54,7 @@ const BookSummary = () => {
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Contact Number :</span> <span style={{ color: '#111' }}>{displayContact}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Email Address :</span> <span style={{ color: '#111' }}>{displayEmail}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Type :</span> <span style={{ color: '#111' }}>{booking?.eventType || ""}</span></div>
-              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Date :</span> <span style={{ color: '#111' }}>{booking?.date ? (typeof booking.date === 'string' ? booking.date : booking.date?.$d ? new Date(booking.date.$d).toLocaleDateString() : booking.date.toString()) : ""}</span></div>
+              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Date :</span> <span style={{ color: '#111' }}>{booking?.date ? (typeof booking.date === 'string' ? booking.date : dayjs(booking.date).format('MM/DD/YYYY')) : ""}</span></div>
               {/* Event Location removed as per request */}
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Venue :</span> <span style={{ color: '#111' }}>{booking?.eventVenue || ""}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Appointment Method :</span> <span style={{ color: '#111' }}>{booking?.outsidePH === 'yes' ? 'Face to Face' : booking?.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
@@ -174,15 +175,9 @@ const BookSummary = () => {
                     contact: booking.contact || user?.contact || user?.phone || '',
                     email: booking.email || user?.email || '',
                     eventType: booking.eventType || '',
-                    date: booking.date?.$d
-                      ? (() => {
-                          const d = new Date(booking.date.$d);
-                          return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-                        })()
-                      : (typeof booking.date === 'string' ? booking.date : (() => {
-                          const d = new Date(booking.date);
-                          return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-                        })()),
+                    date: booking.date
+                      ? dayjs(booking.date).format('YYYY-MM-DD')
+                      : '',
                     eventVenue: booking.eventVenue || '',
                     guestCount: booking.guestCount || 0,
                     subTotal: subtotal,
