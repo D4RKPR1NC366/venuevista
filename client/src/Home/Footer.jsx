@@ -33,9 +33,39 @@ const Footer = () => (
       <div className="footer-section-title">VISIT OUR PLACE</div>
       <ul className="footer-contact">
         <li>⏰ 10AM - 6PM</li>
-        <li>🏢  Sta Fe,Nueva Vizcaya, Philippines</li>
-        <li>🏢  STOBOSA, Baguio City, Philippines</li>
-        
+       <li>🏢 
+  <a 
+    href="https://maps.app.goo.gl/PTAyHU1MrBvpq7AP7"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: '#1a2c24', textDecoration: 'none', fontWeight: 500 }}
+  >
+    Brgy. Butiwtiw, KM. 3, Balili, La Trinidad, Benguet
+  </a>
+</li>
+
+<li>🏢 
+  <a 
+    href="https://maps.app.goo.gl/AcPecqvTm6qANs15A"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: '#1a2c24', textDecoration: 'none', fontWeight: 500 }}
+  >
+    Santa Fe, Nueva Vizcaya
+  </a>
+</li>
+
+<li>🏢 
+  <a 
+    href="https://maps.app.goo.gl/KrKZUEtbdAsvxATHA"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: '#1a2c24', textDecoration: 'none', fontWeight: 500 }}
+  >
+    Maddela, Quirino
+  </a>
+</li>
+
 
       </ul>
       
