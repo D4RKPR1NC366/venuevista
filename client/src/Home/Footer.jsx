@@ -12,7 +12,6 @@ const Footer = () => (
       <div className="footer-section-title">GET IN TOUCH</div>
       <ul className="footer-contact">
         <li>📞 0998 195 1757</li>
-        <li>📱 +63 917 385 2483</li>
         
         <li>📧 goldustcreations@gmail.com</li>
          <li>📧 marz.tindaan@yahoo.com</li>
