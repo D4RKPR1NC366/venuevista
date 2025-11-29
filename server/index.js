@@ -264,6 +264,75 @@ app.delete('/api/background-images/:id', async (req, res) => {
 });
 const PORT = process.env.PORT || 5051;
 
+// Temporary debug endpoint - REMOVE IN PRODUCTION
+app.get('/api/debug/users', async (req, res) => {
+  try {
+    const customers = await Customer.find({}).select('email firstName lastName');
+    const suppliers = await Supplier.find({}).select('email companyName firstName lastName');
+    res.json({ 
+      customers: customers.length, 
+      suppliers: suppliers.length,
+      customerEmails: customers.map(c => c.email),
+      supplierEmails: suppliers.map(s => s.email)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Regular admin/user login endpoint
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password, mfaCode } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing email or password' });
+    }
+
+    // Try to find user in both collections
+    let user = await Customer.findOne({ email });
+    let role = 'customer';
+    
+    if (!user) {
+      user = await Supplier.findOne({ email });
+      role = 'supplier';
+    }
+
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // If MFA is enabled, handle MFA verification
+    if (user.mfaEnabled) {
+      if (!mfaCode) {
+        await sendMFACode(email);
+        return res.json({
+          requireMFA: true,
+          message: 'MFA code sent to email'
+        });
+      } else {
+        const isValid = verifyMFACode(email, mfaCode);
+        if (!isValid) {
+          return res.status(401).json({ error: 'Invalid MFA code' });
+        }
+      }
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: role },
+      process.env.JWT_SECRET || 'your-secret-key'
+    );
+    
+    res.json({ 
+      message: 'Login successful', 
+      user: user,
+      token,
+      role: role
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+});
 
 app.post('/api/auth/login-supplier', async (req, res) => {
   try {
