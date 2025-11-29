@@ -1,8 +1,10 @@
 # Render Deployment Configuration
+# IMPORTANT: In Render dashboard, set "Root Directory" to "server"
 build: npm install
 start: npm start
 
 # Environment Variables to set in Render dashboard:
-MONGODB_URI=mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/
+ATLAS_URI=mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/
 JWT_SECRET=goldust-production-jwt-secret-key-2024
 NODE_ENV=production
+PORT=5051

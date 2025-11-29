@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-// Use Render backend URL in production, local in development\nconst API_URL = import.meta.env.PROD \n  ? 'https://goldust-backend.onrender.com/api'  // Update this with your actual Render URL\n  : '/api';
+// Use Render backend URL in production, local in development
+const API_URL = import.meta.env.PROD 
+  ? 'https://venuevista-goldust-creations.onrender.com/api'  // Your actual Render URL
+  : '/api';
 
 const api = axios.create({
     baseURL: API_URL
