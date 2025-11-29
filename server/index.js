@@ -550,6 +550,8 @@ app.delete('/api/bookings/finished/:id', async (req, res) => {
 
 app.get('/', (req, res) => res.send('Server running with MongoDB!'));
 
+app.get('/api/test', (req, res) => res.json({ status: 'ok', message: 'Node.js server is running' }));
+
 
 app.get('/api/categories', async (req, res) => {
   const categories = await Category.find();

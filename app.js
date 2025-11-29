@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Hostinger startup script
-require('dotenv').config();
+// Environment variables are set by PHP bootstrap
 
 // Set production environment
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';

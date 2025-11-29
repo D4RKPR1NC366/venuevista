@@ -1,19 +1,9 @@
 RewriteEngine On
 
-# Handle API routes - proxy to Node.js server
-RewriteRule ^api/(.*)$ http://localhost:5051/api/$1 [P,L]
-
-# Handle uploads and public files
-RewriteRule ^uploads/(.*)$ http://localhost:5051/uploads/$1 [P,L]
-RewriteRule ^gallery/(.*)$ http://localhost:5051/gallery/$1 [P,L]
-
-# Handle client-side routing - serve index.html for non-API routes
+# Route everything through index.php for PHP bootstrap
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_URI} !^/api
-RewriteCond %{REQUEST_URI} !^/uploads
-RewriteCond %{REQUEST_URI} !^/gallery
-RewriteRule . /index.html [L]
+RewriteRule ^(.*)$ /index.php [QSA,L]
 
 # Set proper MIME types
 AddType application/javascript .js
