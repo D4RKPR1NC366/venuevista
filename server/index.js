@@ -267,13 +267,83 @@ const PORT = process.env.PORT || 5051;
 // Temporary debug endpoint - REMOVE IN PRODUCTION
 app.get('/api/debug/users', async (req, res) => {
   try {
-    const customers = await Customer.find({}).select('email firstName lastName');
-    const suppliers = await Supplier.find({}).select('email companyName firstName lastName');
+    const customers = await Customer.find({}).select('email firstName lastName password');
+    const suppliers = await Supplier.find({}).select('email companyName firstName lastName password');
     res.json({ 
       customers: customers.length, 
       suppliers: suppliers.length,
       customerEmails: customers.map(c => c.email),
-      supplierEmails: suppliers.map(s => s.email)
+      supplierEmails: suppliers.map(s => s.email),
+      customerDetails: customers.map(c => ({
+        email: c.email,
+        firstName: c.firstName,
+        passwordLength: c.password ? c.password.length : 0,
+        passwordPreview: c.password ? c.password.substring(0, 3) + '***' : 'NO_PASSWORD'
+      })),
+      supplierDetails: suppliers.map(s => ({
+        email: s.email,
+        companyName: s.companyName,
+        passwordLength: s.password ? s.password.length : 0,
+        passwordPreview: s.password ? s.password.substring(0, 3) + '***' : 'NO_PASSWORD'
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug specific user lookup  
+app.post('/api/debug/check-user', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    let user = await Customer.findOne({ email });
+    let role = 'customer';
+    
+    if (!user) {
+      user = await Supplier.findOne({ email });
+      role = 'supplier';
+    }
+
+    if (!user) {
+      return res.json({ found: false, message: 'User not found' });
+    }
+
+    res.json({
+      found: true,
+      role: role,
+      email: user.email,
+      storedPassword: user.password, // TEMPORARY - showing full password for debug
+      providedPassword: password,
+      passwordMatch: user.password === password,
+      exactMatch: String(user.password) === String(password)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Simple password check for specific user
+app.get('/api/debug/password-check/:email', async (req, res) => {
+  try {
+    const email = req.params.email;
+    let user = await Customer.findOne({ email });
+    let role = 'customer';
+    
+    if (!user) {
+      user = await Supplier.findOne({ email });
+      role = 'supplier';
+    }
+
+    if (!user) {
+      return res.json({ found: false });
+    }
+
+    res.json({
+      found: true,
+      role: role,
+      storedPassword: user.password,
+      passwordType: typeof user.password,
+      passwordLength: user.password ? user.password.length : 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -284,7 +354,10 @@ app.get('/api/debug/users', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, mfaCode } = req.body;
+    console.log(`🔍 Login attempt: email=${email}, password length=${password?.length}`);
+    
     if (!email || !password) {
+      console.log('❌ Missing email or password');
       return res.status(400).json({ error: 'Missing email or password' });
     }
 
@@ -293,11 +366,22 @@ app.post('/api/auth/login', async (req, res) => {
     let role = 'customer';
     
     if (!user) {
+      console.log(`🔍 Not found in customers, checking suppliers...`);
       user = await Supplier.findOne({ email });
       role = 'supplier';
     }
 
-    if (!user || user.password !== password) {
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    console.log(`✅ User found: ${email}, role=${role}`);
+    console.log(`🔑 Password check: stored="${user.password}" vs provided="${password}"`);
+    console.log(`🔑 Password match: ${user.password === password}`);
+
+    if (user.password !== password) {
+      console.log(`❌ Password mismatch for ${email}`);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -382,13 +466,31 @@ app.post('/api/auth/login-supplier', async (req, res) => {
 app.post('/api/auth/login-customer', async (req, res) => {
   try {
     const { email, password, mfaCode } = req.body;
+    console.log(`🔍 CUSTOMER LOGIN: email=${email}, password="${password}", length=${password?.length}`);
+    
     if (!email || !password) {
+      console.log('❌ Missing email or password');
       return res.status(400).json({ error: 'Missing email or password' });
     }
+    
     const customer = await Customer.findOne({ email });
-    if (!customer || customer.password !== password) {
+    console.log(`🔍 Customer found: ${!!customer}`);
+    
+    if (!customer) {
+      console.log(`❌ Customer not found: ${email}`);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    
+    console.log(`🔑 Password comparison: stored="${customer.password}" vs provided="${password}"`);
+    console.log(`🔑 Password match: ${customer.password === password}`);
+    console.log(`🔑 Strict comparison: ${customer.password} === ${password} = ${customer.password === password}`);
+    
+    if (customer.password !== password) {
+      console.log(`❌ Password mismatch for customer ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    console.log(`✅ Customer login successful: ${email}`);
 
     // If MFA is enabled, handle MFA verification
     if (customer.mfaEnabled) {
