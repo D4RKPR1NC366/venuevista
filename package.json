@@ -4,7 +4,12 @@
   "private": true,
   "scripts": {
     "start:server": "cd server && npm start",
-    "start:client": "cd client && npm run dev"
+    "start:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "verify": "cd server && node verify-atlas.js",
+    "deploy:prepare": "npm run verify && npm run build",
+    "start": "cd server && npm start",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:client\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

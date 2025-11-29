@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -43,8 +44,21 @@ app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 // Serve review uploads statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve built client files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
+  // Handle client-side routing - send index.html for non-API routes
+  app.get('*', (req, res) => {
+    if (!req.url.startsWith('/api') && !req.url.startsWith('/gallery') && !req.url.startsWith('/uploads')) {
+      res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    }
+  });
+}
+
 // Create a separate connection for promos database
-const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
+const ATLAS_URI = process.env.MONGODB_URI || 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/';
+const promoConnection = mongoose.createConnection(`${ATLAS_URI}promosDatabase`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -63,7 +77,7 @@ const promosRouter = require('./routes/promos');
 app.use('/api/promos', promosRouter);
 
 // Create a separate connection for schedules/calendar
-const scheduleConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/scheduleCalendar', {
+const scheduleConnection = mongoose.createConnection(`${ATLAS_URI}scheduleCalendar`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -248,7 +262,7 @@ app.delete('/api/background-images/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete image' });
   }
 });
-const PORT = 5051;
+const PORT = process.env.PORT || 5051;
 
 
 app.use(cors());
@@ -347,13 +361,13 @@ app.post('/api/auth/login-customer', async (req, res) => {
 
 
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/ProductsAndServices';
+const MONGO_URI = `${ATLAS_URI}ProductsAndServices`;
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB ProductsAndServices connected!'))
   .catch(err => console.error('MongoDB ProductsAndServices connection error:', err));
 
 
-const bgImageConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/backgroundImages', {
+const bgImageConnection = mongoose.createConnection(`${ATLAS_URI}backgroundImages`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -361,7 +375,7 @@ bgImageConnection.on('connected', () => console.log('MongoDB backgroundImages co
 bgImageConnection.on('error', err => console.error('MongoDB backgroundImages connection error:', err));
 
 
-const bookingConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/booking', {
+const bookingConnection = mongoose.createConnection(`${ATLAS_URI}booking`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -817,7 +831,7 @@ app.get('/api/revenue', async (req, res) => {
 
 // Centralize MongoDB connections
 Promise.all([
-  mongoose.connect('mongodb://127.0.0.1:27017/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
+  mongoose.connect(`${ATLAS_URI}ProductsAndServices`, { useNewUrlParser: true, useUnifiedTopology: true }),
   authConnection.asPromise(),
   scheduleConnection.asPromise(),
   bgImageConnection.asPromise(),
@@ -826,14 +840,14 @@ Promise.all([
 ]).then(() => {
   console.log('All MongoDB connections established');
   
-  // Initialize backup service
-  const backupService = require('./services/backupService');
-  console.log('Starting Atlas backup service...');
-  backupService.startPeriodicBackup();
+  // Backup service disabled - using Atlas directly
+  // const backupService = require('./services/backupService');
+  // console.log('Starting Atlas backup service...');
+  // backupService.startPeriodicBackup();
   
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
-    console.log('Atlas backup service is running - data will be synced every 5 minutes');
+    console.log('Connected to MongoDB Atlas - production ready');
   });
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);

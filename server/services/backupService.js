@@ -69,8 +69,9 @@ class BackupService {
         try {
             console.log('Starting booking sync to Atlas...');
             
-            // Connect to local booking database
-            const localBookingConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/booking', {
+            // Connect to Atlas booking database
+            const ATLAS_URI = process.env.MONGODB_URI || 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/';
+            const localBookingConnection = mongoose.createConnection(`${ATLAS_URI}booking`, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true
             });
@@ -201,8 +202,9 @@ class BackupService {
         try {
             console.log('Starting reviews sync to Atlas...');
             
-            // Connect to local reviews database
-            const localReviewsConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/reviews', {
+            // Connect to Atlas reviews database
+            const ATLAS_URI = process.env.MONGODB_URI || 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/';
+            const localReviewsConnection = mongoose.createConnection(`${ATLAS_URI}reviews`, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true
             });
