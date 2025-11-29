@@ -2,10 +2,6 @@
     "require": {
         "php": ">=7.4"
     },
-    "scripts": {
-        "post-install-cmd": [
-            "npm install",
-            "node app.js &"
-        ]
-    }
+    "description": "Goldust Creation Management System",
+    "type": "project"
 }
