@@ -10,7 +10,9 @@ import dayjs from 'dayjs';
 import ClientSidebar from './ClientSidebar';
 import { Calendar as RsuiteCalendar } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
-import './usercalendar.css';function Modal({ open, onClose, children }) {
+import './usercalendar.css';
+
+function Modal({ open, onClose, children }) {
 	if (!open) return null;
 	return (
 		<div className="uc-modal-overlay">

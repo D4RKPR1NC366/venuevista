@@ -54,7 +54,15 @@ const BookSummary = () => {
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Contact Number :</span> <span style={{ color: '#111' }}>{displayContact}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Email Address :</span> <span style={{ color: '#111' }}>{displayEmail}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Type :</span> <span style={{ color: '#111' }}>{booking?.eventType || ""}</span></div>
-              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Date :</span> <span style={{ color: '#111' }}>{booking?.date ? (typeof booking.date === 'string' ? booking.date : dayjs(booking.date).format('MM/DD/YYYY')) : ""}</span></div>
+              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Date :</span> <span style={{ color: '#111' }}>{booking?.date ? (() => {
+                try {
+                  if (typeof booking.date === 'string') return booking.date;
+                  if (booking.date?.$d) return dayjs(booking.date.$d).format('MM/DD/YYYY');
+                  return dayjs(booking.date).format('MM/DD/YYYY');
+                } catch (e) {
+                  return booking.date.toString();
+                }
+              })() : ""}</span></div>
               {/* Event Location removed as per request */}
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Venue :</span> <span style={{ color: '#111' }}>{booking?.eventVenue || ""}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Appointment Method :</span> <span style={{ color: '#111' }}>{booking?.outsidePH === 'yes' ? 'Face to Face' : booking?.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
@@ -176,7 +184,15 @@ const BookSummary = () => {
                     email: booking.email || user?.email || '',
                     eventType: booking.eventType || '',
                     date: booking.date
-                      ? dayjs(booking.date).format('YYYY-MM-DD')
+                      ? (() => {
+                          try {
+                            if (typeof booking.date === 'string') return booking.date;
+                            if (booking.date?.$d) return dayjs(booking.date.$d).format('YYYY-MM-DD');
+                            return dayjs(booking.date).format('YYYY-MM-DD');
+                          } catch (e) {
+                            return '';
+                          }
+                        })()
                       : '',
                     eventVenue: booking.eventVenue || '',
                     guestCount: booking.guestCount || 0,
