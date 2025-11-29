@@ -3,12 +3,11 @@ const router = express.Router();
 const mongoose = require('mongoose');
 
 // Create connection for bookings
-const bookingConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/booking', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
-
-// Define the booking schema
+const ATLAS_URI = 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/';
+const bookingConnection = mongoose.createConnection(`${ATLAS_URI}booking`, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});// Define the booking schema
 const bookingBaseSchema = new mongoose.Schema({
     userId: String,
     name: String,

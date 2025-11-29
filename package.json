@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "start": "cd server && npm start",
     "start:server": "cd server && npm start",
-    "start:client": "cd client && npm run dev"
+    "start:client": "cd client && npm run dev",
+    "migrate": "cd server && node migrate-to-atlas.js",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:client\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -44,7 +44,8 @@ app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Create a separate connection for promos database
-const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
+const ATLAS_URI = 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/';
+const promoConnection = mongoose.createConnection(`${ATLAS_URI}promosDatabase`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -63,7 +64,7 @@ const promosRouter = require('./routes/promos');
 app.use('/api/promos', promosRouter);
 
 // Create a separate connection for schedules/calendar
-const scheduleConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/scheduleCalendar', {
+const scheduleConnection = mongoose.createConnection(`${ATLAS_URI}scheduleCalendar`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -347,13 +348,13 @@ app.post('/api/auth/login-customer', async (req, res) => {
 
 
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/ProductsAndServices';
+const MONGO_URI = `${ATLAS_URI}ProductsAndServices`;
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB ProductsAndServices connected!'))
   .catch(err => console.error('MongoDB ProductsAndServices connection error:', err));
 
 
-const bgImageConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/backgroundImages', {
+const bgImageConnection = mongoose.createConnection(`${ATLAS_URI}backgroundImages`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -361,7 +362,7 @@ bgImageConnection.on('connected', () => console.log('MongoDB backgroundImages co
 bgImageConnection.on('error', err => console.error('MongoDB backgroundImages connection error:', err));
 
 
-const bookingConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/booking', {
+const bookingConnection = mongoose.createConnection(`${ATLAS_URI}booking`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -817,7 +818,7 @@ app.get('/api/revenue', async (req, res) => {
 
 // Centralize MongoDB connections
 Promise.all([
-  mongoose.connect('mongodb://127.0.0.1:27017/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
+  mongoose.connect(`${ATLAS_URI}ProductsAndServices`, { useNewUrlParser: true, useUnifiedTopology: true }),
   authConnection.asPromise(),
   scheduleConnection.asPromise(),
   bgImageConnection.asPromise(),
