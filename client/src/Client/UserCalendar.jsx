@@ -19,6 +19,7 @@ function Modal({ open, onClose, children }) {
 	);
 }
 
+
 const UserCalendar = () => {
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [events, setEvents] = useState([]);
@@ -32,6 +33,16 @@ const UserCalendar = () => {
 	const user = JSON.parse(localStorage.getItem('user') || '{}');
 	const userEmail = user.email;
 	const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+
+	// Helper to convert a date string to PH timezone (YYYY-MM-DD)
+	function toPHDateString(dateInput) {
+		if (!dateInput) return '';
+		let d = typeof dateInput === 'string' ? new Date(dateInput) : new Date(dateInput);
+		// Convert to PH timezone (UTC+8)
+		const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+		const phTime = new Date(utc + (8 * 60 * 60000));
+		return phTime.toISOString().slice(0, 10);
+	}
 
 	useEffect(() => {
 		async function fetchEventsAndBookings() {
@@ -73,7 +84,7 @@ const UserCalendar = () => {
 					title: b.eventType || b.title || 'Booking',
 					type: 'Booking',
 					person: b.name || b.contact || b.email || '',
-					date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+					date: toPHDateString(b.date),
 					location: b.eventVenue || '',
 					description: b.specialRequest || b.details || '',
 					status: b.status || '',
@@ -84,7 +95,7 @@ const UserCalendar = () => {
 					title: 'Appointment',
 					type: 'Appointment',
 					person: a.clientName || a.clientEmail,
-					date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
+					date: toPHDateString(a.date),
 					location: a.location || '',
 					description: a.description || '',
 					status: a.status || '',
