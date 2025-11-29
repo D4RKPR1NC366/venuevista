@@ -32,6 +32,10 @@ app.use('/api/categories', categoriesRouter);
 const galleryRouter = require('./routes/gallery');
 app.use('/api/gallery', galleryRouter);
 
+// Backup routes
+const backupRouter = require('./routes/backup');
+app.use('/api/backup', backupRouter);
+
 // Serve gallery images statically
 const path = require('path');
 app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
@@ -821,8 +825,15 @@ Promise.all([
   promoConnection.asPromise()
 ]).then(() => {
   console.log('All MongoDB connections established');
+  
+  // Initialize backup service
+  const backupService = require('./services/backupService');
+  console.log('Starting Atlas backup service...');
+  backupService.startPeriodicBackup();
+  
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
+    console.log('Atlas backup service is running - data will be synced every 5 minutes');
   });
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);
