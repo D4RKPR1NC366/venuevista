@@ -249,7 +249,7 @@ app.delete('/api/background-images/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete image' });
   }
 });
-const PORT = 5051;
+const PORT = process.env.PORT || 5051;
 
 
 app.use(cors());

@@ -1,0 +1,8 @@
+# Render Deployment Configuration
+build: npm install
+start: npm start
+
+# Environment Variables to set in Render dashboard:
+MONGODB_URI=mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/
+JWT_SECRET=goldust-production-jwt-secret-key-2024
+NODE_ENV=production

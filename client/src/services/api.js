@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = '/api';
+// Use Render backend URL in production, local in development\nconst API_URL = import.meta.env.PROD \n  ? 'https://goldust-backend.onrender.com/api'  // Update this with your actual Render URL\n  : '/api';
 
 const api = axios.create({
     baseURL: API_URL
