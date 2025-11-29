@@ -1,15 +1,17 @@
 {
-  "name": "goldust-capstone-root",
+  "name": "goldust-creation-capstone",
   "version": "1.0.0",
-  "private": true,
+  "description": "Goldust Creation Management System",
+  "main": "server/index.js",
   "scripts": {
+    "start": "node server/index.js",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:client\"",
     "start:server": "cd server && npm start",
     "start:client": "cd client && npm run dev",
     "build": "cd client && npm run build",
+    "prepare-hostinger": "npm run build && powershell -c \"Copy-Item -Path 'client\\dist\\*' -Destination 'public_html\\' -Recurse -Force\"",
     "verify": "cd server && node verify-atlas.js",
-    "deploy:prepare": "npm run verify && npm run build",
-    "start": "cd server && npm start",
-    "dev": "concurrently \"npm run start:server\" \"npm run start:client\""
+    "deploy:prepare": "npm run verify && npm run prepare-hostinger"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

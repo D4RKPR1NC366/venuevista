@@ -44,11 +44,21 @@ app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 // Serve review uploads statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Serve built client files in production
+// Serve built client files
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+  // Hostinger deployment - serve from public_html
+  app.use(express.static(path.join(__dirname, '../public_html')));
   
   // Handle client-side routing - send index.html for non-API routes
+  app.get('*', (req, res) => {
+    if (!req.url.startsWith('/api') && !req.url.startsWith('/gallery') && !req.url.startsWith('/uploads')) {
+      res.sendFile(path.join(__dirname, '../public_html/index.html'));
+    }
+  });
+} else {
+  // Development - serve from client/dist
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
   app.get('*', (req, res) => {
     if (!req.url.startsWith('/api') && !req.url.startsWith('/gallery') && !req.url.startsWith('/uploads')) {
       res.sendFile(path.join(__dirname, '../client/dist/index.html'));
