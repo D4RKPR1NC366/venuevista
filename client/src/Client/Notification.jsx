@@ -79,7 +79,17 @@ const Notification = () => {
           }
         }
 
-        setNotifications(filtered);
+        // Filter notifications to only show those within 2 weeks from today
+        const today = new Date();
+        const twoWeeksFromNow = new Date();
+        twoWeeksFromNow.setDate(today.getDate() + 14);
+        const isWithinTwoWeeks = (dateStr) => {
+          if (!dateStr) return false;
+          const d = new Date(dateStr);
+          return d >= today && d <= twoWeeksFromNow;
+        };
+        const filtered2Weeks = filtered.filter(n => isWithinTwoWeeks(n.date));
+        setNotifications(filtered2Weeks);
       } catch (err) {
         console.error('Error fetching notifications:', err);
         setNotifications([]);
