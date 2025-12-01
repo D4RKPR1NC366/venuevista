@@ -1,3 +1,13 @@
+  // Most availed products/services (static demo data)
+  const mostAvailedProducts = [
+    { productId: '1', productName: 'Facial Treatment', count: 18 },
+    { productId: '2', productName: 'Hair Spa', count: 14 },
+    { productId: '3', productName: 'Massage Therapy', count: 12 },
+    { productId: '4', productName: 'Manicure', count: 9 },
+    { productId: '5', productName: 'Pedicure', count: 7 },
+    { productId: '6', productName: 'Body Scrub', count: 5 },
+    { productId: '7', productName: 'Waxing', count: 3 },
+  ];
 import React, { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import Sidebar from './Sidebar';
@@ -6,7 +16,13 @@ import 'rsuite/dist/rsuite.min.css';
 import { useNavigate } from 'react-router-dom';
 import './dashboard.css';
 
+
 export default function Dashboard() {
+  // Most availed products/services
+  const [mostAvailedProducts, setMostAvailedProducts] = useState([]);
+  // Expand state for tables
+  const [showAllCustomers, setShowAllCustomers] = useState(false);
+  const [showAllSuppliers, setShowAllSuppliers] = useState(false);
   // Appointment counts
     // For calendar events
     const [calendarEvents, setCalendarEvents] = useState([]);
@@ -95,24 +111,27 @@ export default function Dashboard() {
       const d = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
       const dayEvents = calendarEvents.filter(ev => ev.date === d);
       const maxToShow = 2;
-      if (dayEvents.length === 0) {
-        // Render empty cell for days with no events
-        return <div style={{ marginTop: 4 }}></div>;
-      }
       return (
-        <div style={{ marginTop: 4, cursor: 'pointer' }}>
-          {dayEvents.slice(0, maxToShow).map(ev => (
-            <div key={ev._id || ev.id} style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
-              {ev.title}
-            </div>
-          ))}
-          {dayEvents.length > maxToShow && (
-            <div
-              key="more"
-              style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2, textAlign: 'center', fontWeight: 700, cursor: 'pointer' }}
-              onClick={() => navigate && navigate('/admin/calendars')}
-              title="View more events"
-            >more</div>
+        <div
+          style={{ marginTop: 4, cursor: 'pointer', minHeight: 40 }}
+          onClick={() => navigate && navigate('/admin/calendars')}
+          title="Click to view full calendar"
+        >
+          {dayEvents.length === 0 ? null : (
+            <>
+              {dayEvents.slice(0, maxToShow).map(ev => (
+                <div key={ev._id || ev.id} style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
+                  {ev.title}
+                </div>
+              ))}
+              {dayEvents.length > maxToShow && (
+                <div
+                  key="more"
+                  style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2, textAlign: 'center', fontWeight: 700 }}
+                  title="View more events"
+                >more</div>
+              )}
+            </>
           )}
         </div>
       );
@@ -539,7 +558,7 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {activeCustomers.length > 0 ? (
-                activeCustomers.map(c => (
+                (showAllCustomers ? activeCustomers : activeCustomers.slice(0, 5)).map(c => (
                   <tr key={c.customerId} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '8px' }}>{c.customerName}</td>
                     <td style={{ padding: '8px' }}>{c.customerEmail}</td>
@@ -553,6 +572,16 @@ export default function Dashboard() {
               )}
             </tbody>
           </table>
+          {activeCustomers.length > 5 && (
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <button
+                style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', padding: 0 }}
+                onClick={() => setShowAllCustomers(v => !v)}
+              >
+                {showAllCustomers ? 'See less' : 'See more'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Most Active Suppliers (filtered) - table format */}
@@ -572,7 +601,7 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {activeSuppliers.length > 0 ? (
-                activeSuppliers.map(s => (
+                (showAllSuppliers ? activeSuppliers : activeSuppliers.slice(0, 5)).map(s => (
                   <tr key={s.supplierId} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '8px' }}>{s.supplierName}</td>
                     <td style={{ padding: '8px' }}>{s.supplierPhone || '-'}</td>
@@ -583,6 +612,46 @@ export default function Dashboard() {
               ) : (
                 <tr>
                   <td colSpan={4} style={{ color: '#888', textAlign: 'center', padding: '12px' }}>No suppliers booked for this filter.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {activeSuppliers.length > 5 && (
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <button
+                style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 600, cursor: 'pointer', fontSize: '1rem', padding: 0 }}
+                onClick={() => setShowAllSuppliers(v => !v)}
+              >
+                {showAllSuppliers ? 'See less' : 'See more'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Most Availed Products/Services (filtered) - table format */}
+        <div className="admin-dashboard-list-container" style={{ marginBottom: 18, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.12)', padding: 16 }}>
+          <div className="admin-dashboard-card-title" style={{ color: '#222', fontWeight: 700, fontSize: '1.15rem', margin: '0 0 12px 0', display: 'flex', alignItems: 'center' }}>
+            Most Availed Products/Services
+            <span style={{ color: '#888', fontWeight: 400, marginLeft: 8, opacity: 0.8 }}>{getFilterLabel(filter)}</span>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f3f4f6' }}>
+                <th style={{ textAlign: 'left', padding: '8px' }}>Product/Service Name</th>
+                <th style={{ textAlign: 'left', padding: '8px' }}>Times Availed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mostAvailedProducts.length > 0 ? (
+                mostAvailedProducts.slice(0, 10).map(p => (
+                  <tr key={p.productId} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '8px' }}>{p.productName}</td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>{p.count}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={2} style={{ color: '#888', textAlign: 'center', padding: '12px' }}>No products/services availed for this filter.</td>
                 </tr>
               )}
             </tbody>

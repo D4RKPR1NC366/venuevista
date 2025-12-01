@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import './productsandservices.css';
@@ -12,7 +13,6 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SecondProductsAndServices from './SecondProductsAndServices';
 import ProductDetailsModal from '../Home/ProductDetailsModal';
-import React, { useState, useEffect } from 'react';
 
 const API_BASE = '/api';
 
@@ -36,6 +36,7 @@ export default function ProductsAndServices() {
   const [productTitle, setProductTitle] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [productPrice, setProductPrice] = useState("");
+  const [productAvailable, setProductAvailable] = useState(true);
   const [showAdditionals, setShowAdditionals] = useState(false);
   const [additionals, setAdditionals] = useState([{ title: '', price: '', description: '' }]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -52,7 +53,8 @@ export default function ProductsAndServices() {
     title: '', 
     price: '', 
     description: '', 
-    additionals: [] 
+    additionals: [],
+    available: true
   });
   // Event types state
   const [eventTypes, setEventTypes] = useState([]);
@@ -719,6 +721,7 @@ export default function ProductsAndServices() {
                     title: productTitle,
                     description: productDescription,
                     price: productPrice,
+                    available: productAvailable,
                     additionals: showAdditionals ? additionals.filter(a => a.description && a.price) : [],
                     categoryTitle: selectedCategory.title,
                   };
@@ -1098,6 +1101,37 @@ export default function ProductsAndServices() {
                                 PHP {prod.price}
                               </div>
                             )}
+                            <div style={{ fontSize: 13, color: prod.available === false ? '#e53935' : '#43a047', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {prod.available === false ? 'Unavailable' : 'Available'}
+                              <button
+                                style={{
+                                  background: prod.available ? '#43a047' : '#e53935',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: 4,
+                                  padding: '2px 10px',
+                                  fontSize: 12,
+                                  cursor: 'pointer',
+                                  marginLeft: 8
+                                }}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const updated = { ...prod, available: !prod.available };
+                                    await fetch(`${API_BASE}/products/${prod._id}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify(updated)
+                                    });
+                                    setProducts(products.map((p, i) => i === idx ? updated : p));
+                                  } catch (error) {
+                                    alert('Failed to update availability');
+                                  }
+                                }}
+                              >
+                                Mark {prod.available ? 'Unavailable' : 'Available'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

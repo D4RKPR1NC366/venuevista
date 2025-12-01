@@ -276,15 +276,48 @@ const Home = () => {
                 <div
                   key={cat.title + (rowIdx * 3 + idx)}
                   className="home-service-card"
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', position: 'relative' }}
                   onClick={() => navigate('/pns-details', { state: { category: cat } })}
                 >
                   {cat.image ? (
-                    <div className="home-service-img-wrapper">
-                      <img src={cat.image} alt={cat.title} className="home-service-img" />
+                    <div className="home-service-img-wrapper" style={{ position: 'relative' }}>
+                      <img
+                        src={cat.image}
+                        alt={cat.title}
+                        className="home-service-img"
+                        style={cat.products && cat.products.some(p => p.available === false) ? {
+                          filter: 'brightness(0.45)',
+                          transition: 'filter 0.2s'
+                        } : {}}
+                      />
                       <div className="home-service-title-overlay">
                         {cat.title}
                       </div>
+                      {/* Overlay for unavailable product/service (robust, always centered) */}
+                      {cat.products && cat.products.some(p => p.available === false) && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(0,0,0,0.55)',
+                          color: '#fff',
+                          fontWeight: 900,
+                          fontSize: '2.2rem',
+                          zIndex: 10,
+                          pointerEvents: 'none',
+                          borderRadius: 'inherit',
+                          textAlign: 'center',
+                          letterSpacing: '2px',
+                          boxShadow: '0 0 8px 2px rgba(0,0,0,0.2)'
+                        }}>
+                          Unavailable
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="home-service-img-wrapper">

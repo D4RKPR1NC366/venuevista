@@ -8,6 +8,10 @@ import TextField from '@mui/material/TextField';
 import Sidebar from './Sidebar';
 import './suppliers.css';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Tabs, Tab, Box } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 
 export default function Suppliers() {
   // Notification dialog state
@@ -242,16 +246,17 @@ export default function Suppliers() {
                                       multiline
                                       minRows={2}
                                     />
-                                    <TextField
-                                      label="Date"
-                                      type="date"
-                                      value={notifyForm.date}
-                                      onChange={e => setNotifyForm(f => ({ ...f, date: e.target.value }))}
-                                      fullWidth
-                                      required
-                                      margin="normal"
-                                      InputLabelProps={{ shrink: true }}
-                                    />
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                      <DatePicker
+                                        label="Date"
+                                        value={notifyForm.date ? dayjs(notifyForm.date) : null}
+                                        onChange={newValue => {
+                                          setNotifyForm(f => ({ ...f, date: newValue ? newValue.format('YYYY-MM-DD') : '' }));
+                                        }}
+                                        renderInput={(params) => <TextField {...params} fullWidth required margin="normal" />}
+                                        sx={{ width: '100%' }}
+                                      />
+                                    </LocalizationProvider>
                                     <TextField
                                       label="Time"
                                       type="time"
