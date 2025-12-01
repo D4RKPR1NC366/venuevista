@@ -40,7 +40,7 @@ app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Create a separate connection for promos database
-const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
+const promoConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/promosDatabase', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -59,7 +59,7 @@ const promosRouter = require('./routes/promos');
 app.use('/api/promos', promosRouter);
 
 // Create a separate connection for schedules/calendar
-const scheduleConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/scheduleCalendar', {
+const scheduleConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/scheduleCalendar', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -351,13 +351,13 @@ app.post('/api/auth/login-customer', async (req, res) => {
 
 
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/ProductsAndServices';
+const MONGO_URI = 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/ProductsAndServices';
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB ProductsAndServices connected!'))
   .catch(err => console.error('MongoDB ProductsAndServices connection error:', err));
 
 
-const bgImageConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/backgroundImages', {
+const bgImageConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/backgroundImages', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -365,7 +365,7 @@ bgImageConnection.on('connected', () => console.log('MongoDB backgroundImages co
 bgImageConnection.on('error', err => console.error('MongoDB backgroundImages connection error:', err));
 
 
-const bookingConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/booking', {
+const bookingConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/booking', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -738,8 +738,9 @@ app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
 
 app.get('/api/suppliers', async (req, res) => {
   try {
-    const suppliers = await Supplier.find();
-    console.log('Found suppliers:', suppliers);
+    // Only return approved suppliers for dashboard counts
+    const suppliers = await Supplier.find({ isApproved: true });
+    console.log('Found approved suppliers:', suppliers.length);
     res.json(suppliers);
   } catch (err) {
     console.error('Error fetching suppliers:', err);
@@ -907,6 +908,12 @@ app.get('/api/revenue', async (req, res) => {
     // Combine and process bookings
     const allBookings = [...finishedBookings, ...approvedBookings];
     
+    console.log('Revenue calculation - Found bookings:', {
+      finished: finishedBookings.length,
+      approved: approvedBookings.length,
+      total: allBookings.length
+    });
+    
     // Initialize array for all months
     const revenueData = Array(12).fill(0).map((_, i) => ({
       month: i,
@@ -915,9 +922,19 @@ app.get('/api/revenue', async (req, res) => {
 
     // Calculate revenue for each month
     allBookings.forEach(booking => {
-      if (booking.totalPrice && booking.createdAt) {
-        const month = booking.createdAt.getMonth();
+      // Use booking.date (event date) instead of createdAt for proper month categorization
+      const bookingDate = booking.date ? new Date(booking.date) : null;
+      if (booking.totalPrice && bookingDate) {
+        const month = bookingDate.getMonth();
         revenueData[month].value += booking.totalPrice;
+        console.log(`Adding ₱${booking.totalPrice} to month ${month} (${bookingDate.toDateString()})`);
+      } else {
+        console.log('Skipping booking - missing data:', {
+          hasTotalPrice: !!booking.totalPrice,
+          hasDate: !!booking.date,
+          totalPrice: booking.totalPrice,
+          date: booking.date
+        });
       }
     });
 
@@ -935,7 +952,7 @@ app.get('/api/revenue', async (req, res) => {
 
 // Centralize MongoDB connections
 Promise.all([
-  mongoose.connect('mongodb://127.0.0.1:27017/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
+  mongoose.connect('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
   authConnection.asPromise(),
   scheduleConnection.asPromise(),
   bgImageConnection.asPromise(),

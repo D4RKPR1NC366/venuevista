@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const GallerySchema = require('../models/GallerySchema');
 
 // Create a separate connection for goldustGallery database
-const galleryConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/goldustGallery', {
+const galleryConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/goldustGallery', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
