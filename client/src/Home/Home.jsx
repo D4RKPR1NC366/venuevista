@@ -1,5 +1,3 @@
-
-
 import TopBar from "./TopBar";
 import "./home.css";
 import "../Authentication/auth.css";
@@ -20,6 +18,7 @@ const Home = () => {
   const [bgIndex, setBgIndex] = useState(0);
   const [reviewIndex, setReviewIndex] = useState(0); // no longer used for scrolling
   const [userReviews, setUserReviews] = useState([]);
+  const [eventTypes, setEventTypes] = useState([]);
   const reviewsContainerRef = useRef(null);
   const promosContainerRef = useRef(null);
   const [activePromos, setActivePromos] = useState([]);
@@ -100,6 +99,13 @@ const Home = () => {
   }, [bgImages]);
 
   const bgImage = bgImages.length > 0 ? bgImages[bgIndex] : null;
+
+  // Fetch event types from DB
+  useEffect(() => {
+    api.get('/event-types')
+      .then(res => setEventTypes(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setEventTypes([]));
+  }, []);
 
   return (
     <div className="home-root">
@@ -257,14 +263,9 @@ const Home = () => {
             style={{ padding: '0.4rem', borderRadius: '4px', background: '#fff', color: '#222', border: '1px solid #ccc' }}
           >
             <option value="all">All Events</option>
-            <option value="anniversary">Anniversary</option>
-            <option value="baptism">Baptism</option>
-            <option value="birthday">Birthday</option>
-            <option value="debut">Debut</option>
-            <option value="corporate">Corporate</option>
-            <option value="reunion">Reunion</option>
-            <option value="seminar">Seminar</option>
-            <option value="wedding">Wedding</option>
+            {eventTypes.map(type => (
+              <option key={type._id || type.name} value={type.name}>{type.name.charAt(0).toUpperCase() + type.name.slice(1)}</option>
+            ))}
           </select>
         </div>
         <div className="home-services-grid">

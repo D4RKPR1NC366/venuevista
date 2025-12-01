@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, IconButton, Paper, Typography } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -65,7 +64,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
   });
   const [paymentProofPreview, setPaymentProofPreview] = React.useState('');
   const paymentProofInputRef = React.useRef(null);
-  const eventTypes = ['Wedding', 'Birthday', 'Debut', 'Corporate', 'Anniversary', 'Reunion', 'Baptism'];
+  const [eventTypes, setEventTypes] = React.useState([]);
   const paymentModes = ['Cash', 'Bank Transfer', 'GCash'];
   const paymentStatuses = ['Pending', 'Partially Paid', 'Fully Paid', 'Refunded'];
 
@@ -87,6 +86,19 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
     api.get('/promos')
       .then(res => setPromos(res.data))
       .catch(() => setPromos([]));
+  }, []);
+
+  // Load event types from the API
+  React.useEffect(() => {
+    api.get('/event-types')
+      .then(res => {
+        let types = Array.isArray(res.data) ? res.data : [];
+        if (types.length && typeof types[0] === 'object' && types[0].name) {
+          types = types.map(t => t.name);
+        }
+        setEventTypes(types);
+      })
+      .catch(() => setEventTypes([]));
   }, []);
 
   // Handle booking data updates - reset everything when booking changes
@@ -711,7 +723,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     <select style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.eventType || ''} onChange={handleEventTypeChange}>
                       <option value="">Select Event Type</option>
                       {eventTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
                       ))}
                     </select>
                   </div>

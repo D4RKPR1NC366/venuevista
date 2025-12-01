@@ -966,3 +966,7 @@ Promise.all([
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);
 });
+
+// Register eventTypes route so frontend can fetch and update event types from the database.
+const eventTypesRouter = require('./routes/eventTypes');
+app.use('/api/event-types', eventTypesRouter);

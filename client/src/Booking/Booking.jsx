@@ -43,6 +43,20 @@ const Booking = () => {
   const [promos, setPromos] = useState([]);
   const [selectedPromoId, setSelectedPromoId] = useState('');
   const [bookingsPerDay, setBookingsPerDay] = useState({});
+  const [eventTypes, setEventTypes] = useState([]);
+
+  // Fetch event types from API on mount
+  useEffect(() => {
+    api.get('/event-types')
+      .then(res => {
+        // Map to array of names (strings)
+        const types = Array.isArray(res.data)
+          ? res.data.map(e => typeof e === 'string' ? e : e.name)
+          : [];
+        setEventTypes(types);
+      })
+      .catch(() => setEventTypes([]));
+  }, []);
   
   // Helper to check promo status
   const isPromoActive = (promo) => {
@@ -320,18 +334,13 @@ const Booking = () => {
                       label="Event Type"
                       variant="outlined"
                       size="small"
-                      
                       value={form.eventType}
                       onChange={e => setForm(f => ({ ...f, eventType: e.target.value }))}
                     >
-                      <MenuItem value="Anniversary">Anniversary</MenuItem>
-                      <MenuItem value="Baptism">Baptism</MenuItem>
-                      <MenuItem value="Birthday">Birthday</MenuItem>
-                      <MenuItem value="Corporate">Corporate</MenuItem>
-                      <MenuItem value="Debut">Debut</MenuItem>
-                      <MenuItem value="Reunion">Reunion</MenuItem>
-                      <MenuItem value="Seminar">Seminar</MenuItem>
-                      <MenuItem value="Wedding">Wedding</MenuItem>
+                      <MenuItem value="">Choose Event Type</MenuItem>
+                      {eventTypes.map(type => (
+                        <MenuItem key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </div>
