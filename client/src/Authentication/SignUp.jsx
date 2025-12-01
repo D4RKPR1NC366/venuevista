@@ -158,8 +158,8 @@ const SignUp = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Show success message
-        window.alert('Sign up successful! Please log in.');
+        // Show success message from server (includes pending approval for suppliers)
+        window.alert(data.message || 'Sign up successful! Please log in.');
         navigate('/login');
       } else {
         // Show specific error from server

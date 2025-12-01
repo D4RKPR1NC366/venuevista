@@ -676,6 +676,21 @@ app.post('/api/admin/suppliers/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
+    // Send approval email
+    const { sendSupplierApprovedEmail } = require('./services/emailService');
+    try {
+      await sendSupplierApprovedEmail(
+        supplier.email, 
+        supplier.firstName, 
+        supplier.lastName, 
+        supplier.companyName
+      );
+      console.log('Approval email sent to:', supplier.email);
+    } catch (emailError) {
+      console.error('Failed to send approval email:', emailError);
+      // Don't fail approval if email fails
+    }
+
     res.json({ 
       message: 'Supplier approved successfully', 
       supplier: supplier 
@@ -690,10 +705,28 @@ app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const supplier = await Supplier.findByIdAndDelete(id);
+    const supplier = await Supplier.findById(id);
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
+
+    // Send rejection email before deleting
+    const { sendSupplierRejectedEmail } = require('./services/emailService');
+    try {
+      await sendSupplierRejectedEmail(
+        supplier.email, 
+        supplier.firstName, 
+        supplier.lastName, 
+        supplier.companyName
+      );
+      console.log('Rejection email sent to:', supplier.email);
+    } catch (emailError) {
+      console.error('Failed to send rejection email:', emailError);
+      // Don't fail rejection if email fails
+    }
+
+    // Now delete the supplier
+    await Supplier.findByIdAndDelete(id);
 
     res.json({ message: 'Supplier rejected and removed successfully' });
   } catch (error) {
@@ -756,8 +789,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
     
     console.log('Attempting to save supplier:', {
       email: supplier.email,
-      businessName: supplier.businessName,
-      phoneNumber: supplier.phoneNumber
+      companyName: supplier.companyName,
+      phone: supplier.phone
     });
 
     await supplier.save();
@@ -767,9 +800,19 @@ app.post('/api/auth/register-supplier', async (req, res) => {
       email: supplier.email,
       isApproved: supplier.isApproved
     });
+
+    // Send pending approval email
+    const { sendSupplierPendingEmail } = require('./services/emailService');
+    try {
+      await sendSupplierPendingEmail(email, firstName, lastName, companyName);
+      console.log('Pending approval email sent to:', email);
+    } catch (emailError) {
+      console.error('Failed to send pending email:', emailError);
+      // Don't fail registration if email fails
+    }
     
     res.status(201).json({ 
-      message: 'Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 
+      message: 'Registration successful! Your account is pending admin approval. Please check your email for confirmation.', 
       requiresApproval: true,
       user: {
         ...supplier.toObject(),
