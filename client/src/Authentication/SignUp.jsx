@@ -11,7 +11,9 @@ import {
   FormGroup,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  Chip,
+  OutlinedInput
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import "./auth.css";
@@ -33,14 +35,21 @@ const SignUp = () => {
     role: "user",
     companyName: "",
     agree: false,
+    eventTypes: [],
   });
   const [type, setType] = useState(accountType);
+  const [availableEventTypes, setAvailableEventTypes] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     setType(accountType);
     if (accountType === "supplier") {
       setForm((prev) => ({ ...prev, role: undefined, companyName: "" }));
+      // Fetch available event types
+      fetch('/api/event-types')
+        .then(res => res.json())
+        .then(data => setAvailableEventTypes(data))
+        .catch(err => console.error('Failed to fetch event types:', err));
     } else {
       setForm((prev) => ({ ...prev, role: accountType, companyName: undefined }));
     }
@@ -142,6 +151,7 @@ const SignUp = () => {
       let endpoint = '';
       if (type === "supplier") {
         payload.companyName = form.companyName.trim();
+        payload.eventTypes = form.eventTypes;
         endpoint = '/api/auth/register-supplier';
       } else {
         endpoint = '/api/auth/register-customer';
@@ -228,16 +238,42 @@ const SignUp = () => {
                   className="auth-input"
                 />
                 {type === 'supplier' ? (
-                  <TextField
-                    label="Company Name"
-                    name="companyName"
-                    value={form.companyName}
-                    onChange={handleChange}
-                    fullWidth
-                    margin="dense"
-                    required
-                    className="auth-input"
-                  />
+                  <>
+                    <TextField
+                      label="Company Name"
+                      name="companyName"
+                      value={form.companyName}
+                      onChange={handleChange}
+                      fullWidth
+                      margin="dense"
+                      required
+                      className="auth-input"
+                    />
+                    <FormControl fullWidth margin="dense" className="auth-input">
+                      <InputLabel>Event Types You Offer</InputLabel>
+                      <Select
+                        multiple
+                        name="eventTypes"
+                        value={form.eventTypes}
+                        onChange={handleChange}
+                        input={<OutlinedInput label="Event Types You Offer" />}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {selected.map((value) => {
+                              const eventType = availableEventTypes.find(et => et._id === value);
+                              return <Chip key={value} label={eventType?.name || value} size="small" />;
+                            })}
+                          </Box>
+                        )}
+                      >
+                        {availableEventTypes.map((eventType) => (
+                          <MenuItem key={eventType._id} value={eventType._id}>
+                            {eventType.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </>
                 ) : null}
                 {type === 'admin' ? (
                   <FormControl fullWidth margin="dense" className="auth-input">

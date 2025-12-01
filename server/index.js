@@ -637,7 +637,27 @@ app.get('/api/admin/suppliers/pending', async (req, res) => {
   try {
     const pendingSuppliers = await Supplier.find({ isApproved: false })
       .select('-password')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    console.log('Pending suppliers raw data:', pendingSuppliers.map(s => ({ 
+      email: s.email, 
+      eventTypes: s.eventTypes 
+    })));
+    
+    // Manually populate eventTypes to handle older records without this field
+    for (let supplier of pendingSuppliers) {
+      if (supplier.eventTypes && supplier.eventTypes.length > 0) {
+        const EventType = require('./models/EventType');
+        const populated = await EventType.find({ _id: { $in: supplier.eventTypes } }).select('name');
+        console.log(`Populated event types for ${supplier.email}:`, populated);
+        supplier.eventTypes = populated;
+      } else {
+        supplier.eventTypes = [];
+      }
+    }
+    
+    console.log('Sending pending suppliers with populated eventTypes');
     res.json(pendingSuppliers);
   } catch (error) {
     console.error('Error fetching pending suppliers:', error);
@@ -649,7 +669,19 @@ app.get('/api/admin/suppliers/approved', async (req, res) => {
   try {
     const approvedSuppliers = await Supplier.find({ isApproved: true })
       .select('-password')
-      .sort({ approvedAt: -1 });
+      .sort({ approvedAt: -1 })
+      .lean();
+    
+    // Manually populate eventTypes to handle older records without this field
+    for (let supplier of approvedSuppliers) {
+      if (supplier.eventTypes && supplier.eventTypes.length > 0) {
+        const EventType = require('./models/EventType');
+        supplier.eventTypes = await EventType.find({ _id: { $in: supplier.eventTypes } }).select('name');
+      } else {
+        supplier.eventTypes = [];
+      }
+    }
+    
     res.json(approvedSuppliers);
   } catch (error) {
     console.error('Error fetching approved suppliers:', error);
@@ -752,7 +784,7 @@ app.post('/api/auth/register-supplier', async (req, res) => {
   try {
     console.log('Supplier registration request:', req.body);
     
-    const { email, password, companyName, firstName, lastName, middleName, phone } = req.body;
+    const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes } = req.body;
     
     // Validate required fields
     if (!email || !password || !companyName || !firstName || !lastName || !phone) {
@@ -785,7 +817,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
       phone: phone,  // Use phone directly
       contact: phone,
       mfaEnabled: false,
-      isApproved: false  // New suppliers need admin approval
+      isApproved: false,  // New suppliers need admin approval
+      eventTypes: eventTypes || []  // Save selected event types
     });
     
     console.log('Attempting to save supplier:', {
@@ -875,24 +908,33 @@ app.get('/api/revenue', async (req, res) => {
     const now = new Date();
     let startDate;
 
-    // Determine start date based on filter
-    switch (filter) {
-      case 'thisWeek':
-        const day = now.getDay();
-        const diff = now.getDate() - day;
-        startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-        break;
-      case 'thisMonth':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'this6Months':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-        break;
-      case 'thisYear':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Determine start date based on filter - handle 'all' and month numbers
+    if (filter === 'all') {
+      // For 'all months', get the entire year
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else if (!isNaN(filter) && parseInt(filter) >= 0 && parseInt(filter) < 12) {
+      // If filter is a month number (0-11), get from that month to now
+      startDate = new Date(now.getFullYear(), parseInt(filter), 1);
+    } else {
+      // Handle string filters like 'thisWeek', 'thisMonth', etc.
+      switch (filter) {
+        case 'thisWeek':
+          const day = now.getDay();
+          const diff = now.getDate() - day;
+          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          break;
+        case 'thisMonth':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this6Months':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+          break;
+        case 'thisYear':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
     }
 
     // Get all relevant bookings

@@ -32,6 +32,7 @@ const supplierSchema = new mongoose.Schema({
     isApproved: { type: Boolean, default: false },
     approvedAt: Date,
     approvedBy: String,
+    eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }],
     createdAt: { type: Date, default: Date.now }
 });
 
