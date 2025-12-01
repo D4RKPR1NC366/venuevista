@@ -263,6 +263,14 @@ app.post('/api/auth/login-supplier', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if supplier is approved
+    if (!supplier.isApproved) {
+      return res.status(403).json({ 
+        error: 'Account pending approval', 
+        message: 'Your supplier account is awaiting admin approval. Please wait for approval before logging in.' 
+      });
+    }
+
     // If MFA is enabled, handle MFA verification
     if (supplier.mfaEnabled) {
       if (!mfaCode) {
@@ -624,7 +632,75 @@ app.delete('/api/products/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// Admin endpoints for supplier approval management
+app.get('/api/admin/suppliers/pending', async (req, res) => {
+  try {
+    const pendingSuppliers = await Supplier.find({ isApproved: false })
+      .select('-password')
+      .sort({ createdAt: -1 });
+    res.json(pendingSuppliers);
+  } catch (error) {
+    console.error('Error fetching pending suppliers:', error);
+    res.status(500).json({ error: 'Failed to fetch pending suppliers' });
+  }
+});
 
+app.get('/api/admin/suppliers/approved', async (req, res) => {
+  try {
+    const approvedSuppliers = await Supplier.find({ isApproved: true })
+      .select('-password')
+      .sort({ approvedAt: -1 });
+    res.json(approvedSuppliers);
+  } catch (error) {
+    console.error('Error fetching approved suppliers:', error);
+    res.status(500).json({ error: 'Failed to fetch approved suppliers' });
+  }
+});
+
+app.post('/api/admin/suppliers/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminEmail } = req.body;
+    
+    const supplier = await Supplier.findByIdAndUpdate(
+      id,
+      {
+        isApproved: true,
+        approvedAt: new Date(),
+        approvedBy: adminEmail || 'admin'
+      },
+      { new: true }
+    ).select('-password');
+
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    res.json({ 
+      message: 'Supplier approved successfully', 
+      supplier: supplier 
+    });
+  } catch (error) {
+    console.error('Error approving supplier:', error);
+    res.status(500).json({ error: 'Failed to approve supplier' });
+  }
+});
+
+app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const supplier = await Supplier.findByIdAndDelete(id);
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    res.json({ message: 'Supplier rejected and removed successfully' });
+  } catch (error) {
+    console.error('Error rejecting supplier:', error);
+    res.status(500).json({ error: 'Failed to reject supplier' });
+  }
+});
 
 
 app.get('/api/suppliers', async (req, res) => {
@@ -674,7 +750,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
       middleName, 
       phone: phone,  // Use phone directly
       contact: phone,
-      mfaEnabled: false
+      mfaEnabled: false,
+      isApproved: false  // New suppliers need admin approval
     });
     
     console.log('Attempting to save supplier:', {
@@ -687,11 +764,13 @@ app.post('/api/auth/register-supplier', async (req, res) => {
     
     console.log('Supplier registered successfully:', {
       id: supplier._id,
-      email: supplier.email
+      email: supplier.email,
+      isApproved: supplier.isApproved
     });
     
     res.status(201).json({ 
-      message: 'Supplier registered successfully', 
+      message: 'Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 
+      requiresApproval: true,
       user: {
         ...supplier.toObject(),
         password: undefined // Don't send password back

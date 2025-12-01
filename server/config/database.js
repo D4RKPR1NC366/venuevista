@@ -29,6 +29,9 @@ const supplierSchema = new mongoose.Schema({
     phone: String,
     contact: String,
     mfaEnabled: { type: Boolean, required: true, default: false },
+    isApproved: { type: Boolean, default: false },
+    approvedAt: Date,
+    approvedBy: String,
     createdAt: { type: Date, default: Date.now }
 });
 
