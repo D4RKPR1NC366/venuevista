@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Create authentication connection
-const authConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/authentication', {
+const authConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/authentication', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
@@ -32,6 +32,7 @@ const supplierSchema = new mongoose.Schema({
     isApproved: { type: Boolean, default: false },
     approvedAt: Date,
     approvedBy: String,
+    eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }],
     createdAt: { type: Date, default: Date.now }
 });
 

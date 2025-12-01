@@ -40,7 +40,7 @@ app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Create a separate connection for promos database
-const promoConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/promosDatabase', {
+const promoConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/promosDatabase', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -59,7 +59,7 @@ const promosRouter = require('./routes/promos');
 app.use('/api/promos', promosRouter);
 
 // Create a separate connection for schedules/calendar
-const scheduleConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/scheduleCalendar', {
+const scheduleConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/scheduleCalendar', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -351,13 +351,13 @@ app.post('/api/auth/login-customer', async (req, res) => {
 
 
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/ProductsAndServices';
+const MONGO_URI = 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/ProductsAndServices';
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB ProductsAndServices connected!'))
   .catch(err => console.error('MongoDB ProductsAndServices connection error:', err));
 
 
-const bgImageConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/backgroundImages', {
+const bgImageConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/backgroundImages', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -365,7 +365,7 @@ bgImageConnection.on('connected', () => console.log('MongoDB backgroundImages co
 bgImageConnection.on('error', err => console.error('MongoDB backgroundImages connection error:', err));
 
 
-const bookingConnection = mongoose.createConnection('mongodb://127.0.0.1:27017/booking', {
+const bookingConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/booking', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -637,7 +637,27 @@ app.get('/api/admin/suppliers/pending', async (req, res) => {
   try {
     const pendingSuppliers = await Supplier.find({ isApproved: false })
       .select('-password')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    console.log('Pending suppliers raw data:', pendingSuppliers.map(s => ({ 
+      email: s.email, 
+      eventTypes: s.eventTypes 
+    })));
+    
+    // Manually populate eventTypes to handle older records without this field
+    for (let supplier of pendingSuppliers) {
+      if (supplier.eventTypes && supplier.eventTypes.length > 0) {
+        const EventType = require('./models/EventType');
+        const populated = await EventType.find({ _id: { $in: supplier.eventTypes } }).select('name');
+        console.log(`Populated event types for ${supplier.email}:`, populated);
+        supplier.eventTypes = populated;
+      } else {
+        supplier.eventTypes = [];
+      }
+    }
+    
+    console.log('Sending pending suppliers with populated eventTypes');
     res.json(pendingSuppliers);
   } catch (error) {
     console.error('Error fetching pending suppliers:', error);
@@ -649,7 +669,19 @@ app.get('/api/admin/suppliers/approved', async (req, res) => {
   try {
     const approvedSuppliers = await Supplier.find({ isApproved: true })
       .select('-password')
-      .sort({ approvedAt: -1 });
+      .sort({ approvedAt: -1 })
+      .lean();
+    
+    // Manually populate eventTypes to handle older records without this field
+    for (let supplier of approvedSuppliers) {
+      if (supplier.eventTypes && supplier.eventTypes.length > 0) {
+        const EventType = require('./models/EventType');
+        supplier.eventTypes = await EventType.find({ _id: { $in: supplier.eventTypes } }).select('name');
+      } else {
+        supplier.eventTypes = [];
+      }
+    }
+    
     res.json(approvedSuppliers);
   } catch (error) {
     console.error('Error fetching approved suppliers:', error);
@@ -738,8 +770,9 @@ app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
 
 app.get('/api/suppliers', async (req, res) => {
   try {
-    const suppliers = await Supplier.find();
-    console.log('Found suppliers:', suppliers);
+    // Only return approved suppliers for dashboard counts
+    const suppliers = await Supplier.find({ isApproved: true });
+    console.log('Found approved suppliers:', suppliers.length);
     res.json(suppliers);
   } catch (err) {
     console.error('Error fetching suppliers:', err);
@@ -751,7 +784,7 @@ app.post('/api/auth/register-supplier', async (req, res) => {
   try {
     console.log('Supplier registration request:', req.body);
     
-    const { email, password, companyName, firstName, lastName, middleName, phone } = req.body;
+    const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes } = req.body;
     
     // Validate required fields
     if (!email || !password || !companyName || !firstName || !lastName || !phone) {
@@ -784,7 +817,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
       phone: phone,  // Use phone directly
       contact: phone,
       mfaEnabled: false,
-      isApproved: false  // New suppliers need admin approval
+      isApproved: false,  // New suppliers need admin approval
+      eventTypes: eventTypes || []  // Save selected event types
     });
     
     console.log('Attempting to save supplier:', {
@@ -874,24 +908,33 @@ app.get('/api/revenue', async (req, res) => {
     const now = new Date();
     let startDate;
 
-    // Determine start date based on filter
-    switch (filter) {
-      case 'thisWeek':
-        const day = now.getDay();
-        const diff = now.getDate() - day;
-        startDate = new Date(now.getFullYear(), now.getMonth(), diff);
-        break;
-      case 'thisMonth':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'this6Months':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-        break;
-      case 'thisYear':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Determine start date based on filter - handle 'all' and month numbers
+    if (filter === 'all') {
+      // For 'all months', get the entire year
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else if (!isNaN(filter) && parseInt(filter) >= 0 && parseInt(filter) < 12) {
+      // If filter is a month number (0-11), get from that month to now
+      startDate = new Date(now.getFullYear(), parseInt(filter), 1);
+    } else {
+      // Handle string filters like 'thisWeek', 'thisMonth', etc.
+      switch (filter) {
+        case 'thisWeek':
+          const day = now.getDay();
+          const diff = now.getDate() - day;
+          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          break;
+        case 'thisMonth':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'this6Months':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+          break;
+        case 'thisYear':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
     }
 
     // Get all relevant bookings
@@ -907,6 +950,12 @@ app.get('/api/revenue', async (req, res) => {
     // Combine and process bookings
     const allBookings = [...finishedBookings, ...approvedBookings];
     
+    console.log('Revenue calculation - Found bookings:', {
+      finished: finishedBookings.length,
+      approved: approvedBookings.length,
+      total: allBookings.length
+    });
+    
     // Initialize array for all months
     const revenueData = Array(12).fill(0).map((_, i) => ({
       month: i,
@@ -915,9 +964,19 @@ app.get('/api/revenue', async (req, res) => {
 
     // Calculate revenue for each month
     allBookings.forEach(booking => {
-      if (booking.totalPrice && booking.createdAt) {
-        const month = booking.createdAt.getMonth();
+      // Use booking.date (event date) instead of createdAt for proper month categorization
+      const bookingDate = booking.date ? new Date(booking.date) : null;
+      if (booking.totalPrice && bookingDate) {
+        const month = bookingDate.getMonth();
         revenueData[month].value += booking.totalPrice;
+        console.log(`Adding ₱${booking.totalPrice} to month ${month} (${bookingDate.toDateString()})`);
+      } else {
+        console.log('Skipping booking - missing data:', {
+          hasTotalPrice: !!booking.totalPrice,
+          hasDate: !!booking.date,
+          totalPrice: booking.totalPrice,
+          date: booking.date
+        });
       }
     });
 
@@ -935,7 +994,7 @@ app.get('/api/revenue', async (req, res) => {
 
 // Centralize MongoDB connections
 Promise.all([
-  mongoose.connect('mongodb://127.0.0.1:27017/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
+  mongoose.connect('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
   authConnection.asPromise(),
   scheduleConnection.asPromise(),
   bgImageConnection.asPromise(),

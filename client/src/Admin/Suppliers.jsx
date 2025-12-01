@@ -7,7 +7,7 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Sidebar from './Sidebar';
 import './suppliers.css';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Tabs, Tab, Box } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Tabs, Tab, Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -63,6 +63,8 @@ export default function Suppliers() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState(0);
+  const [availableEventTypes, setAvailableEventTypes] = useState([]);
+  const [selectedEventType, setSelectedEventType] = useState('');
 
   const fetchSuppliers = async () => {
     try {
@@ -88,6 +90,11 @@ export default function Suppliers() {
 
   useEffect(() => {
     fetchSuppliers();
+    // Fetch available event types
+    fetch('/api/event-types')
+      .then(res => res.json())
+      .then(data => setAvailableEventTypes(data))
+      .catch(err => console.error('Failed to fetch event types:', err));
   }, []);
 
   const handleApprove = async (id) => {
@@ -125,18 +132,24 @@ export default function Suppliers() {
     }
   };
 
-  // Filter suppliers by search
+  // Filter suppliers by search and event type
   const currentSuppliers = activeTab === 0 ? pendingSuppliers : approvedSuppliers;
   const filteredSuppliers = currentSuppliers.filter(supplier => {
     const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return (
+    const matchesSearch = !q || (
       (supplier.companyName || '').toLowerCase().includes(q) ||
       (supplier.firstName || '').toLowerCase().includes(q) ||
       (supplier.middleName || '').toLowerCase().includes(q) ||
       (supplier.lastName || '').toLowerCase().includes(q) ||
       (supplier.email || '').toLowerCase().includes(q)
     );
+    
+    const matchesEventType = !selectedEventType || 
+      (supplier.eventTypes && supplier.eventTypes.some(et => 
+        (typeof et === 'string' ? et : et._id) === selectedEventType
+      ));
+    
+    return matchesSearch && matchesEventType;
   });
 
   return (
@@ -146,23 +159,40 @@ export default function Suppliers() {
         <div className="admin-suppliers-root">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <h2 style={{ margin: 0 }}>Supplier Management</h2>
-            <input
-              type="text"
-              placeholder="Search company or name..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 6,
-                border: '1px solid #ccc',
-                fontSize: '1rem',
-                minWidth: 220,
-                background: '#fff',
-                color: '#222',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                fontWeight: 500
-              }}
-            />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <FormControl size="small" sx={{ minWidth: 200, background: '#fff' }}>
+                <InputLabel>Filter by Event Type</InputLabel>
+                <Select
+                  value={selectedEventType}
+                  onChange={e => setSelectedEventType(e.target.value)}
+                  label="Filter by Event Type"
+                >
+                  <MenuItem value="">All Event Types</MenuItem>
+                  {availableEventTypes.map((eventType) => (
+                    <MenuItem key={eventType._id} value={eventType._id}>
+                      {eventType.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <input
+                type="text"
+                placeholder="Search company or name..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 6,
+                  border: '1px solid #ccc',
+                  fontSize: '1rem',
+                  minWidth: 220,
+                  background: '#fff',
+                  color: '#222',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  fontWeight: 500
+                }}
+              />
+            </div>
           </div>
 
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
@@ -183,6 +213,7 @@ export default function Suppliers() {
                     <TableCell>Name</TableCell>
                     <TableCell>Phone</TableCell>
                     <TableCell>Email</TableCell>
+                    <TableCell>Event Types</TableCell>
                     {activeTab === 0 && <TableCell>Actions</TableCell>}
                     {activeTab === 1 && <TableCell>Approved Date</TableCell>}
                   </TableRow>
@@ -201,6 +232,28 @@ export default function Suppliers() {
                         <TableCell>{`${supplier.firstName} ${supplier.middleName || ''} ${supplier.lastName}`.trim()}</TableCell>
                         <TableCell>{supplier.phone}</TableCell>
                         <TableCell>{supplier.email}</TableCell>
+                        <TableCell>
+                          {supplier.eventTypes && supplier.eventTypes.length > 0 ? (
+                            supplier.eventTypes.map((et, idx) => {
+                              const eventTypeName = typeof et === 'object' && et.name ? et.name : 
+                                availableEventTypes.find(aet => aet._id === et)?.name || 'Unknown';
+                              return (
+                                <span key={idx} style={{ 
+                                  display: 'inline-block', 
+                                  background: '#e6b800', 
+                                  color: '#000', 
+                                  padding: '2px 8px', 
+                                  borderRadius: 4, 
+                                  fontSize: '0.85rem',
+                                  marginRight: 4,
+                                  marginBottom: 4
+                                }}>
+                                  {eventTypeName}
+                                </span>
+                              );
+                            })
+                          ) : 'N/A'}
+                        </TableCell>
                         {activeTab === 0 && (
                           <TableCell>
                             <Button 
@@ -302,7 +355,7 @@ export default function Suppliers() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={activeTab === 0 ? 5 : 5} align="center">
+                      <TableCell colSpan={activeTab === 0 ? 6 : 6} align="center">
                         {activeTab === 0 ? 'No pending suppliers.' : 'No approved suppliers.'}
                       </TableCell>
                     </TableRow>
