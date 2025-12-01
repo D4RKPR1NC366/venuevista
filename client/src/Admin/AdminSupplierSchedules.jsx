@@ -30,6 +30,7 @@ const AdminSupplierSchedules = () => {
     fetchSchedules();
   }, []);
 
+
   // Cancel accepted schedule
   async function handleCancel(id) {
     if (!window.confirm('Are you sure you want to cancel this accepted schedule?')) {
@@ -45,6 +46,24 @@ const AdminSupplierSchedules = () => {
       }
     } catch (err) {
       alert('Error cancelling schedule: ' + err.message);
+    }
+  }
+
+  // Delete declined schedule
+  async function handleDeleteDeclined(id) {
+    if (!window.confirm('Are you sure you want to delete this declined schedule?')) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDeclined(prev => prev.filter(sch => sch._id !== id));
+        alert('Declined schedule deleted successfully');
+      } else {
+        throw new Error('Failed to delete declined schedule');
+      }
+    } catch (err) {
+      alert('Error deleting declined schedule: ' + err.message);
     }
   }
 
@@ -96,6 +115,7 @@ const AdminSupplierSchedules = () => {
                       <div>{sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#f44336'}}>Declined</span></div>
+                      <button style={{marginTop:'8px',background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer',display:'inline-block'}} onClick={() => handleDeleteDeclined(sch._id)}>Delete</button>
                     </div>
                   ))}
                 </div>

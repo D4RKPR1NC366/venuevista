@@ -1,3 +1,7 @@
+/* Hide last row in RsuiteCalendar for dashboard overview */
+.dashboard-calendar-container .rs-calendar-table-row:last-child {
+  display: none !important;
+}
 /* Dashboard layout */
 .admin-dashboard-layout {
   display: flex;

@@ -54,6 +54,11 @@ export default function ProductsAndServices() {
     description: '', 
     additionals: [] 
   });
+  // Event types state
+  const [eventTypes, setEventTypes] = useState([]);
+  const [showEventTypeModal, setShowEventTypeModal] = useState(false);
+  const [newEventType, setNewEventType] = useState({ name: '', description: '' });
+  const [editEventTypeIdx, setEditEventTypeIdx] = useState(null);
 
 
   // Fetch categories from API
@@ -73,6 +78,14 @@ export default function ProductsAndServices() {
         .catch(() => setProducts([]));
     }
   }, [selectedCategory]);
+
+  // Fetch event types from DB
+  useEffect(() => {
+    fetch('/api/event-types')
+      .then(res => res.json())
+      .then(setEventTypes)
+      .catch(() => setEventTypes([]));
+  }, []);
 
   const openModal = () => {
     setShowModal(true);
@@ -232,6 +245,67 @@ export default function ProductsAndServices() {
     setShowEditProductModal(false);
   };
 
+  // Add or update event type
+  const handleSaveEventType = async (e) => {
+    e.preventDefault();
+    if (!newEventType.name.trim()) return;
+    try {
+      let res;
+      const eventTypePayload = { name: newEventType.name.trim() };
+      if (editEventTypeIdx !== null) {
+        const id = eventTypes[editEventTypeIdx]._id;
+        res = await fetch(`/api/event-types/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventTypePayload),
+        });
+      } else {
+        res = await fetch('/api/event-types', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventTypePayload),
+        });
+      }
+      if (!res.ok) throw new Error('Failed to save event type');
+      setShowEventTypeModal(false);
+      setNewEventType({ name: '' });
+      setEditEventTypeIdx(null);
+      // Refresh event types
+      const updated = await fetch('/api/event-types').then(r => r.json());
+      setEventTypes(updated);
+    } catch {}
+  };
+
+  // Delete event type
+  const handleDeleteEventType = async (idx) => {
+    const id = eventTypes[idx]._id;
+    if (!window.confirm('Delete this event type?')) return;
+    try {
+      await fetch(`/api/event-types/${id}`, { method: 'DELETE' });
+      const updated = await fetch('/api/event-types').then(r => r.json());
+      setEventTypes(updated);
+    } catch {}
+  };
+
+  // Open modal for add/edit event type
+  const openEventTypeModal = (idx = null) => {
+    setEditEventTypeIdx(idx);
+    setNewEventType(idx !== null ? { name: eventTypes[idx].name } : { name: '' });
+    setShowEventTypeModal(true);
+  };
+
+  // Close event type modal
+  const closeEventTypeModal = () => {
+    setShowEventTypeModal(false);
+    setNewEventType({ name: '' });
+    setEditEventTypeIdx(null);
+  };
+
+  // Handle event type field change
+  const handleEventTypeFieldChange = (field, value) => {
+    setNewEventType({ ...newEventType, [field]: value });
+  };
+
   return (
     <div className="admin-products-root">
       <Sidebar />
@@ -290,28 +364,40 @@ export default function ProductsAndServices() {
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
               <h2 className="admin-products-title" style={{ margin: 0, fontWeight: 800, fontSize: 34, color: '#232323', letterSpacing: '-1px' }}>Products & Services</h2>
-              <button
-                className="admin-add-btn"
-                style={{
-                  background: '#e6b800',
-                  color: '#fff',
-                  border: '2px solid #e6b800',
-                  borderRadius: 6,
-                  height: 38,
-                  minWidth: 140,
-                  padding: '0 14px',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.2s',
-                }}
-                onClick={openModal}
-              >
-                Add Category
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  className="admin-add-btn"
+                  style={{
+                    background: '#e6b800',
+                    color: '#fff',
+                    border: '2px solid #e6b800',
+                    borderRadius: 6,
+                    height: 38,
+                    minWidth: 140,
+                    padding: '0 14px',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background 0.2s',
+                    verticalAlign: 'middle',
+                    marginTop: 25,
+                  }}
+                  onClick={openModal}
+                >
+                  Add Category
+                </button>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  style={{ height: 38, fontWeight: 600, fontSize: 15, borderRadius: 6, border: '2px solid #1976d2', color: '#1976d2', background: '#fff', padding: '0 14px', minWidth: 140, cursor: 'pointer', textTransform: 'none' }}
+                  onClick={() => openEventTypeModal()}
+                >
+                  Customize Event Types
+                </Button>
+              </div>
             </div>
             <div className="admin-category-list redesign-category-list" style={{
               display: 'grid',
@@ -486,22 +572,27 @@ export default function ProductsAndServices() {
                   />
                   {/* Event Type Radio Buttons */}
                   <div style={{ margin: '16px 0' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Event Types:</div>
-                    {['debut', 'wedding', 'seminar', 'birthday', 'corporate', 'anniversary', 'reunion', 'baptism'].map(type => (
-                      <label key={type} style={{ marginRight: 16 }}>
-                         <input
-                           type="checkbox"
-                           value={type}
-                           checked={editIdx !== null ? editEvents.includes(type) : newEvents.includes(type)}
-                           onChange={e => {
-                             if (editIdx !== null) {
-                               setEditEvents(ev => e.target.checked ? [...ev, type] : ev.filter(t => t !== type));
-                             } else {
-                               setNewEvents(ev => e.target.checked ? [...ev, type] : ev.filter(t => t !== type));
-                             }
-                           }}
-                           style={{ background: '#fff', border: '2px solid #222', borderRadius: '4px', width: '18px', height: '18px', marginRight: '4px', outline: 'none', cursor: 'pointer', position: 'relative' }}
-                         /> {type.charAt(0).toUpperCase() + type.slice(1)}
+                    <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Event Types:</span>
+                      <Button variant="outlined" size="small" onClick={() => openEventTypeModal()} sx={{ ml: 2 }}>Customize</Button>
+                    </div>
+                    {eventTypes.map((type, i) => (
+                      <label key={type._id || type.name} style={{ marginRight: 16 }}>
+                        <input
+                          type="checkbox"
+                          value={type.name}
+                          checked={editIdx !== null ? editEvents.includes(type.name) : newEvents.includes(type.name)}
+                          onChange={e => {
+                            if (editIdx !== null) {
+                              if (e.target.checked) setEditEvents([...editEvents, type.name]);
+                              else setEditEvents(editEvents.filter(t => t !== type.name));
+                            } else {
+                              if (e.target.checked) setNewEvents([...newEvents, type.name]);
+                              else setNewEvents(newEvents.filter(t => t !== type.name));
+                            }
+                          }}
+                          style={{ background: '#fff', border: '2px solid #222', borderRadius: '4px', width: '18px', height: '18px', marginRight: '4px', outline: 'none', cursor: 'pointer', position: 'relative' }}
+                        /> {type.name.charAt(0).toUpperCase() + type.name.slice(1)}
                       </label>
                     ))}
                   </div>
@@ -1315,6 +1406,43 @@ export default function ProductsAndServices() {
           )
         )}
       </div>
+      {/* Event Type Customization Modal */}
+      {showEventTypeModal && (
+        <Dialog open={showEventTypeModal} onClose={closeEventTypeModal} maxWidth="xs" fullWidth>
+          <DialogTitle>{editEventTypeIdx !== null ? 'Edit' : 'Add'} Event Type</DialogTitle>
+          <form onSubmit={handleSaveEventType}>
+            <DialogContent dividers>
+              <TextField
+                label="Event Type Name"
+                value={newEventType.name}
+                onChange={e => handleEventTypeFieldChange('name', e.target.value)}
+                fullWidth
+                required
+                margin="normal"
+              />
+              {/* Show all active event types below the field */}
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>Active Event Types:</div>
+                {eventTypes.length === 0 ? (
+                  <div style={{ color: '#888', fontStyle: 'italic' }}>No event types yet.</div>
+                ) : (
+                  <ul style={{ paddingLeft: 18, margin: 0 }}>
+                    {eventTypes.map((type, idx) => (
+                      <li key={type._id || type.name} style={{ marginBottom: 4, fontSize: 15, color: '#232323' }}>
+                        {type.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeEventTypeModal} color="secondary">Cancel</Button>
+              <Button type="submit" variant="contained">{editEventTypeIdx !== null ? 'Update' : 'Add'}</Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+      )}
     </div>
   );
 }

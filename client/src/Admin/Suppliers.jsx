@@ -1,10 +1,58 @@
 
 import React, { useEffect, useState } from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
 import Sidebar from './Sidebar';
 import './suppliers.css';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Tabs, Tab, Box } from '@mui/material';
 
 export default function Suppliers() {
+  // Notification dialog state
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifySupplierId, setNotifySupplierId] = useState(null);
+  const [notifyForm, setNotifyForm] = useState({
+    eventType: '',
+    description: '',
+    date: '',
+    location: '',
+    time: '',
+  });
+  const [notifyLoading, setNotifyLoading] = useState(false);
+    // Handle notify button click
+    const handleOpenNotify = (supplierId) => {
+      setNotifySupplierId(supplierId);
+      setNotifyForm({ eventType: '', description: '', date: '', location: '', time: '' });
+      setNotifyOpen(true);
+    };
+
+    const handleCloseNotify = () => {
+      setNotifyOpen(false);
+      setNotifySupplierId(null);
+      setNotifyForm({ eventType: '', description: '', date: '', location: '', time: '' });
+      setNotifyLoading(false);
+    };
+
+    // Handle notify form submit
+    const handleNotifySubmit = async (e) => {
+      e.preventDefault();
+      setNotifyLoading(true);
+      try {
+        const res = await fetch(`/api/admin/suppliers/${notifySupplierId}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notifyForm),
+        });
+        if (!res.ok) throw new Error('Failed to send notification');
+        alert('Notification sent to supplier!');
+        handleCloseNotify();
+      } catch (err) {
+        alert('Error sending notification: ' + err.message);
+        setNotifyLoading(false);
+      }
+    };
   const [pendingSuppliers, setPendingSuppliers] = useState([]);
   const [approvedSuppliers, setApprovedSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,14 +213,84 @@ export default function Suppliers() {
                               color="error" 
                               size="small"
                               onClick={() => handleReject(supplier._id)}
+                              sx={{ mr: 1 }}
                             >
                               Reject
                             </Button>
                           </TableCell>
                         )}
+                              {/* Notify Supplier Dialog */}
+                              <Dialog open={notifyOpen} onClose={handleCloseNotify} maxWidth="xs" fullWidth>
+                                <DialogTitle>Notify Supplier for Event</DialogTitle>
+                                <form onSubmit={handleNotifySubmit}>
+                                  <DialogContent dividers>
+                                    <TextField
+                                      label="Event Type"
+                                      value={notifyForm.eventType}
+                                      onChange={e => setNotifyForm(f => ({ ...f, eventType: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                    />
+                                    <TextField
+                                      label="Description"
+                                      value={notifyForm.description}
+                                      onChange={e => setNotifyForm(f => ({ ...f, description: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                      multiline
+                                      minRows={2}
+                                    />
+                                    <TextField
+                                      label="Date"
+                                      type="date"
+                                      value={notifyForm.date}
+                                      onChange={e => setNotifyForm(f => ({ ...f, date: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                      InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                      label="Time"
+                                      type="time"
+                                      value={notifyForm.time}
+                                      onChange={e => setNotifyForm(f => ({ ...f, time: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                      InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                      label="Location"
+                                      value={notifyForm.location}
+                                      onChange={e => setNotifyForm(f => ({ ...f, location: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                    />
+                                  </DialogContent>
+                                  <DialogActions>
+                                    <Button onClick={handleCloseNotify} color="secondary">Cancel</Button>
+                                    <Button type="submit" variant="contained" color="primary" disabled={notifyLoading}>
+                                      {notifyLoading ? 'Sending...' : 'Send Notification'}
+                                    </Button>
+                                  </DialogActions>
+                                </form>
+                              </Dialog>
                         {activeTab === 1 && (
                           <TableCell>
                             {supplier.approvedAt ? new Date(supplier.approvedAt).toLocaleDateString() : 'N/A'}
+                              <Button
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                onClick={() => handleOpenNotify(supplier._id)}
+                                sx={{ ml: 2 }}
+                              >
+                                Notify
+                              </Button>
                           </TableCell>
                         )}
                       </TableRow>
