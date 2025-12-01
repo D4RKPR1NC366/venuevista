@@ -789,8 +789,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
     
     console.log('Attempting to save supplier:', {
       email: supplier.email,
-      businessName: supplier.businessName,
-      phoneNumber: supplier.phoneNumber
+      companyName: supplier.companyName,
+      phone: supplier.phone
     });
 
     await supplier.save();
