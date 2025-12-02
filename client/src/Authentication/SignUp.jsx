@@ -61,6 +61,16 @@ const SignUp = () => {
     }
   }, [accountType]);
 
+  // Restore form data if coming back from policy page
+  useEffect(() => {
+    if (location.state?.formData) {
+      setForm(location.state.formData);
+    }
+    if (location.state?.agreeChecked) {
+      setForm(prev => ({ ...prev, agree: true }));
+    }
+  }, [location.state]);
+
   const handleChange = (e) => {
     const { name, value, type: inputType, checked } = e.target;
     setForm({ ...form, [name]: inputType === "checkbox" ? checked : value });
@@ -346,9 +356,21 @@ const SignUp = () => {
                   label={
                     <span>
                       I agree to the{' '}
-                      <Link to="/policy" target="_blank" rel="noopener noreferrer" style={{ color: '#e6b800', textDecoration: 'underline' }}>
+                      <span
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate('/policy', {
+                            state: {
+                              fromSignUp: true,
+                              signUpData: form,
+                              accountType: type
+                            }
+                          });
+                        }}
+                        style={{ color: '#e6b800', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
                         terms & policy
-                      </Link>
+                      </span>
                     </span>
                   }
                 />

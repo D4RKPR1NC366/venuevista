@@ -1,14 +1,62 @@
 import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import "./home.css";
 import Footer from "./Footer";
 
 const Policy = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const fromSignUp = location.state?.fromSignUp;
+  const signUpData = location.state?.signUpData;
+  const accountType = location.state?.accountType;
+
+  const handleBackToSignUp = () => {
+    navigate(`/signup?type=${accountType}`, {
+      state: { 
+        formData: signUpData,
+        agreeChecked: true 
+      }
+    });
+  };
+
   return (
     <>
       <TopBar />
       <div className="policy-modern-container">
         <div className="policy-card">
+          {fromSignUp && (
+            <button 
+              onClick={handleBackToSignUp}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                padding: '10px 20px',
+                backgroundColor: '#e6b800',
+                color: '#000',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#cc9f00';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#e6b800';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+              }}
+            >
+              ← Back to Sign Up
+            </button>
+          )}
           <h1 className="policy-title review-title-script">Goldust Creation System Policy</h1>
           <p className="policy-intro">
             Welcome to Goldust Creation! Our system is designed to provide a seamless and professional experience for all users, including clients, suppliers, and administrators. Please review our comprehensive policies to ensure a safe, respectful, and efficient environment for everyone:
