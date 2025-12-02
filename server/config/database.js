@@ -19,6 +19,12 @@ const customerSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+// Define EventType schema in auth connection
+const eventTypeSchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true },
+    description: { type: String },
+});
+
 const supplierSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -33,15 +39,18 @@ const supplierSchema = new mongoose.Schema({
     approvedAt: Date,
     approvedBy: String,
     eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }],
+    isAvailable: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 });
 
-// Create models
+// Create models on the auth connection
 const Customer = authConnection.model('Customer', customerSchema);
 const Supplier = authConnection.model('Supplier', supplierSchema);
+const EventType = authConnection.model('EventType', eventTypeSchema);
 
 module.exports = {
     authConnection,
     Customer,
-    Supplier
+    Supplier,
+    EventType
 };

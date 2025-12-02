@@ -12,7 +12,20 @@ router.get('/profile', auth, async (req, res) => {
         if (role === 'customer') {
             user = await Customer.findById(id).select('-password');
         } else if (role === 'supplier') {
-            user = await Supplier.findById(id).select('-password');
+            user = await Supplier.findById(id).select('-password').populate('eventTypes');
+            
+            // Ensure isAvailable field exists for older suppliers
+            if (user && user.isAvailable === undefined) {
+                console.log('Adding missing isAvailable field for supplier:', user.email);
+                user.isAvailable = true;
+                await user.save();
+            }
+            
+            console.log('Fetched supplier profile:', {
+                email: user?.email,
+                isAvailable: user?.isAvailable,
+                hasIsAvailableField: user ? 'isAvailable' in user.toObject() : false
+            });
         }
 
         if (!user) {
@@ -50,12 +63,29 @@ router.put('/profile', auth, async (req, res) => {
         if (email) user.email = email;
         if (phone) user.phone = phone;
         if (contact) user.contact = contact;
-
-        await user.save();
         
-        const updatedUser = await (role === 'customer' ? Customer : Supplier)
-            .findById(id)
-            .select('-password');
+        // Update supplier-specific fields
+        if (role === 'supplier') {
+            if (req.body.companyName !== undefined) {
+                console.log('Updating companyName to:', req.body.companyName);
+                user.companyName = req.body.companyName;
+            }
+            if (req.body.eventTypes !== undefined) {
+                console.log('Updating eventTypes to:', req.body.eventTypes);
+                user.eventTypes = req.body.eventTypes;
+            }
+        }
+
+        console.log('User before save:', { companyName: user.companyName, eventTypes: user.eventTypes });
+        await user.save();
+        console.log('User saved successfully');
+        
+        let updatedUser;
+        if (role === 'customer') {
+            updatedUser = await Customer.findById(id).select('-password');
+        } else if (role === 'supplier') {
+            updatedUser = await Supplier.findById(id).select('-password').populate('eventTypes');
+        }
             
         res.json(updatedUser);
     } catch (error) {
