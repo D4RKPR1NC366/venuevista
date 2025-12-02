@@ -17,6 +17,95 @@ export default function Dashboard() {
     // For calendar events
     const [calendarEvents, setCalendarEvents] = useState([]);
     const navigate = typeof useNavigate === 'function' ? useNavigate() : null;
+  
+  // Backup/Restore state
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [backupMessage, setBackupMessage] = useState('');
+
+  // Backup function - exports all databases as JSON
+  const handleBackup = async () => {
+    try {
+      setBackupLoading(true);
+      setBackupMessage('Exporting database backup...');
+      
+      const response = await fetch('/api/backup/export');
+      
+      if (!response.ok) {
+        throw new Error('Failed to export backup');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `goldust-backup-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      setBackupMessage('✓ Backup exported successfully!');
+      setTimeout(() => setBackupMessage(''), 3000);
+    } catch (error) {
+      console.error('Backup error:', error);
+      setBackupMessage('✗ Error exporting backup');
+      setTimeout(() => setBackupMessage(''), 3000);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  // Restore function - imports JSON backup
+  const handleRestore = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const confirmed = window.confirm(
+      '⚠️ WARNING: This will replace ALL current database data with the backup data.\n\n' +
+      'Are you absolutely sure you want to proceed?'
+    );
+    
+    if (!confirmed) {
+      event.target.value = '';
+      return;
+    }
+    
+    try {
+      setRestoreLoading(true);
+      setBackupMessage('Restoring database from backup...');
+      
+      const fileContent = await file.text();
+      const backupData = JSON.parse(fileContent);
+      
+      const response = await fetch('/api/backup/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(backupData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to restore backup');
+      }
+      
+      const result = await response.json();
+      console.log('Restore result:', result);
+      
+      setBackupMessage('✓ Database restored successfully! Refreshing...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error('Restore error:', error);
+      setBackupMessage('✗ Error restoring backup: ' + error.message);
+      setTimeout(() => setBackupMessage(''), 5000);
+    } finally {
+      setRestoreLoading(false);
+      event.target.value = '';
+    }
+  };
     // Fetch calendar events (same logic as Calendars.jsx)
     useEffect(() => {
       async function fetchEventsAndBookings() {
@@ -447,8 +536,84 @@ export default function Dashboard() {
       <Sidebar />
       <main className="admin-dashboard-main">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-          <h2 style={{ margin: 0 }}>Overview</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h2 style={{ margin: 0 }}>Overview</h2>
+            {backupMessage && (
+              <span style={{ 
+                fontSize: '0.9rem', 
+                color: backupMessage.includes('✓') ? '#10b981' : '#ef4444',
+                fontWeight: 500
+              }}>
+                {backupMessage}
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Backup/Restore buttons */}
+            <button
+              onClick={handleBackup}
+              disabled={backupLoading || restoreLoading}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 6,
+                border: 'none',
+                background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                color: '#fff',
+                fontWeight: 600,
+                cursor: backupLoading || restoreLoading ? 'not-allowed' : 'pointer',
+                opacity: backupLoading || restoreLoading ? 0.6 : 1,
+                fontSize: '0.9rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!backupLoading && !restoreLoading) {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+              }}
+            >
+              {backupLoading ? '⏳ Exporting...' : '💾 Backup Database'}
+            </button>
+            <label
+              style={{
+                padding: '8px 16px',
+                borderRadius: 6,
+                border: 'none',
+                background: 'linear-gradient(90deg, #f59e42 0%, #f43f5e 100%)',
+                color: '#fff',
+                fontWeight: 600,
+                cursor: backupLoading || restoreLoading ? 'not-allowed' : 'pointer',
+                opacity: backupLoading || restoreLoading ? 0.6 : 1,
+                fontSize: '0.9rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s',
+                display: 'inline-block'
+              }}
+              onMouseEnter={(e) => {
+                if (!backupLoading && !restoreLoading) {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+              }}
+            >
+              {restoreLoading ? '⏳ Restoring...' : '📥 Restore Database'}
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleRestore}
+                disabled={backupLoading || restoreLoading}
+                style={{ display: 'none' }}
+              />
+            </label>
             <label style={{ fontWeight: 500 }}>Show:</label>
             <select
               value={selectedYear}

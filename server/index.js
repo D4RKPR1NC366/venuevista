@@ -28,6 +28,10 @@ app.use('/api/bookings', bookingsRouter);
 const categoriesRouter = require('./routes/categories');
 app.use('/api/categories', categoriesRouter);
 
+// Backup routes
+const backupRouter = require('./routes/backup');
+app.use('/api/backup', backupRouter);
+
 // Gallery routes
 const galleryRouter = require('./routes/gallery');
 app.use('/api/gallery', galleryRouter);
