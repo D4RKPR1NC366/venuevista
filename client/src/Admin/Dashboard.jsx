@@ -377,45 +377,12 @@ export default function Dashboard() {
         setActiveCustomers([]);
       });
 
-    // Fetch most active suppliers (booked within the selected month)
-    Promise.all([
-      fetch('/api/bookings/pending'),
-      fetch('/api/bookings/approved'),
-      fetch('/api/bookings/finished')
-    ])
-      .then(([pendingRes, approvedRes, finishedRes]) => Promise.all([pendingRes.json(), approvedRes.json(), finishedRes.json()]))
-      .then(([pending, approved, finished]) => {
-        const allBookings = [...pending, ...approved, ...finished];
-        // Note: Bookings don't contain supplier data, so this will always show empty
-        // Suppliers would need to be tracked separately or added to booking schema
-        const filteredBookings = allBookings.filter(b => {
-          // Bookings don't have supplier field, so this section won't show data
-          if (!b.supplier) return false;
-          return matchesFilter(b.createdAt, filter, selectedYear);
-        });
-        // Count bookings per supplier
-        const supplierCounts = {};
-        filteredBookings.forEach(b => {
-          const supplierId = b.supplier?._id || b.supplier?.id || b.supplier;
-          const supplierName = b.supplier?.companyName || b.supplier?.name || b.supplier?.email || b.supplier;
-          const supplierEmail = b.supplier?.email || '';
-          const supplierPhone = b.supplier?.phone || b.supplier?.contactNumber || '';
-          if (!supplierId) return;
-          if (!supplierCounts[supplierId]) {
-            supplierCounts[supplierId] = {
-              supplierId,
-              supplierName,
-              supplierEmail,
-              supplierPhone,
-              count: 0
-            };
-          }
-          supplierCounts[supplierId].count++;
-        });
-        // Convert to array and sort by count desc
-        const activeList = Object.values(supplierCounts).sort((a, b) => b.count - a.count);
-        setActiveSuppliers(activeList);
-        setTotalSuppliers(activeList.length);
+    // Fetch most active suppliers based on accepted schedules
+    fetch(`/api/suppliers/most-active?filter=${filter}&year=${selectedYear}`)
+      .then(res => res.json())
+      .then(data => {
+        setActiveSuppliers(data);
+        setTotalSuppliers(data.length);
       })
       .catch(() => {
         setTotalSuppliers(0);

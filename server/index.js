@@ -904,6 +904,79 @@ app.get('/api/suppliers', async (req, res) => {
   }
 });
 
+// Get most active suppliers based on accepted schedules
+app.get('/api/suppliers/most-active', async (req, res) => {
+  try {
+    const { filter, year } = req.query;
+    const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+    
+    // Build date filter
+    let dateFilter = {};
+    if (filter === 'all') {
+      // All months in the selected year
+      dateFilter = {
+        date: {
+          $gte: new Date(selectedYear, 0, 1).toISOString(),
+          $lte: new Date(selectedYear, 11, 31, 23, 59, 59).toISOString()
+        }
+      };
+    } else if (filter !== undefined && filter !== null) {
+      // Specific month (0-11)
+      const month = parseInt(filter);
+      const startDate = new Date(selectedYear, month, 1);
+      const endDate = new Date(selectedYear, month + 1, 0, 23, 59, 59);
+      dateFilter = {
+        date: {
+          $gte: startDate.toISOString(),
+          $lte: endDate.toISOString()
+        }
+      };
+    }
+
+    // Aggregate accepted schedules by supplier
+    const acceptedSchedules = await SupplierAccepted.find(dateFilter);
+    
+    // Count schedules per supplier
+    const supplierCounts = {};
+    acceptedSchedules.forEach(schedule => {
+      const supplierId = schedule.supplierId || schedule.person;
+      const supplierName = schedule.supplierName || 'Unknown Supplier';
+      
+      if (supplierId) {
+        if (!supplierCounts[supplierId]) {
+          supplierCounts[supplierId] = {
+            supplierId,
+            supplierName,
+            supplierEmail: supplierId,
+            supplierPhone: '',
+            count: 0
+          };
+        }
+        supplierCounts[supplierId].count++;
+      }
+    });
+
+    // Fetch supplier details for phone numbers
+    const supplierIds = Object.keys(supplierCounts);
+    const suppliers = await Supplier.find({ email: { $in: supplierIds } });
+    
+    suppliers.forEach(supplier => {
+      if (supplierCounts[supplier.email]) {
+        supplierCounts[supplier.email].supplierPhone = supplier.phone || '';
+        supplierCounts[supplier.email].supplierName = supplier.companyName || supplierCounts[supplier.email].supplierName;
+      }
+    });
+
+    // Convert to array and sort by count
+    const result = Object.values(supplierCounts).sort((a, b) => b.count - a.count);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching most active suppliers:', error);
+    res.status(500).json({ error: 'Failed to fetch most active suppliers' });
+  }
+});
+
 app.post('/api/auth/register-supplier', async (req, res) => {
   try {
     console.log('Supplier registration request:', req.body);
