@@ -219,6 +219,15 @@ const Booking = () => {
       // Optionally show a message here
       return;
     }
+    
+    // Check if any products are unavailable
+    const unavailableProducts = form.products.filter(p => p.available === false);
+    if (unavailableProducts.length > 0) {
+      const productNames = unavailableProducts.map(p => p.title || 'Unknown').join(', ');
+      alert(`Cannot proceed with booking. The following products/services are unavailable: ${productNames}\n\nPlease remove them from your cart before continuing.`);
+      return;
+    }
+    
     // Add computed totalPrice, eventVenue, and promo info to booking object
     const promo = promos.find(p => p._id === selectedPromoId);
     const booking = {
@@ -401,9 +410,46 @@ const Booking = () => {
           {/* Show selected products/services from cart */}
           {form.products && form.products.length > 0 ? (
             <div className="booking-products-list">
+              {form.products.some(p => p.available === false) && (
+                <div style={{ 
+                  marginBottom: 16, 
+                  padding: 12, 
+                  backgroundColor: '#fff3cd', 
+                  border: '2px solid #ffc107',
+                  borderRadius: 4,
+                  fontSize: 14,
+                  color: '#856404',
+                  fontWeight: 600
+                }}>
+                  ⚠️ Warning: Some products/services in your selection are unavailable. Please remove them before proceeding.
+                </div>
+              )}
               <div className="booking-products-grid">
                 {form.products.map((item, idx) => (
-                  <div key={idx} className="booking-product-item">
+                  <div 
+                    key={idx} 
+                    className="booking-product-item"
+                    style={{
+                      opacity: item.available === false ? 0.6 : 1,
+                      border: item.available === false ? '2px solid #ff4444' : undefined,
+                      position: 'relative'
+                    }}
+                  >
+                    {item.available === false && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: '#ff4444',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: 700
+                      }}>
+                        UNAVAILABLE
+                      </div>
+                    )}
                     {(item.images?.[0] || item.image) && (
                       <img src={item.images?.[0] || item.image} alt={item.title} className="booking-product-img" />
                     )}

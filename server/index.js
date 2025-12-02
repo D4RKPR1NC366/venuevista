@@ -457,6 +457,12 @@ app.get('/api/cart', async (req, res) => {
 app.post('/api/cart', async (req, res) => {
   const { product, userEmail, additionals } = req.body;
   if (!userEmail || !product) return res.status(400).json({ error: 'Missing userEmail or product' });
+  
+  // Check if product is available before adding to cart
+  if (product.available === false) {
+    return res.status(400).json({ error: 'This product/service is currently unavailable and cannot be added to cart.' });
+  }
+  
   const item = new CartItem({ product, userEmail, additionals: Array.isArray(additionals) ? additionals : [] });
   await item.save();
   res.status(201).json(item);
@@ -538,6 +544,18 @@ app.get('/api/bookings/pending', async (req, res) => {
 });
 app.post('/api/bookings/pending', async (req, res) => {
   const bookingData = { ...req.body };
+  
+  // Validate that all products in the booking are available
+  if (bookingData.products && Array.isArray(bookingData.products)) {
+    const unavailableProducts = bookingData.products.filter(p => p.available === false);
+    if (unavailableProducts.length > 0) {
+      const productNames = unavailableProducts.map(p => p.title || 'Unknown').join(', ');
+      return res.status(400).json({ 
+        error: `Cannot create booking. The following products/services are unavailable: ${productNames}` 
+      });
+    }
+  }
+  
   // Normalize field names: handle both 'subtotal' and 'subTotal'
   if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
     bookingData.subTotal = bookingData.subtotal;

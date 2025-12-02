@@ -52,12 +52,27 @@ const EventCart = () => {
               <p>Your selected events and services will appear here.</p>
             ) : (
               cart.map((item, idx) => (
-                <div key={idx} className="event-cart-item">
+                <div key={idx} className="event-cart-item" style={{ 
+                  opacity: item.product?.available === false ? 0.6 : 1,
+                  border: item.product?.available === false ? '2px solid #ff4444' : undefined
+                }}>
                   {item.product && item.product.image && (
                     <img src={item.product.image} alt={item.product.title} />
                   )}
                   <div style={{ flex: 1 }}>
-                    <div className="event-cart-item-title">{item.product ? item.product.title : ''}</div>
+                    <div className="event-cart-item-title">
+                      {item.product ? item.product.title : ''}
+                      {item.product?.available === false && (
+                        <span style={{ 
+                          color: '#ff4444', 
+                          fontWeight: 700, 
+                          marginLeft: 8,
+                          fontSize: '0.85em'
+                        }}>
+                          (UNAVAILABLE)
+                        </span>
+                      )}
+                    </div>
                     {item.product && item.product.price && <div className="event-cart-item-price">PHP {item.product.price}</div>}
                     {/* Show additionals if any */}
                     {Array.isArray(item.additionals) && item.additionals.length > 0 && (
@@ -116,14 +131,37 @@ const EventCart = () => {
             </div>
             <button
               className="event-cart-book-btn"
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || cart.some(item => item.product?.available === false)}
               onClick={() => {
+                // Check for unavailable items before proceeding
+                const unavailableItems = cart.filter(item => item.product?.available === false);
+                if (unavailableItems.length > 0) {
+                  alert('Please remove unavailable items from your cart before booking.');
+                  return;
+                }
                 localStorage.setItem('gd_booking_selected_products', JSON.stringify(cart.map(item => item.product)));
                 window.location.href = '/booking';
+              }}
+              style={{
+                opacity: cart.some(item => item.product?.available === false) ? 0.5 : 1,
+                cursor: cart.some(item => item.product?.available === false) ? 'not-allowed' : 'pointer'
               }}
             >
               Book Now
             </button>
+            {cart.some(item => item.product?.available === false) && (
+              <div style={{ 
+                marginTop: 12, 
+                padding: 12, 
+                backgroundColor: '#fff3cd', 
+                border: '1px solid #ffc107',
+                borderRadius: 4,
+                fontSize: 14,
+                color: '#856404'
+              }}>
+                ⚠️ Some items in your cart are unavailable. Please remove them before booking.
+              </div>
+            )}
           </div>
         </div>
       </div>

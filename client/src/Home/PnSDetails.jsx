@@ -28,6 +28,11 @@ export default function PnSDetails() {
 
   // Open additionals modal when user clicks add to cart
   async function handleAddToCart(product) {
+    // Check if product is available
+    if (product.available === false) {
+      alert('This product/service is currently unavailable and cannot be added to cart.');
+      return;
+    }
     setPendingProduct(product);
     // Fetch additionals for this product (simulate or from API)
     // For demo, assume product.additionals or fetch from API
@@ -220,8 +225,9 @@ export default function PnSDetails() {
                         aria-label="add to cart"
                         onClick={e => { e.stopPropagation(); handleAddToCart(prod); }}
                         style={{ marginLeft: '8px', color: 'orange' }}
+                        disabled={prod.available === false}
                       >
-                        <AddShoppingCartIcon style={{ color: 'orange' }} />
+                        <AddShoppingCartIcon style={{ color: prod.available === false ? '#ccc' : 'orange' }} />
                       </IconButton>
                     </div>
                 </div>
