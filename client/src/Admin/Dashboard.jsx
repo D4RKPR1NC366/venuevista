@@ -344,19 +344,35 @@ export default function Dashboard() {
       .then(([pendingRes, approvedRes, finishedRes]) => Promise.all([pendingRes.json(), approvedRes.json(), finishedRes.json()]))
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
+        console.log('Total bookings fetched:', allBookings.length);
+        console.log('Current filter:', filter);
         const startDate = getStartDate(filter);
-        // Only include bookings within the filter month
+        console.log('Start date:', startDate);
+        
+        // Only include bookings created within the filter month (not event date)
         const filteredBookings = allBookings.filter(b => {
-          if (!b.date || !b.customer) return false;
-          const d = new Date(b.date);
-          return d >= startDate;
+          // Bookings have userId, name, email directly (not nested in customer object)
+          if (!b.userId && !b.email) return false; // Need at least userId or email
+          if (!b.createdAt) return false; // Use createdAt instead of date
+          const bookingDate = new Date(b.createdAt);
+          if (filter === 'all') {
+            return bookingDate >= startDate;
+          } else {
+            // For specific month, check if booking was created within that month
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            console.log(`Checking booking created at ${b.createdAt}: ${bookingDate} between ${startDate} and ${endDate}`);
+            return bookingDate >= startDate && bookingDate < endDate;
+          }
         });
+        console.log('Filtered bookings for customers:', filteredBookings.length);
         // Count bookings per customer
         const customerCounts = {};
         filteredBookings.forEach(b => {
-          const customerId = b.customer?._id || b.customer?.id || b.customer;
-          const customerName = b.customer?.name || b.customer?.fullName || b.customer?.email || b.customer;
-          const customerEmail = b.customer?.email || '';
+          // Use userId or email as unique identifier
+          const customerId = b.userId || b.email;
+          const customerName = b.name || b.email || 'Unknown';
+          const customerEmail = b.email || '';
           if (!customerId) return;
           if (!customerCounts[customerId]) {
             customerCounts[customerId] = {
@@ -388,11 +404,20 @@ export default function Dashboard() {
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
         const startDate = getStartDate(filter);
-        // Only include bookings within the filter month
+        // Note: Bookings don't contain supplier data, so this will always show empty
+        // Suppliers would need to be tracked separately or added to booking schema
         const filteredBookings = allBookings.filter(b => {
-          if (!b.date || !b.supplier) return false;
-          const d = new Date(b.date);
-          return d >= startDate;
+          // Bookings don't have supplier field, so this section won't show data
+          if (!b.supplier) return false;
+          if (!b.createdAt) return false;
+          const bookingDate = new Date(b.createdAt);
+          if (filter === 'all') {
+            return bookingDate >= startDate;
+          } else {
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            return bookingDate >= startDate && bookingDate < endDate;
+          }
         });
         // Count bookings per supplier
         const supplierCounts = {};
