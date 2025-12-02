@@ -240,7 +240,7 @@ const Booking = () => {
          <p className="review-title-script booking-title">Book Now</p>
       </div>
       <div className="booking-center-container">
-        <div className="booking-main-row" style={{ gap: -15 }}>
+        <div className="booking-main-row" style={{ gap: 0 }}>
           <div className="booking-calendar-box" style={{ width: 300, maxWidth: 300 }}>
             <h3 className="booking-calendar-title">Choose your event date</h3>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -377,7 +377,7 @@ const Booking = () => {
             {/* Special Request field moved to services card below */}
           </div>
         </div>
-        <div className="booking-services-box" style={{ width: 1500, maxWidth: '100%' }}>
+        <div className="booking-services-box">
           <div className="booking-services-header">
             <h3 className="booking-services-title">Services and Products Availed</h3>
             {form.products && form.products.length > 0 && (

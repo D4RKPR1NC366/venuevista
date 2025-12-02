@@ -1205,17 +1205,24 @@ app.get('/api/revenue', async (req, res) => {
     allBookings.forEach(booking => {
       // Use booking.date (event date) instead of createdAt for proper month categorization
       const bookingDate = booking.date ? new Date(booking.date) : null;
-      if (booking.totalPrice && bookingDate && bookingDate.getFullYear() === year) {
+      
+      // Check totalPrice or subTotal (fallback to subTotal if totalPrice is 0 or missing)
+      const revenue = booking.totalPrice || booking.subTotal || 0;
+      
+      if (revenue > 0 && bookingDate && bookingDate.getFullYear() === year) {
         const month = bookingDate.getMonth();
-        revenueData[month].value += booking.totalPrice;
-        console.log(`Adding ₱${booking.totalPrice} to month ${month} for year ${year} (${bookingDate.toDateString()})`);
+        revenueData[month].value += revenue;
+        console.log(`Adding ₱${revenue} to month ${month} for year ${year} (${bookingDate.toDateString()})`);
       } else {
         console.log('Skipping booking - missing data or wrong year:', {
           hasTotalPrice: !!booking.totalPrice,
+          hasSubTotal: !!booking.subTotal,
+          revenue: revenue,
           hasDate: !!booking.date,
           bookingYear: bookingDate?.getFullYear(),
           targetYear: year,
           totalPrice: booking.totalPrice,
+          subTotal: booking.subTotal,
           date: booking.date
         });
       }

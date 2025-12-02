@@ -362,37 +362,52 @@ export default function Dashboard() {
             setUpcomingAppointments(0);
             setFinishedAppointments(0);
           });
-    // Fetch urgent reminders (schedules and appointments due today or tomorrow)
+    // Fetch urgent reminders (all events due today, tomorrow, or in 2 days: schedules, accepted schedules, bookings, appointments)
     Promise.all([
       fetch('/api/schedules'),
+      fetch('/api/schedules/status/accepted'),
+      fetch('/api/bookings/pending'),
+      fetch('/api/bookings/approved'),
+      fetch('/api/bookings/finished'),
       fetch('/api/appointments')
     ])
-      .then(([schedRes, apptRes]) => Promise.all([schedRes.json(), apptRes.json()]))
-      .then(([schedules, appointments]) => {
+      .then(([schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes]) => 
+        Promise.all([schedulesRes.json(), acceptedSchedulesRes.json(), pendingRes.json(), approvedRes.json(), finishedRes.json(), appointmentsRes.json()])
+      )
+      .then(([schedules, acceptedSchedules, pendingBookings, approvedBookings, finishedBookings, appointments]) => {
         const today = new Date();
         today.setHours(0,0,0,0);
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
+        const dayAfterTomorrow = new Date(today);
+        dayAfterTomorrow.setDate(today.getDate() + 2);
         
-        // Count urgent schedules
-        const urgentSchedules = schedules.filter(sch => {
-          if (!sch.date) return false;
-          const [year, month, day] = sch.date.split('-').map(Number);
-          const schedDate = new Date(year, month - 1, day);
-          schedDate.setHours(0,0,0,0);
-          return schedDate.getTime() === today.getTime() || schedDate.getTime() === tomorrow.getTime();
-        }).length;
+        let count = 0;
+        
+        // Helper to check if date is urgent (today, tomorrow, or in 2 days)
+        const isUrgent = (dateStr) => {
+          if (!dateStr) return false;
+          const d = new Date(dateStr);
+          d.setHours(0,0,0,0);
+          return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime() || d.getTime() === dayAfterTomorrow.getTime();
+        };
+        
+        // Count urgent schedules (both regular and accepted)
+        [...schedules, ...acceptedSchedules].forEach(s => {
+          if (isUrgent(s.date)) count++;
+        });
+        
+        // Count urgent bookings (all statuses: pending, approved, finished)
+        [...pendingBookings, ...approvedBookings, ...finishedBookings].forEach(b => {
+          if (isUrgent(b.date)) count++;
+        });
         
         // Count urgent appointments
-        const urgentAppointments = appointments.filter(appt => {
-          if (!appt.date || appt.status !== 'upcoming') return false;
-          const [year, month, day] = appt.date.split('-').map(Number);
-          const apptDate = new Date(year, month - 1, day);
-          apptDate.setHours(0,0,0,0);
-          return apptDate.getTime() === today.getTime() || apptDate.getTime() === tomorrow.getTime();
-        }).length;
+        appointments.forEach(a => {
+          if (isUrgent(a.date)) count++;
+        });
         
-        setUrgentReminders(urgentSchedules + urgentAppointments);
+        setUrgentReminders(count);
       })
       .catch(() => setUrgentReminders(0));
     // Fetch pending events
@@ -655,7 +670,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #f43f5e 60%, #f59e42 100%)', color: '#fff' }}>
-            <div className="admin-dashboard-card-title" style={{ color: '#fff', fontWeight: 700 }}>Urgent Reminders <span style={{ color: '#fff', fontWeight: 400 }}>| due today or tomorrow</span></div>
+            <div className="admin-dashboard-card-title" style={{ color: '#fff', fontWeight: 700 }}>Urgent Reminders <span style={{ color: '#fff', fontWeight: 400 }}>| due within 3 days</span></div>
             <div className="admin-dashboard-card-value" style={{ color: '#fff' }}>{urgentReminders}</div>
           </div>
         </div>
