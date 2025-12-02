@@ -216,6 +216,27 @@ export default function Calendars() {
     return events.filter(ev => ev.date === d);
   };
 
+    // Helper to get color based on location
+    function getLocationColor(location) {
+      if (!location) return '#ffe082'; // default yellow
+      const loc = location.toLowerCase();
+      
+      // Sta Fe, Nueva Vizcaya - Red
+      if ((loc.includes('santa fe') || loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe')) && loc.includes('nueva vizcaya')) {
+        return 'rgba(255, 89, 89, 1)'; // light red
+      }
+      // La Trinidad, Benguet - Green
+      if ((loc.includes('la trinidad') || loc.includes('latrinidad')) && loc.includes('benguet')) {
+        return 'rgba(57, 247, 126, 1)'; // light green
+      }
+      // Maddela, Quirino - Blue
+      if (loc.includes('maddela') && loc.includes('quirino')) {
+        return 'rgba(48, 127, 255, 0.34)'; // light blue
+      }
+      
+      return '#ffe082'; // default yellow
+    }
+
     // Delete event handler
     const handleDeleteEvent = async (eventId) => {
       try {
@@ -247,20 +268,26 @@ export default function Calendars() {
       >
         {dayEvents.length > maxToShow
           ? ([
-              ...dayEvents.slice(0, maxToShow).map(ev => (
-                <div key={ev._id || ev.id} style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
-                  {ev.title}
-                </div>
-              )),
+              ...dayEvents.slice(0, maxToShow).map(ev => {
+                const bgColor = getLocationColor(ev.location);
+                return (
+                  <div key={ev._id || ev.id} style={{ background: bgColor, color: '#000', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
+                    {ev.title}
+                  </div>
+                );
+              }),
               <div key="plus-sign" style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2, textAlign: 'center', fontWeight: 700 }}>
                 +
               </div>
             ])
-          : dayEvents.map(ev => (
-              <div key={ev._id || ev.id} style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
-                {ev.title}
-              </div>
-            ))}
+          : dayEvents.map(ev => {
+              const bgColor = getLocationColor(ev.location);
+              return (
+                <div key={ev._id || ev.id} style={{ background: bgColor, color: '#000', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
+                  {ev.title}
+                </div>
+              );
+            })}
       </div>
     );
   };
@@ -459,44 +486,47 @@ export default function Calendars() {
               }}
             >
               {viewEventsDate && getEventsForDate(viewEventsDate).length > 0 ? (
-                  getEventsForDate(viewEventsDate).map(ev => (
-                    <div
-                      key={ev.id}
-                      style={{
-                        background: '#ffe082',
-                        color: '#111',
-                        borderRadius: 6,
-                        padding: '8px 12px',
-                        fontSize: 13,
-                        marginBottom: 0,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                        fontWeight: 500,
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 8,
-                        maxWidth: 340,
-                      }}
-                    >
+                  getEventsForDate(viewEventsDate).map(ev => {
+                    const bgColor = getLocationColor(ev.location);
+                    return (
                       <div
-                        style={{ flex: 1, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-                        onClick={() => {
-                          setSelectedEvent(ev);
-                          setEventDetailsModalOpen(true);
+                        key={ev.id}
+                        style={{
+                          background: bgColor,
+                          color: '#111',
+                          borderRadius: 6,
+                          padding: '8px 12px',
+                          fontSize: 13,
+                          marginBottom: 0,
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                          fontWeight: 500,
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                          maxWidth: 340,
                         }}
-                        title="Click to view details"
                       >
-                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{ev.title}</div>
-                        <div style={{ color: '#555', fontSize: 12, marginBottom: 2 }}>
-                          {ev.type}: <span style={{ fontWeight: 600 }}>{ev.person}</span>
+                        <div
+                          style={{ flex: 1, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                          onClick={() => {
+                            setSelectedEvent(ev);
+                            setEventDetailsModalOpen(true);
+                          }}
+                          title="Click to view details"
+                        >
+                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2, color: '#000' }}>{ev.title}</div>
+                          <div style={{ color: '#000', fontSize: 12, marginBottom: 2 }}>
+                            {ev.type}: <span style={{ fontWeight: 600 }}>{ev.person}</span>
+                          </div>
+                          <div style={{ color: '#000', fontSize: 12 }}>{ev.location}</div>
                         </div>
-                        <div style={{ color: '#888', fontSize: 12 }}>{ev.location}</div>
+                        <IconButton aria-label="delete" size="small" onClick={() => handleDeleteEvent(ev._id)} style={{ marginLeft: 4 }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                       </div>
-                      <IconButton aria-label="delete" size="small" onClick={() => handleDeleteEvent(ev._id)} style={{ marginLeft: 4 }}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </div>
-                  ))
+                    );
+                  })
               ) : (
                 <div style={{ color: '#888', fontSize: 14, textAlign: 'center', marginTop: 18 }}>No schedule for this day.</div>
               )}

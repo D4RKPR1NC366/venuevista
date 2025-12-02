@@ -99,6 +99,27 @@ export default function Dashboard() {
       }
       fetchEventsAndBookings();
     }, []);
+    // Helper to get color based on location
+    function getLocationColor(location) {
+      if (!location) return '#ffe082'; // default yellow
+      const loc = location.toLowerCase();
+      
+      // Sta Fe, Nueva Vizcaya - Red
+      if ((loc.includes('santa fe') || loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe')) && loc.includes('nueva vizcaya')) {
+        return 'rgba(255, 89, 89, 1)'; // light red
+      }
+      // La Trinidad, Benguet - Green
+      if ((loc.includes('la trinidad') || loc.includes('latrinidad')) && loc.includes('benguet')) {
+        return 'rgba(57, 247, 126, 1)'; // light green
+      }
+      // Maddela, Quirino - Blue
+      if (loc.includes('maddela') && loc.includes('quirino')) {
+        return 'rgba(48, 127, 255, 0.34)'; // light blue
+      }
+      
+      return '#ffe082'; // default yellow
+    }
+
     // Render cell for dashboard calendar (show up to 2 events, then 'more')
     function renderDashboardCell(date) {
       // Show calendar cells numbered 1 through 30 (inclusive).
@@ -119,11 +140,14 @@ export default function Dashboard() {
         >
           {dayEvents.length === 0 ? null : (
             <>
-              {dayEvents.slice(0, maxToShow).map(ev => (
-                <div key={ev._id || ev.id} style={{ background: '#ffe082', color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
-                  {ev.title}
-                </div>
-              ))}
+              {dayEvents.slice(0, maxToShow).map(ev => {
+                const bgColor = getLocationColor(ev.location);
+                return (
+                  <div key={ev._id || ev.id} style={{ background: bgColor, color: '#111', borderRadius: 4, padding: '2px 6px', fontSize: 11, marginBottom: 2 }}>
+                    {ev.title}
+                  </div>
+                );
+              })}
               {dayEvents.length > maxToShow && (
                 <div
                   key="more"
@@ -157,7 +181,7 @@ export default function Dashboard() {
   const [activeSuppliers, setActiveSuppliers] = useState([]);
   // Location-based booking counts
   const [bookingsByLocation, setBookingsByLocation] = useState({
-    'Baguio City, Benguet': 0,
+    'La Trinidad, Benguet': 0,
     'Sta. Fe, Nueva Vizcaya': 0,
     'Maddela, Quirino': 0,
   });
@@ -165,7 +189,7 @@ export default function Dashboard() {
     function getStandardLocation(rawLocation) {
       if (!rawLocation) return '';
       const loc = rawLocation.toLowerCase();
-      if (loc.includes('baguio')) return 'Baguio City, Benguet';
+      if (loc.includes('la trinidad') || loc.includes('latrinidad')) return 'La Trinidad, Benguet';
       if (loc.includes('sta. fe') || loc.includes('stafe') || loc.includes('santa fe')) return 'Sta. Fe, Nueva Vizcaya';
       if (loc.includes('maddela') || loc.includes('quirino')) return 'Maddela, Quirino';
       return rawLocation;
@@ -412,7 +436,7 @@ export default function Dashboard() {
         
         const locationCounts = {
           'sta fe nueva vizcaya': 0,
-          'benguet baguio': 0,
+          'la trinidad benguet': 0,
           'maddela quirino': 0,
         };
 
@@ -421,19 +445,27 @@ export default function Dashboard() {
           const d = new Date(booking.date);
           if (d < startDate) return;
           
-          const location = (booking.eventVenue || '').toLowerCase().trim();
-          Object.keys(locationCounts).forEach(loc => {
-            if (location.includes(loc.replace(' ', ''))) {
-              locationCounts[loc]++;
-            }
-          });
+          const venue = (booking.eventVenue || '').toLowerCase().trim();
+          
+          // Match Santa Fe / Sta. Fe, Nueva Vizcaya (any barangay in Santa Fe, Nueva Vizcaya)
+          if ((venue.includes('santa fe') || venue.includes('sta. fe') || venue.includes('sta fe') || venue.includes('stafe')) && venue.includes('nueva vizcaya')) {
+            locationCounts['sta fe nueva vizcaya']++;
+          }
+          // Match La Trinidad (municipality), Benguet (province) - any barangay in La Trinidad, Benguet
+          else if ((venue.includes('la trinidad') || venue.includes('latrinidad')) && venue.includes('benguet')) {
+            locationCounts['la trinidad benguet']++;
+          }
+          // Match Maddela (municipality), Quirino (province) - any barangay in Maddela, Quirino
+          else if (venue.includes('maddela') && venue.includes('quirino')) {
+            locationCounts['maddela quirino']++;
+          }
         });
 
         setBookingsByLocation(locationCounts);
       })
       .catch(() => setBookingsByLocation({
         'sta fe nueva vizcaya': 0,
-        'benguet baguio': 0,
+        'la trinidad benguet': 0,
         'maddela quirino': 0,
       }));
   }, [filter]);
@@ -494,11 +526,11 @@ export default function Dashboard() {
           <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div className="admin-dashboard-card" style={{ height: 200, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.12)', marginBottom: 0, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', textAlign: 'center' }}>
               <div className="admin-dashboard-card-title">Sta Fe, Nueva Vizcaya <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
-              <div className="admin-dashboard-card-value" style={{ fontSize: '3.5rem', fontWeight: 700, color: '#3b82f6', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{bookingsByLocation['sta fe nueva vizcaya'] !== null ? bookingsByLocation['sta fe nueva vizcaya'] : '-'}</div>
+              <div className="admin-dashboard-card-value" style={{ fontSize: '3.5rem', fontWeight: 700, color: '#ef4444', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{bookingsByLocation['sta fe nueva vizcaya'] !== null ? bookingsByLocation['sta fe nueva vizcaya'] : '-'}</div>
             </div>
             <div className="admin-dashboard-card" style={{ height: 200, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.12)', marginBottom: 0, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', textAlign: 'center' }}>
-              <div className="admin-dashboard-card-title">Benguet, Baguio <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
-              <div className="admin-dashboard-card-value" style={{ fontSize: '3.5rem', fontWeight: 700, color: '#3b82f6', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{bookingsByLocation['benguet baguio'] !== null ? bookingsByLocation['benguet baguio'] : '-'}</div>
+              <div className="admin-dashboard-card-title">La Trinidad, Benguet <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
+              <div className="admin-dashboard-card-value" style={{ fontSize: '3.5rem', fontWeight: 700, color: '#22c55e', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{bookingsByLocation['la trinidad benguet'] !== null ? bookingsByLocation['la trinidad benguet'] : '-'}</div>
             </div>
             <div className="admin-dashboard-card" style={{ height: 200, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.12)', marginBottom: 0, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', textAlign: 'center' }}>
               <div className="admin-dashboard-card-title">Maddela, Quirino <span style={{ color: '#888', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
@@ -689,19 +721,7 @@ export default function Dashboard() {
           const tax = totalRevenue * 0.12;
           const profit = totalRevenue - tax;
           return (
-            <div className="admin-dashboard-cards-row" style={{ marginTop: 16 }}>
-              <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #22c55e 60%, #bbf7d0 100%)', color: '#222' }}>
-                <div className="admin-dashboard-card-title">Revenue <span style={{ color: '#fff', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
-                  <div className="admin-dashboard-card-value" style={{ fontWeight: 700, fontSize: '1.2rem', color: '#fff' }}>₱{totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-              </div>
-              <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #f59e42 60%, #fef3c7 100%)', color: '#222' }}>
-                <div className="admin-dashboard-card-title">Tax (12%) <span style={{ color: '#fff', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
-                  <div className="admin-dashboard-card-value" style={{ fontWeight: 700, fontSize: '1.2rem', color: '#fff' }}>₱{tax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-              </div>
-              <div className="admin-dashboard-card" style={{ background: 'linear-gradient(90deg, #3b82f6 60%, #dbeafe 100%)', color: '#222' }}>
-                <div className="admin-dashboard-card-title">Revenue w/o Tax <span style={{ color: '#fff', fontWeight: 400 }}>{getFilterLabel(filter)}</span></div>
-                  <div className="admin-dashboard-card-value" style={{ fontWeight: 700, fontSize: '1.2rem', color: '#fff' }}>₱{profit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-              </div>
+            <div>
             </div>
           );
         })()}
