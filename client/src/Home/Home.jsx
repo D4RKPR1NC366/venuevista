@@ -66,7 +66,21 @@ const Home = () => {
   useEffect(() => {
     // Fetch categories from API
     api.get('/categories')
-      .then(res => setCategories(Array.isArray(res.data) ? res.data : []))
+      .then(async res => {
+        const cats = Array.isArray(res.data) ? res.data : [];
+        // Fetch products for each category to check availability
+        const catsWithProducts = await Promise.all(
+          cats.map(async cat => {
+            try {
+              const productsRes = await api.get(`/products/${cat.title}`);
+              return { ...cat, products: productsRes.data };
+            } catch {
+              return { ...cat, products: [] };
+            }
+          })
+        );
+        setCategories(catsWithProducts);
+      })
       .catch(() => setCategories([]));
 
     // Scroll to services if ?scroll=services is in the URL
@@ -285,7 +299,7 @@ const Home = () => {
                         src={cat.image}
                         alt={cat.title}
                         className="home-service-img"
-                        style={cat.products && cat.products.some(p => p.available === false) ? {
+                        style={cat.products && cat.products.length > 0 && cat.products.every(p => p.available === false) ? {
                           filter: 'brightness(0.45)',
                           transition: 'filter 0.2s'
                         } : {}}
@@ -293,8 +307,8 @@ const Home = () => {
                       <div className="home-service-title-overlay">
                         {cat.title}
                       </div>
-                      {/* Overlay for unavailable product/service (robust, always centered) */}
-                      {cat.products && cat.products.some(p => p.available === false) && (
+                      {/* Overlay for unavailable category - only shows when ALL products are unavailable */}
+                      {cat.products && cat.products.length > 0 && cat.products.every(p => p.available === false) && (
                         <div style={{
                           position: 'absolute',
                           top: 0,

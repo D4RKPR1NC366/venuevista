@@ -391,6 +391,7 @@ const productSchema = new mongoose.Schema({
   price: String,
   additionals: [{ title: String, price: String, description: String }],
   categoryTitle: String, // reference to category title
+  available: { type: Boolean, default: true }, // availability status
 });
 const Product = mongoose.model('Product', productSchema);
 

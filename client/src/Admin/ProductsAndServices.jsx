@@ -1063,6 +1063,7 @@ export default function ProductsAndServices() {
                                     objectFit: 'cover',
                                     borderRadius: 0,
                                     margin: 0,
+                                    filter: prod.available === false ? 'grayscale(50%) brightness(0.7)' : 'none'
                                   }} 
                                 />
                                 {prod.images.length > 1 && (
@@ -1077,6 +1078,26 @@ export default function ProductsAndServices() {
                                     fontSize: 12
                                   }}>
                                     +{prod.images.length - 1} more
+                                  </div>
+                                )}
+                                {prod.available === false && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#fff',
+                                    fontSize: 24,
+                                    fontWeight: 700,
+                                    letterSpacing: 2,
+                                    textTransform: 'uppercase'
+                                  }}>
+                                    Unavailable
                                   </div>
                                 )}
                               </>

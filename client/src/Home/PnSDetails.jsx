@@ -161,28 +161,51 @@ export default function PnSDetails() {
           transform: translateY(-8px);
         }
       `}</style>
-                {(prod.images?.[0] || prod.image) ? (
-                  <img src={prod.images?.[0] || prod.image} alt={prod.title} style={{
-                    display: 'block',
-                    width: '100%',
-                    height: 220,
-                    objectFit: 'cover',
-                    borderRadius: 0,
-                    margin: 0,
-                  }} />
-                ) : (
-                  <div style={{
-                    width: '100%',
-                    height: 220,
-                    background: '#eee',
-                    borderRadius: 0,
-                    margin: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#888'
-                  }}>No Image</div>
-                )}
+                <div style={{ position: 'relative' }}>
+                  {(prod.images?.[0] || prod.image) ? (
+                    <img src={prod.images?.[0] || prod.image} alt={prod.title} style={{
+                      display: 'block',
+                      width: '100%',
+                      height: 220,
+                      objectFit: 'cover',
+                      borderRadius: 0,
+                      margin: 0,
+                      filter: prod.available === false ? 'grayscale(50%) brightness(0.7)' : 'none'
+                    }} />
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      height: 220,
+                      background: '#eee',
+                      borderRadius: 0,
+                      margin: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#888'
+                    }}>No Image</div>
+                  )}
+                  {prod.available === false && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      background: 'rgba(0,0,0,0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: 24,
+                      fontWeight: 700,
+                      letterSpacing: 2,
+                      textTransform: 'uppercase'
+                    }}>
+                      Unavailable
+                    </div>
+                  )}
+                </div>
                   <div style={{ padding: 24, paddingTop: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
