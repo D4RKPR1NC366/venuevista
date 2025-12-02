@@ -12,7 +12,7 @@ router.get('/profile', auth, async (req, res) => {
         if (role === 'customer') {
             user = await Customer.findById(id).select('-password');
         } else if (role === 'supplier') {
-            user = await Supplier.findById(id).select('-password').populate('eventTypes');
+            user = await Supplier.findById(id).select('-password');
             
             // Ensure isAvailable field exists for older suppliers
             if (user && user.isAvailable === undefined) {
@@ -21,10 +21,19 @@ router.get('/profile', auth, async (req, res) => {
                 await user.save();
             }
             
+            // Manually fetch EventTypes from ProductsAndServices database
+            if (user && user.eventTypes && user.eventTypes.length > 0) {
+                const EventType = require('../models/EventType');
+                const populatedEventTypes = await EventType.find({ _id: { $in: user.eventTypes } });
+                user = user.toObject();
+                user.eventTypes = populatedEventTypes;
+            }
+            
             console.log('Fetched supplier profile:', {
                 email: user?.email,
                 isAvailable: user?.isAvailable,
-                hasIsAvailableField: user ? 'isAvailable' in user.toObject() : false
+                eventTypesCount: user?.eventTypes?.length || 0,
+                hasIsAvailableField: user ? 'isAvailable' in user : false
             });
         }
 
@@ -71,20 +80,32 @@ router.put('/profile', auth, async (req, res) => {
                 user.companyName = req.body.companyName;
             }
             if (req.body.eventTypes !== undefined) {
-                console.log('Updating eventTypes to:', req.body.eventTypes);
-                user.eventTypes = req.body.eventTypes;
+                console.log('Received eventTypes:', req.body.eventTypes, 'Type:', typeof req.body.eventTypes, 'IsArray:', Array.isArray(req.body.eventTypes));
+                user.eventTypes = Array.isArray(req.body.eventTypes) ? req.body.eventTypes : [];
+                console.log('Set user.eventTypes to:', user.eventTypes);
             }
         }
 
-        console.log('User before save:', { companyName: user.companyName, eventTypes: user.eventTypes });
+        console.log('User before save:', { _id: user._id, companyName: user.companyName, eventTypes: user.eventTypes });
         await user.save();
-        console.log('User saved successfully');
+        console.log('User saved successfully. EventTypes after save:', user.eventTypes);
         
         let updatedUser;
         if (role === 'customer') {
             updatedUser = await Customer.findById(id).select('-password');
         } else if (role === 'supplier') {
-            updatedUser = await Supplier.findById(id).select('-password').populate('eventTypes');
+            updatedUser = await Supplier.findById(id).select('-password');
+            console.log('Raw eventTypes in response:', updatedUser.eventTypes);
+            
+            // Manually fetch EventTypes from ProductsAndServices database instead of populate
+            // since they're in different databases
+            if (updatedUser.eventTypes && updatedUser.eventTypes.length > 0) {
+                const EventType = require('../models/EventType');
+                const populatedEventTypes = await EventType.find({ _id: { $in: updatedUser.eventTypes } });
+                updatedUser = updatedUser.toObject();
+                updatedUser.eventTypes = populatedEventTypes;
+                console.log('Manually populated eventTypes:', populatedEventTypes);
+            }
         }
             
         res.json(updatedUser);
