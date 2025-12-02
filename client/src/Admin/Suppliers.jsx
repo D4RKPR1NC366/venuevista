@@ -214,8 +214,9 @@ export default function Suppliers() {
                     <TableCell>Phone</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Event Types</TableCell>
+                    {activeTab === 1 && <TableCell>Availability</TableCell>}
                     {activeTab === 0 && <TableCell>Actions</TableCell>}
-                    {activeTab === 1 && <TableCell>Approved Date</TableCell>}
+                    {activeTab === 1 && <TableCell>Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -338,18 +339,41 @@ export default function Suppliers() {
                                 </form>
                               </Dialog>
                         {activeTab === 1 && (
-                          <TableCell>
-                            {supplier.approvedAt ? new Date(supplier.approvedAt).toLocaleDateString() : 'N/A'}
+                          <>
+                            <TableCell>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '4px 12px',
+                                borderRadius: '12px',
+                                fontSize: '0.85rem',
+                                fontWeight: 'bold',
+                                background: supplier.isAvailable ? '#e8f5e9' : '#ffebee',
+                                color: supplier.isAvailable ? '#2e7d32' : '#c62828'
+                              }}>
+                                {supplier.isAvailable ? '🟢 Available' : '🔴 Unavailable'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
                               <Button
                                 variant="outlined"
                                 color="primary"
                                 size="small"
                                 onClick={() => handleOpenNotify(supplier._id)}
-                                sx={{ ml: 2 }}
+                                disabled={!supplier.isAvailable}
+                                sx={{ 
+                                  opacity: supplier.isAvailable ? 1 : 0.5,
+                                  cursor: supplier.isAvailable ? 'pointer' : 'not-allowed'
+                                }}
                               >
                                 Notify
                               </Button>
-                          </TableCell>
+                              {!supplier.isAvailable && (
+                                <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>
+                                  Supplier unavailable
+                                </div>
+                              )}
+                            </TableCell>
+                          </>
                         )}
                       </TableRow>
                     ))

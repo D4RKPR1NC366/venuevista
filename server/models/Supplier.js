@@ -18,7 +18,8 @@ const supplierSchema = new mongoose.Schema({
     isApproved: { type: Boolean, default: false },
     approvedAt: { type: Date },
     approvedBy: { type: String },
-    eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }]
+    eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }],
+    isAvailable: { type: Boolean, default: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Supplier', supplierSchema);

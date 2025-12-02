@@ -977,6 +977,35 @@ app.get('/api/suppliers/most-active', async (req, res) => {
   }
 });
 
+// Update supplier availability status
+app.put('/api/suppliers/availability', async (req, res) => {
+  try {
+    const { email, isAvailable } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const supplier = await Supplier.findOneAndUpdate(
+      { email },
+      { isAvailable },
+      { new: true }
+    );
+
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    res.json({ 
+      message: 'Availability status updated successfully',
+      isAvailable: supplier.isAvailable
+    });
+  } catch (error) {
+    console.error('Error updating supplier availability:', error);
+    res.status(500).json({ error: 'Failed to update availability status' });
+  }
+});
+
 app.post('/api/auth/register-supplier', async (req, res) => {
   try {
     console.log('Supplier registration request:', req.body);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ClientSidebar from './ClientSidebar';
-import { TextField, Button, Divider } from '@mui/material';
+import { TextField, Button, Divider, Switch, FormControlLabel } from '@mui/material';
 import { users } from '../services/api';
 import { toast } from 'react-toastify';
 import MFASettings from '../Authentication/MFASettings';
@@ -20,7 +20,9 @@ const PersonalInformation = () => {
     email: '',
     phone: '',
     contact: '',
-    password: ''
+    password: '',
+    role: '',
+    isAvailable: true
   });
 
   // Generic handler for all fields
@@ -30,42 +32,56 @@ const PersonalInformation = () => {
 
   const fetchUserProfile = async () => {
     try {
-      // Get current user from localStorage
-      const currentUser = JSON.parse(localStorage.getItem('user'));
-      if (!currentUser) {
-        console.error('No user found in localStorage');
-        toast.error('Please log in again');
-        return;
-      }
-
-      // If we have a user in localStorage, use that data initially
-      setUser({
-        firstName: currentUser.firstName || '',
-        middleName: currentUser.middleName || '',
-        lastName: currentUser.lastName || '',
-        email: currentUser.email || '',
-        phone: currentUser.phone || '',
-        contact: currentUser.contact || '',
-        password: '********' // We don't show the actual password
-      });
-
-      // Then try to fetch from API
+      // Fetch user profile directly from database
       const response = await users.getProfile();
       if (response && response.data) {
         const userData = response.data;
-        setUser(prev => ({
-          ...prev,
-          firstName: userData.firstName || prev.firstName,
-          middleName: userData.middleName || prev.middleName,
-          lastName: userData.lastName || prev.lastName,
-          email: userData.email || prev.email,
-          phone: userData.phone || prev.phone,
-          contact: userData.contact || prev.contact
-        }));
+        
+        // Determine user role - if they have companyName, they're a supplier
+        const userRole = userData.role || (userData.companyName ? 'supplier' : 'customer');
+        
+        setUser({
+          firstName: userData.firstName || '',
+          middleName: userData.middleName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          contact: userData.contact || '',
+          password: '********',
+          role: userRole,
+          isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true
+        });
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      toast.error('Failed to update profile from server');
+      toast.error('Failed to load profile from database');
+    }
+  };
+
+  const handleAvailabilityToggle = async (newValue) => {
+    try {
+      const response = await fetch('/api/suppliers/availability', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: user.email, 
+          isAvailable: newValue 
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update availability status');
+      }
+
+      const data = await response.json();
+      
+      // Update local state
+      setUser(prev => ({ ...prev, isAvailable: data.isAvailable }));
+
+      toast.success(`You are now ${data.isAvailable ? 'available' : 'unavailable'} for bookings`);
+    } catch (error) {
+      console.error('Error updating availability:', error);
+      toast.error('Failed to update availability status');
     }
   };
 
@@ -98,14 +114,6 @@ const PersonalInformation = () => {
           ...prev,
           ...response.data,
           password: '********' // Keep password hidden
-        }));
-        
-        // Update localStorage with new data
-        const storedUser = JSON.parse(localStorage.getItem('user'));
-        localStorage.setItem('user', JSON.stringify({
-          ...storedUser,
-          ...response.data,
-          password: storedUser.password // Keep original password in localStorage
         }));
 
         setEditMode(false);
@@ -192,6 +200,45 @@ const PersonalInformation = () => {
             )}
           </div>
         </div>
+
+        {/* Availability Toggle for Suppliers */}
+        {user.role === 'supplier' && (
+          <div style={{ 
+            background: '#f9f9f9', 
+            padding: '16px 20px', 
+            borderRadius: '8px', 
+            marginBottom: '24px',
+            border: '1px solid #e0e0e0'
+          }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={user.isAvailable === true}
+                  onChange={(e) => handleAvailabilityToggle(e.target.checked)}
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: '#4CAF50',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: '#4CAF50',
+                    },
+                  }}
+                />
+              }
+              label={
+                <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  {user.isAvailable ? '🟢 Available for Bookings' : '🔴 Unavailable for Bookings'}
+                </span>
+              }
+            />
+            <div style={{ marginTop: '8px', fontSize: '0.9rem', color: '#666', marginLeft: '48px' }}>
+              {user.isAvailable 
+                ? 'You are currently accepting event notifications from admin.' 
+                : 'You will not receive event notifications while unavailable.'}
+            </div>
+          </div>
+        )}
+
         <form className="personal-info-form" noValidate autoComplete="off">
           {!editMode ? (
             <div className="personal-info-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
