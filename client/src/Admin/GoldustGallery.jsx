@@ -92,7 +92,7 @@ const GoldustGallery = () => {
   };
 
   return (
-    <div style={{ display: "flex" }}>
+    <div className="admin-dashboard-layout">
       <Sidebar />
       <div className="gallery-admin-page">
         <div className="gallery-admin-title-row">
