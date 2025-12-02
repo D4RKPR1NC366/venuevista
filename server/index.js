@@ -738,6 +738,11 @@ app.get('/api/admin/suppliers/approved', async (req, res) => {
       .sort({ approvedAt: -1 })
       .lean();
     
+    console.log('Approved suppliers availability status:', approvedSuppliers.map(s => ({ 
+      email: s.email, 
+      isAvailable: s.isAvailable 
+    })));
+    
     // Manually populate eventTypes to handle older records without this field
     for (let supplier of approvedSuppliers) {
       if (supplier.eventTypes && supplier.eventTypes.length > 0) {
@@ -986,6 +991,8 @@ app.put('/api/suppliers/availability', async (req, res) => {
   try {
     const { email, isAvailable } = req.body;
     
+    console.log('Updating availability for:', email, 'to:', isAvailable);
+    
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
@@ -993,12 +1000,14 @@ app.put('/api/suppliers/availability', async (req, res) => {
     const supplier = await Supplier.findOneAndUpdate(
       { email },
       { isAvailable },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
+
+    console.log('Updated supplier:', { email: supplier.email, isAvailable: supplier.isAvailable });
 
     res.json({ 
       message: 'Availability status updated successfully',

@@ -104,12 +104,14 @@ const Notification = () => {
         let filtered = [];
         
         if (userRole === 'supplier') {
-          // For suppliers: show pending schedules assigned to them
+          // For suppliers: show ALL pending schedules assigned to them (no time filter on pending)
           const pendingSchedules = schedules.filter(rem => 
             rem.type === 'Supplier' && 
             (rem.person === userEmail || rem.person === userName || rem.supplierId === userEmail) &&
             (!rem.status || rem.status === 'pending')
           );
+          
+          console.log('Pending schedules for supplier:', pendingSchedules);
           
           // Get accepted schedules for supplier
           const userAcceptedSchedules = acceptedSchedules.filter(ev => 
@@ -117,11 +119,10 @@ const Notification = () => {
             (ev.person === userEmail || ev.person === userName || ev.supplierId === userEmail)
           );
           
-          // Filter accepted schedules within 1 week for main notifications
-          const acceptedWithin1Week = userAcceptedSchedules.filter(ev => {
-            const days = getDaysUntil(ev.date);
-            return days !== null && days >= 0 && days <= 7;
-          });
+          // Show ALL accepted schedules in notifications (time filter applied later in UI)
+          const acceptedSchedulesForNotif = userAcceptedSchedules.map(ev => ({ ...ev, status: 'accepted' }));
+          
+          console.log('Accepted schedules for supplier:', acceptedSchedulesForNotif);
           
           // Get bookings for this supplier (all statuses)
           // For suppliers, check if they are in the suppliers array or match by company name
@@ -165,8 +166,10 @@ const Notification = () => {
             status: a.status || ''
           }));
           
-          // Combine all events for suppliers
-          filtered = [...pendingSchedules, ...acceptedWithin1Week, ...bookingEvents, ...appointmentEvents];
+          // Combine all events for suppliers - show ALL pending and accepted schedules
+          filtered = [...pendingSchedules, ...acceptedSchedulesForNotif, ...bookingEvents, ...appointmentEvents];
+          
+          console.log('Combined filtered notifications:', filtered);
           
           // Set all accepted schedules for the accepted tab
           setAcceptedNotifications(userAcceptedSchedules);
@@ -531,37 +534,65 @@ const Notification = () => {
                   )}
                   <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {formatDate(notif.date)}</div>
                 </div>
-                {userRole === 'supplier' && notif.type === 'Supplier' && (!notif.status || notif.status === 'pending') && (
-                  <div style={{display: 'flex', gap: '8px'}}>
-                    <button
-                      onClick={() => handleAccept(notif)}
-                      style={{
+                {userRole === 'supplier' && notif.type === 'Supplier' && (
+                  <>
+                    {(!notif.status || notif.status === 'pending') && (
+                      <div style={{display: 'flex', gap: '8px'}}>
+                        <button
+                          onClick={() => handleAccept(notif)}
+                          style={{
+                            padding: '8px 16px',
+                            background: '#4CAF50',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => handleDecline(notif)}
+                          style={{
+                            padding: '8px 16px',
+                            background: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                    {notif.status === 'accepted' && (
+                      <div style={{
                         padding: '8px 16px',
-                        background: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
+                        background: '#E8F5E9',
+                        color: '#2E7D32',
                         borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem'
-                      }}
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => handleDecline(notif)}
-                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold'
+                      }}>
+                        Accepted
+                      </div>
+                    )}
+                    {notif.status === 'declined' && (
+                      <div style={{
                         padding: '8px 16px',
-                        background: '#f44336',
-                        color: 'white',
-                        border: 'none',
+                        background: '#FFEBEE',
+                        color: '#C62828',
                         borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem'
-                      }}
-                    >
-                      Decline
-                    </button>
-                  </div>
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold'
+                      }}>
+                        Declined
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )))}

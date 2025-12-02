@@ -22,8 +22,11 @@ const PersonalInformation = () => {
     contact: '',
     password: '',
     role: '',
-    isAvailable: true
+    isAvailable: true,
+    companyName: '',
+    eventTypes: []
   });
+  const [availableEventTypes, setAvailableEventTypes] = React.useState([]);
 
   // Generic handler for all fields
   const handleChange = (field) => (event) => {
@@ -34,13 +37,17 @@ const PersonalInformation = () => {
     try {
       // Fetch user profile directly from database
       const response = await users.getProfile();
+      console.log('Fetched user profile response:', response);
+      
       if (response && response.data) {
         const userData = response.data;
+        console.log('User data from database:', userData);
+        console.log('isAvailable value:', userData.isAvailable, 'Type:', typeof userData.isAvailable);
         
         // Determine user role - if they have companyName, they're a supplier
         const userRole = userData.role || (userData.companyName ? 'supplier' : 'customer');
         
-        setUser({
+        const newUserState = {
           firstName: userData.firstName || '',
           middleName: userData.middleName || '',
           lastName: userData.lastName || '',
@@ -49,8 +56,13 @@ const PersonalInformation = () => {
           contact: userData.contact || '',
           password: '********',
           role: userRole,
-          isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true
-        });
+          isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
+          companyName: userData.companyName || '',
+          eventTypes: userData.eventTypes || []
+        };
+        
+        console.log('Setting user state to:', newUserState);
+        setUser(newUserState);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -60,9 +72,15 @@ const PersonalInformation = () => {
 
   const handleAvailabilityToggle = async (newValue) => {
     try {
+      console.log('Toggling availability to:', newValue);
+      console.log('User email:', user.email);
+      
       const response = await fetch('/api/suppliers/availability', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ 
           email: user.email, 
           isAvailable: newValue 
@@ -70,15 +88,19 @@ const PersonalInformation = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update availability status');
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || 'Failed to update availability status');
       }
 
       const data = await response.json();
+      console.log('API Response:', data);
       
-      // Update local state
-      setUser(prev => ({ ...prev, isAvailable: data.isAvailable }));
-
       toast.success(`You are now ${data.isAvailable ? 'available' : 'unavailable'} for bookings`);
+      
+      // Refetch profile to ensure data is in sync with database
+      await fetchUserProfile();
+      console.log('Profile refetched successfully');
     } catch (error) {
       console.error('Error updating availability:', error);
       toast.error('Failed to update availability status');
@@ -100,21 +122,51 @@ const PersonalInformation = () => {
     }
 
     try {
-      const response = await users.updateProfile({
+      const updateData = {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
         contact: user.contact
-      });
+      };
+      
+      // Add supplier-specific fields
+      if (user.role === 'supplier') {
+        updateData.companyName = user.companyName;
+        // Extract just the IDs from eventTypes (they might be objects or strings)
+        updateData.eventTypes = user.eventTypes.map(et => 
+          typeof et === 'string' ? et : et._id
+        );
+        console.log('Sending event types:', updateData.eventTypes);
+      }
+      
+      console.log('Update data being sent:', updateData);
+      const response = await users.updateProfile(updateData);
+      console.log('Update response:', response);
       
       if (response && response.data) {
-        setUser(prev => ({
-          ...prev,
-          ...response.data,
-          password: '********' // Keep password hidden
-        }));
+        const userData = response.data;
+        const userRole = userData.role || (userData.companyName ? 'supplier' : 'customer');
+        
+        console.log('Response eventTypes:', userData.eventTypes);
+        
+        const newUserState = {
+          firstName: userData.firstName || '',
+          middleName: userData.middleName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          contact: userData.contact || '',
+          password: '********',
+          role: userRole,
+          isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
+          companyName: userData.companyName || '',
+          eventTypes: userData.eventTypes || []
+        };
+        
+        console.log('New user state after save:', newUserState);
+        setUser(newUserState);
 
         setEditMode(false);
         toast.success('Profile updated successfully');
@@ -126,7 +178,19 @@ const PersonalInformation = () => {
   };
 
   React.useEffect(() => {
-    fetchUserProfile();
+    // Fetch available event types first, then fetch user profile
+    fetch('/api/event-types')
+      .then(res => res.json())
+      .then(data => {
+        setAvailableEventTypes(data);
+        // Fetch profile after event types are loaded
+        fetchUserProfile();
+      })
+      .catch(err => {
+        console.error('Failed to fetch event types:', err);
+        // Still fetch profile even if event types fail
+        fetchUserProfile();
+      });
   }, []);
 
   return (
@@ -227,7 +291,7 @@ const PersonalInformation = () => {
               }
               label={
                 <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                  {user.isAvailable ? '🟢 Available for Bookings' : '🔴 Unavailable for Bookings'}
+                  {user.isAvailable ? 'Available for Bookings' : 'Unavailable for Bookings'}
                 </span>
               }
             />
@@ -267,6 +331,43 @@ const PersonalInformation = () => {
                     <label htmlFor="password" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Password:</label>
                     <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>&#8226;&#8226;&#8226;</span>
                   </div>
+                  {user.role === 'supplier' && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                        <label htmlFor="companyName" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Company Name:</label>
+                        <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.companyName}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                        <label htmlFor="eventTypes" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Event Types:</label>
+                        <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
+                          {user.eventTypes && user.eventTypes.length > 0 ? (
+                            user.eventTypes.map((et, idx) => {
+                              // Extract the ID from the event type (could be string or object)
+                              const eventTypeId = typeof et === 'string' ? et : (et._id || et);
+                              // Find the matching event type in availableEventTypes
+                              const eventTypeObj = availableEventTypes.find(aet => aet._id === eventTypeId);
+                              const eventTypeName = eventTypeObj?.name || (typeof et === 'object' && et.name) || 'Unknown';
+                              
+                              return (
+                                <span key={idx} style={{ 
+                                  display: 'inline-block', 
+                                  background: '#F3C13A', 
+                                  color: '#000', 
+                                  padding: '4px 12px', 
+                                  borderRadius: 4, 
+                                  fontSize: '0.9rem',
+                                  marginRight: 6,
+                                  marginBottom: 4
+                                }}>
+                                  {eventTypeName}
+                                </span>
+                              );
+                            })
+                          ) : 'No event types selected'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 {/* Column 2 */}
                 <div>
@@ -421,6 +522,80 @@ const PersonalInformation = () => {
                       Change Password
                     </Button>
                   </div>
+                  {user.role === 'supplier' && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                        <label htmlFor="companyName" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Company Name:</label>
+                        <TextField 
+                          id="companyName"
+                          className="personal-info-field"
+                          value={user.companyName}
+                          placeholder="Enter company name"
+                          margin="normal"
+                          variant="outlined"
+                          size="small"
+                          fullWidth
+                          onChange={handleChange('companyName')}
+                          sx={{
+                            marginLeft: 1.5,
+                            background: '#fff',
+                            borderRadius: 2,
+                            fontSize: '1.1rem',
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                              fontSize: '1.1rem',
+                              height: 40,
+                              '& fieldset': {
+                                borderColor: '#ccc',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: '#F3C13A',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#F3C13A',
+                                borderWidth: 2,
+                              },
+                            },
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
+                        <label htmlFor="eventTypes" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180, paddingTop: '12px' }}>Event Types:</label>
+                        <div style={{ marginLeft: 12, flex: 1 }}>
+                          {availableEventTypes.map((eventType) => (
+                            <label key={eventType._id} style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              marginRight: 16,
+                              marginBottom: 8,
+                              cursor: 'pointer',
+                              fontSize: '1rem'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={user.eventTypes.some(et => 
+                                  (typeof et === 'string' ? et : et._id) === eventType._id
+                                )}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setUser(prev => ({
+                                    ...prev,
+                                    eventTypes: checked
+                                      ? [...prev.eventTypes, eventType._id]
+                                      : prev.eventTypes.filter(et => 
+                                          (typeof et === 'string' ? et : et._id) !== eventType._id
+                                        )
+                                  }));
+                                }}
+                                style={{ marginRight: 6, cursor: 'pointer', width: '18px', height: '18px' }}
+                              />
+                              {eventType.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 {/* Column 2 */}
                 <div>

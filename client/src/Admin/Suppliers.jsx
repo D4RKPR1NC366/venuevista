@@ -350,7 +350,7 @@ export default function Suppliers() {
                                 background: supplier.isAvailable ? '#e8f5e9' : '#ffebee',
                                 color: supplier.isAvailable ? '#2e7d32' : '#c62828'
                               }}>
-                                {supplier.isAvailable ? '🟢 Available' : '🔴 Unavailable'}
+                                {supplier.isAvailable ? 'Available' : 'Unavailable'}
                               </span>
                             </TableCell>
                             <TableCell>
