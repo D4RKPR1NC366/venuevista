@@ -13,7 +13,11 @@ import {
   FormControl,
   InputLabel,
   Chip,
-  OutlinedInput
+  OutlinedInput,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import "./auth.css";
@@ -39,6 +43,8 @@ const SignUp = () => {
   });
   const [type, setType] = useState(accountType);
   const [availableEventTypes, setAvailableEventTypes] = useState([]);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +69,7 @@ const SignUp = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
     // Reset error state
@@ -136,6 +142,17 @@ const SignUp = () => {
       return;
     }
 
+    // Show privacy modal instead of submitting directly
+    setShowPrivacyModal(true);
+  };
+
+  const handlePrivacyAccept = async () => {
+    if (!privacyAccepted) {
+      setError("Please accept the Data Privacy policy to continue");
+      return;
+    }
+
+    setShowPrivacyModal(false);
     setLoading(true);
     try {
       // Clean and prepare payload
@@ -358,6 +375,102 @@ const SignUp = () => {
           <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>by Goldust Creations</Typography>
         </Box>
       </Box>
+
+      {/* Data Privacy Modal */}
+      <Dialog 
+        open={showPrivacyModal} 
+        onClose={() => setShowPrivacyModal(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ backgroundColor: '#e6b800', color: '#000', fontWeight: 600 }}>
+          Data Privacy Notice
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Republic Act No. 10173 - Data Privacy Act of 2012
+          </Typography>
+          
+          <Typography variant="body1" paragraph>
+            By signing up for Venuevista, you consent to the collection and processing of your personal information in accordance with the Data Privacy Act of 2012.
+          </Typography>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2, mb: 1 }}>
+            Information We Collect:
+          </Typography>
+          <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
+            <li>Personal identification (Name, Email, Phone Number)</li>
+            {type === 'supplier' && <li>Business information (Company Name, Event Types)</li>}
+            <li>Account credentials (Password - encrypted)</li>
+            <li>Usage data and preferences</li>
+          </Typography>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2, mb: 1 }}>
+            How We Use Your Information:
+          </Typography>
+          <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
+            <li>To create and manage your account</li>
+            <li>To facilitate bookings and event management</li>
+            <li>To communicate important updates and notifications</li>
+            <li>To improve our services</li>
+          </Typography>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2, mb: 1 }}>
+            Your Rights:
+          </Typography>
+          <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 2 }}>
+            <li>Right to access your personal data</li>
+            <li>Right to correct inaccurate information</li>
+            <li>Right to request deletion of your data</li>
+            <li>Right to object to processing of your data</li>
+          </Typography>
+
+          <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 2 }}>
+            Your information will be stored securely and will not be shared with third parties without your consent, except as required by law.
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Checkbox 
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                sx={{ 
+                  color: '#e6b800',
+                  '&.Mui-checked': { color: '#e6b800' }
+                }}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                I have read and accept the Data Privacy policy and consent to the collection and processing of my personal information.
+              </Typography>
+            }
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => {
+              setShowPrivacyModal(false);
+              setPrivacyAccepted(false);
+            }}
+            sx={{ color: '#666' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handlePrivacyAccept}
+            variant="contained"
+            disabled={!privacyAccepted}
+            sx={{ 
+              backgroundColor: '#e6b800',
+              '&:hover': { backgroundColor: '#cc9f00' },
+              '&:disabled': { backgroundColor: '#ccc' }
+            }}
+          >
+            Accept & Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
