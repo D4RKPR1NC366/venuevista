@@ -86,8 +86,11 @@ const SupplierDeclined = scheduleConnection.model('SupplierDeclinedSchedule', re
 app.get('/api/schedules', async (req, res) => {
   try {
     const schedules = await Schedule.find();
+    console.log('Fetching all schedules, found:', schedules.length);
+    console.log('Schedules:', JSON.stringify(schedules, null, 2));
     res.json(schedules);
   } catch (err) {
+    console.error('Error fetching schedules:', err);
     res.status(500).json({ error: 'Failed to fetch schedules' });
   }
 });
@@ -464,6 +467,65 @@ app.delete('/api/cart/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// Get most availed products/services
+app.get('/api/bookings/most-availed', async (req, res) => {
+  try {
+    const filter = req.query.filter;
+    const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+    
+    // Fetch all bookings
+    const [pending, approved, finished] = await Promise.all([
+      PendingBooking.find(),
+      ApprovedBooking.find(),
+      FinishedBooking.find()
+    ]);
+    
+    const allBookings = [...pending, ...approved, ...finished];
+    
+    // Filter by date if specified
+    let filteredBookings = allBookings;
+    if (filter && filter !== 'all') {
+      const filterMonth = parseInt(filter);
+      filteredBookings = allBookings.filter(b => {
+        if (!b.createdAt) return false;
+        const bookingDate = new Date(b.createdAt);
+        return bookingDate.getFullYear() === year && 
+               bookingDate.getMonth() === filterMonth;
+      });
+    } else {
+      // If 'all', filter by year only
+      filteredBookings = allBookings.filter(b => {
+        if (!b.createdAt) return false;
+        const bookingDate = new Date(b.createdAt);
+        return bookingDate.getFullYear() === year;
+      });
+    }
+    
+    // Count products by title
+    const productCounts = {};
+    filteredBookings.forEach(booking => {
+      if (booking.products && Array.isArray(booking.products)) {
+        booking.products.forEach(product => {
+          const title = product.title || 'Unknown Product';
+          if (!productCounts[title]) {
+            productCounts[title] = { productName: title, count: 0 };
+          }
+          productCounts[title].count += 1;
+        });
+      }
+    });
+    
+    // Convert to array and sort by count
+    const result = Object.values(productCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20); // Return top 20
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching most availed products:', error);
+    res.status(500).json({ error: 'Failed to fetch most availed products' });
+  }
+});
 
 app.get('/api/bookings/pending', async (req, res) => {
   const bookings = await PendingBooking.find();
@@ -767,6 +829,68 @@ app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
   }
 });
 
+// Notify supplier - creates a schedule entry
+app.post('/api/admin/suppliers/:id/notify', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { eventType, description, date, location, time } = req.body;
+
+    // Validate required fields
+    if (!eventType || !date || !location) {
+      return res.status(400).json({ error: 'Event type, date, and location are required' });
+    }
+
+    // Find the supplier
+    const supplier = await Supplier.findById(id);
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    // Create a schedule entry in the scheduleCalendar database
+    const schedule = new Schedule({
+      title: `${eventType}${supplier.companyName ? ' - ' + supplier.companyName : ''}`,
+      type: 'Supplier', // Set type to 'Supplier' so it appears in supplier notifications
+      person: supplier.email, // Use email so filtering works correctly
+      date: date,
+      location: location,
+      description: `${description || ''}${time ? '\nTime: ' + time : ''}`,
+      supplierId: supplier.email,
+      supplierName: `${supplier.firstName} ${supplier.lastName}`,
+      eventType: eventType, // Store the actual event type separately
+      status: 'pending' // Initial status is pending
+    });
+
+    await schedule.save();
+
+    // Optional: Send email notification to supplier
+    const { sendSupplierNotificationEmail } = require('./services/emailService');
+    try {
+      await sendSupplierNotificationEmail(
+        supplier.email,
+        supplier.firstName,
+        supplier.lastName,
+        eventType,
+        date,
+        location,
+        time,
+        description
+      );
+      console.log('Notification email sent to:', supplier.email);
+    } catch (emailError) {
+      console.error('Failed to send notification email:', emailError);
+      // Don't fail if email fails - schedule is already saved
+    }
+
+    res.json({ 
+      message: 'Notification sent and schedule created successfully',
+      schedule: schedule
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    res.status(500).json({ error: 'Failed to send notification' });
+  }
+});
+
 
 app.get('/api/suppliers', async (req, res) => {
   try {
@@ -905,45 +1029,54 @@ app.get('/api/customers', async (req, res) => {
 app.get('/api/revenue', async (req, res) => {
   try {
     const filter = req.query.filter || 'thisMonth';
+    const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
     const now = new Date();
     let startDate;
+    let endDate;
 
     // Determine start date based on filter - handle 'all' and month numbers
     if (filter === 'all') {
       // For 'all months', get the entire year
-      startDate = new Date(now.getFullYear(), 0, 1);
+      startDate = new Date(year, 0, 1);
+      endDate = new Date(year, 11, 31, 23, 59, 59);
     } else if (!isNaN(filter) && parseInt(filter) >= 0 && parseInt(filter) < 12) {
-      // If filter is a month number (0-11), get from that month to now
-      startDate = new Date(now.getFullYear(), parseInt(filter), 1);
+      // If filter is a month number (0-11), get that specific month in the selected year
+      startDate = new Date(year, parseInt(filter), 1);
+      endDate = new Date(year, parseInt(filter) + 1, 0, 23, 59, 59);
     } else {
       // Handle string filters like 'thisWeek', 'thisMonth', etc.
       switch (filter) {
         case 'thisWeek':
           const day = now.getDay();
           const diff = now.getDate() - day;
-          startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+          startDate = new Date(year, now.getMonth(), diff);
+          endDate = new Date(year, now.getMonth(), diff + 6, 23, 59, 59);
           break;
         case 'thisMonth':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          startDate = new Date(year, now.getMonth(), 1);
+          endDate = new Date(year, now.getMonth() + 1, 0, 23, 59, 59);
           break;
         case 'this6Months':
-          startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+          startDate = new Date(year, now.getMonth() - 5, 1);
+          endDate = new Date(year, now.getMonth() + 1, 0, 23, 59, 59);
           break;
         case 'thisYear':
-          startDate = new Date(now.getFullYear(), 0, 1);
+          startDate = new Date(year, 0, 1);
+          endDate = new Date(year, 11, 31, 23, 59, 59);
           break;
         default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          startDate = new Date(year, now.getMonth(), 1);
+          endDate = new Date(year, now.getMonth() + 1, 0, 23, 59, 59);
       }
     }
 
-    // Get all relevant bookings
+    // Get all relevant bookings for the selected year
     const [finishedBookings, approvedBookings] = await Promise.all([
       FinishedBooking.find({
-        createdAt: { $gte: startDate }
+        date: { $gte: startDate, $lte: endDate }
       }),
       ApprovedBooking.find({
-        createdAt: { $gte: startDate }
+        date: { $gte: startDate, $lte: endDate }
       })
     ]);
 
@@ -966,14 +1099,16 @@ app.get('/api/revenue', async (req, res) => {
     allBookings.forEach(booking => {
       // Use booking.date (event date) instead of createdAt for proper month categorization
       const bookingDate = booking.date ? new Date(booking.date) : null;
-      if (booking.totalPrice && bookingDate) {
+      if (booking.totalPrice && bookingDate && bookingDate.getFullYear() === year) {
         const month = bookingDate.getMonth();
         revenueData[month].value += booking.totalPrice;
-        console.log(`Adding ₱${booking.totalPrice} to month ${month} (${bookingDate.toDateString()})`);
+        console.log(`Adding ₱${booking.totalPrice} to month ${month} for year ${year} (${bookingDate.toDateString()})`);
       } else {
-        console.log('Skipping booking - missing data:', {
+        console.log('Skipping booking - missing data or wrong year:', {
           hasTotalPrice: !!booking.totalPrice,
           hasDate: !!booking.date,
+          bookingYear: bookingDate?.getFullYear(),
+          targetYear: year,
           totalPrice: booking.totalPrice,
           date: booking.date
         });

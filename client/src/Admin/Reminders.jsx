@@ -20,81 +20,126 @@ export default function Reminders() {
   const [reminders, setReminders] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('1week');
 
   useEffect(() => {
     async function fetchReminders() {
       try {
-        // Fetch schedules
-        const schedulesRes = await fetch('/api/schedules');
+        // Fetch all calendar data: schedules, accepted schedules, bookings, and appointments
+        const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+          fetch('/api/schedules'),
+          fetch('/api/schedules/status/accepted'),
+          fetch('/api/bookings/pending'),
+          fetch('/api/bookings/approved'),
+          fetch('/api/bookings/finished'),
+          fetch('/api/appointments'),
+        ]);
+        
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
-        // Fetch approved bookings
-        const bookingsRes = await fetch('/api/bookings/approved');
-        const bookings = bookingsRes.ok ? await bookingsRes.json() : [];
-        // Fetch appointments
-        const appointmentsRes = await fetch('/api/appointments');
+        const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
+        const pending = pendingRes.ok ? await pendingRes.json() : [];
+        const approved = approvedRes.ok ? await approvedRes.json() : [];
+        const finished = finishedRes.ok ? await finishedRes.json() : [];
         const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
+
         // Map bookings to reminder-like objects
-        const bookingReminders = Array.isArray(bookings)
-          ? bookings.map(b => ({
+        const allBookings = [...pending, ...approved, ...finished];
+        const bookingReminders = allBookings
+          .filter(b => b.date)
+          .map(b => {
+            let dateStr = '';
+            if (typeof b.date === 'string') {
+              dateStr = b.date.slice(0, 10);
+            } else {
+              const d = new Date(b.date);
+              dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            return {
               _id: b._id,
               title: b.eventType || 'Booking',
-              date: b.date,
+              date: dateStr,
               type: 'Booking',
-              person: b.name || '',
+              person: b.name || b.contact || b.email || '',
               location: b.eventVenue || '',
               description: b.specialRequest || '',
-            }))
-          : [];
+              status: b.status || '',
+            };
+          });
+
         // Map appointments to reminder-like objects
-        const appointmentReminders = Array.isArray(appointments)
-          ? appointments.map(a => ({
-              _id: a._id,
-              title: 'Appointment',
-              date: a.date,
-              type: 'Appointment',
-              person: a.clientName || a.clientEmail || '',
-              location: a.location || '',
-              description: a.description || '',
-            }))
-          : [];
-        // Combine and set reminders
-        setReminders([...(Array.isArray(schedules) ? schedules : []), ...bookingReminders, ...appointmentReminders]);
+        const appointmentReminders = appointments.map(a => {
+          let dateStr = '';
+          if (typeof a.date === 'string') {
+            dateStr = a.date;
+          } else {
+            const d = new Date(a.date);
+            dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          }
+          return {
+            _id: a._id,
+            title: 'Appointment',
+            date: dateStr,
+            type: 'Appointment',
+            person: a.clientName || a.clientEmail || '',
+            location: a.location || '',
+            description: a.description || '',
+            status: a.status || '',
+          };
+        });
+
+        // Map schedules to have consistent format
+        const scheduleReminders = [
+          ...(Array.isArray(schedules) ? schedules : []),
+          ...(Array.isArray(acceptedSchedules) ? acceptedSchedules : [])
+        ].map(s => ({
+          ...s,
+          type: s.type || 'Schedule',
+          title: s.title || s.type || 'Schedule',
+          person: s.person || '',
+          location: s.location || '',
+          description: s.description || '',
+        }));
+
+        // Combine all reminders
+        setReminders([...scheduleReminders, ...bookingReminders, ...appointmentReminders]);
       } catch (err) {
+        console.error('Error fetching reminders:', err);
         setReminders([]);
       }
     }
     fetchReminders();
   }, []);
-  // Filter reminders: only today and future, remove past
+  // Filter reminders based on selected time range
   const getFilteredReminders = () => {
     const now = new Date();
     now.setHours(0,0,0,0); // normalize to midnight
-    // Always show reminders for bookings within the next 7 days (including today)
-    const sevenDaysFromNow = new Date(now);
-    sevenDaysFromNow.setDate(now.getDate() + 7);
-    let filtered = reminders.filter(reminder => {
+    
+    // Determine end date based on filter
+    let endDate;
+    if (filter === 'all') {
+      // Show all future reminders (no upper limit)
+      endDate = new Date(2099, 11, 31); // Far future date
+    } else if (filter === '1week') {
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() + 7);
+    } else if (filter === '2week') {
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() + 14);
+    } else if (filter === '1month') {
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() + 30);
+    } else {
+      endDate = new Date(2099, 11, 31);
+    }
+    
+    // Filter reminders: show today and future events within the selected range
+    const filtered = reminders.filter(reminder => {
       if (!reminder.date) return false;
       const reminderDate = new Date(reminder.date);
       reminderDate.setHours(0,0,0,0);
-      return reminderDate >= now && reminderDate <= sevenDaysFromNow;
+      return reminderDate >= now && reminderDate <= endDate;
     });
-    // If filter is not 'all', further restrict by filter
-    if (filter !== 'all') {
-      let endDate;
-      if (filter === '1week') {
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
-      } else if (filter === '2week') {
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
-      } else if (filter === '1month') {
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30);
-      }
-      filtered = filtered.filter(reminder => {
-        const reminderDate = new Date(reminder.date);
-        reminderDate.setHours(0,0,0,0);
-        return reminderDate <= endDate;
-      });
-    }
+    
     // Sort by soonest date first
     return filtered.slice().sort((a, b) => {
       if (!a.date) return 1;
@@ -117,7 +162,6 @@ export default function Reminders() {
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
               >
-                <option value="all">All</option>
                 <option value="1week">1 Week</option>
                 <option value="2week">2 Weeks</option>
                 <option value="1month">1 Month</option>

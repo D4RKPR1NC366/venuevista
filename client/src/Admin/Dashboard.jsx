@@ -1,13 +1,3 @@
-  // Most availed products/services (static demo data)
-  const mostAvailedProducts = [
-    { productId: '1', productName: 'Facial Treatment', count: 18 },
-    { productId: '2', productName: 'Hair Spa', count: 14 },
-    { productId: '3', productName: 'Massage Therapy', count: 12 },
-    { productId: '4', productName: 'Manicure', count: 9 },
-    { productId: '5', productName: 'Pedicure', count: 7 },
-    { productId: '6', productName: 'Body Scrub', count: 5 },
-    { productId: '7', productName: 'Waxing', count: 3 },
-  ];
 import React, { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import Sidebar from './Sidebar';
@@ -168,8 +158,8 @@ export default function Dashboard() {
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   // Helper to get filter label for cards
   function getFilterLabel(filter) {
-    if (filter === 'all') return '| all months';
-    if (typeof filter === 'number' && filter >= 0 && filter < 12) return `| ${months[filter]}`;
+    if (filter === 'all') return `| all months ${selectedYear}`;
+    if (typeof filter === 'number' && filter >= 0 && filter < 12) return `| ${months[filter]} ${selectedYear}`;
     return '';
   }
   const [pendingEvents, setPendingEvents] = useState(null);
@@ -194,22 +184,67 @@ export default function Dashboard() {
       if (loc.includes('maddela') || loc.includes('quirino')) return 'Maddela, Quirino';
       return rawLocation;
     }
-  // Default filter is current month (0-based)
+  // Default filter is current month (0-based) and current year
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [filter, setFilter] = useState(new Date().getMonth());
   const [revenueData, setRevenueData] = useState([]);
   const [urgentReminders, setUrgentReminders] = useState(0);
 
   // Helper to get start date based on filter
   function getStartDate(filter) {
-    const now = new Date();
     if (filter === 'all') {
-      return new Date(now.getFullYear(), 0, 1);
+      return new Date(selectedYear, 0, 1);
     }
     if (typeof filter === 'number' && filter >= 0 && filter < 12) {
-      return new Date(now.getFullYear(), filter, 1);
+      return new Date(selectedYear, filter, 1);
     }
-    return new Date(now.getFullYear(), now.getMonth(), 1);
+    return new Date(selectedYear, new Date().getMonth(), 1);
   }
+
+  // Helper to check if a date matches the selected year and month filter
+  function matchesFilter(dateString, filter, selectedYear) {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    const dateYear = date.getFullYear();
+    const dateMonth = date.getMonth();
+    
+    // Check year first
+    if (dateYear !== selectedYear) return false;
+    
+    // If filter is 'all', any date in the selected year matches
+    if (filter === 'all') return true;
+    
+    // Otherwise, check if the month matches
+    if (typeof filter === 'number' && filter >= 0 && filter < 12) {
+      return dateMonth === filter;
+    }
+    
+    return false;
+  }
+
+  // Separate useEffect for revenue data - only refetch when year changes
+  useEffect(() => {
+    // Fetch revenue data (all months for the selected year - chart shows annual data)
+    console.log('Fetching revenue data for year:', selectedYear);
+    fetch(`/api/revenue?filter=all&year=${selectedYear}`, {
+      cache: 'no-store'
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          console.log('Revenue data received for year', selectedYear, ':', data);
+          setRevenueData(data);
+        } else {
+          console.error('Revenue data is not an array:', data);
+          setRevenueData([]);
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching revenue data:', error);
+        setRevenueData([]);
+      });
+  }, [selectedYear]); // Only depends on selectedYear, not filter
 
   useEffect(() => {
             // Fetch reviews summary
@@ -225,17 +260,11 @@ export default function Dashboard() {
         fetch('/api/appointments')
           .then(res => res.json())
           .then(data => {
-            const startDate = getStartDate(filter);
-            const now = new Date();
             const upcoming = data.filter(a => {
-              if (!a.date) return false;
-              const d = new Date(a.date);
-              return d >= startDate && a.status === 'upcoming';
+              return matchesFilter(a.date, filter, selectedYear) && a.status === 'upcoming';
             }).length;
             const finished = data.filter(a => {
-              if (!a.date) return false;
-              const d = new Date(a.date);
-              return d >= startDate && a.status === 'finished';
+              return matchesFilter(a.date, filter, selectedYear) && a.status === 'finished';
             }).length;
             setUpcomingAppointments(upcoming);
             setFinishedAppointments(finished);
@@ -277,32 +306,11 @@ export default function Dashboard() {
         setUrgentReminders(urgentSchedules + urgentAppointments);
       })
       .catch(() => setUrgentReminders(0));
-    // Fetch revenue data (monthly, filtered)
-    fetch(`/api/revenue?filter=${filter}`)
-      .then(res => res.json())
-      .then(data => {
-        // Ensure data is an array
-        if (Array.isArray(data)) {
-          setRevenueData(data);
-        } else {
-          console.error('Revenue data is not an array:', data);
-          setRevenueData([]);
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching revenue data:', error);
-        setRevenueData([]);
-      });
     // Fetch pending events
     fetch('/api/bookings/pending')
       .then(res => res.json())
       .then(data => {
-        const startDate = getStartDate(filter);
-        const count = data.filter(ev => {
-          if (!ev.date) return false;
-          const d = new Date(ev.date);
-          return d >= startDate;
-        }).length;
+        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
         setPendingEvents(count);
       })
       .catch(() => setPendingEvents(0));
@@ -311,12 +319,7 @@ export default function Dashboard() {
     fetch('/api/bookings/approved')
       .then(res => res.json())
       .then(data => {
-        const startDate = getStartDate(filter);
-        const count = data.filter(ev => {
-          if (!ev.date) return false;
-          const d = new Date(ev.date);
-          return d >= startDate;
-        }).length;
+        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
         setApprovedBookings(count);
       })
       .catch(() => setApprovedBookings(0));
@@ -325,12 +328,7 @@ export default function Dashboard() {
     fetch('/api/bookings/finished')
       .then(res => res.json())
       .then(data => {
-        const startDate = getStartDate(filter);
-        const count = data.filter(ev => {
-          if (!ev.date) return false;
-          const d = new Date(ev.date);
-          return d >= startDate;
-        }).length;
+        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
         setFinishedBookings(count);
       })
       .catch(() => setFinishedBookings(0));
@@ -344,28 +342,13 @@ export default function Dashboard() {
       .then(([pendingRes, approvedRes, finishedRes]) => Promise.all([pendingRes.json(), approvedRes.json(), finishedRes.json()]))
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
-        console.log('Total bookings fetched:', allBookings.length);
-        console.log('Current filter:', filter);
-        const startDate = getStartDate(filter);
-        console.log('Start date:', startDate);
         
         // Only include bookings created within the filter month (not event date)
         const filteredBookings = allBookings.filter(b => {
           // Bookings have userId, name, email directly (not nested in customer object)
           if (!b.userId && !b.email) return false; // Need at least userId or email
-          if (!b.createdAt) return false; // Use createdAt instead of date
-          const bookingDate = new Date(b.createdAt);
-          if (filter === 'all') {
-            return bookingDate >= startDate;
-          } else {
-            // For specific month, check if booking was created within that month
-            const endDate = new Date(startDate);
-            endDate.setMonth(endDate.getMonth() + 1);
-            console.log(`Checking booking created at ${b.createdAt}: ${bookingDate} between ${startDate} and ${endDate}`);
-            return bookingDate >= startDate && bookingDate < endDate;
-          }
+          return matchesFilter(b.createdAt, filter, selectedYear);
         });
-        console.log('Filtered bookings for customers:', filteredBookings.length);
         // Count bookings per customer
         const customerCounts = {};
         filteredBookings.forEach(b => {
@@ -403,21 +386,12 @@ export default function Dashboard() {
       .then(([pendingRes, approvedRes, finishedRes]) => Promise.all([pendingRes.json(), approvedRes.json(), finishedRes.json()]))
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
-        const startDate = getStartDate(filter);
         // Note: Bookings don't contain supplier data, so this will always show empty
         // Suppliers would need to be tracked separately or added to booking schema
         const filteredBookings = allBookings.filter(b => {
           // Bookings don't have supplier field, so this section won't show data
           if (!b.supplier) return false;
-          if (!b.createdAt) return false;
-          const bookingDate = new Date(b.createdAt);
-          if (filter === 'all') {
-            return bookingDate >= startDate;
-          } else {
-            const endDate = new Date(startDate);
-            endDate.setMonth(endDate.getMonth() + 1);
-            return bookingDate >= startDate && bookingDate < endDate;
-          }
+          return matchesFilter(b.createdAt, filter, selectedYear);
         });
         // Count bookings per supplier
         const supplierCounts = {};
@@ -457,7 +431,6 @@ export default function Dashboard() {
       .then(([pendingRes, approvedRes, finishedRes]) => Promise.all([pendingRes.json(), approvedRes.json(), finishedRes.json()]))
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
-        const startDate = getStartDate(filter);
         
         const locationCounts = {
           'sta fe nueva vizcaya': 0,
@@ -466,9 +439,8 @@ export default function Dashboard() {
         };
 
         allBookings.forEach(booking => {
-          if (!booking.date) return;
-          const d = new Date(booking.date);
-          if (d < startDate) return;
+          // Check if booking matches the selected year and month filter
+          if (!matchesFilter(booking.date || booking.createdAt, filter, selectedYear)) return;
           
           const venue = (booking.eventVenue || '').toLowerCase().trim();
           
@@ -493,7 +465,15 @@ export default function Dashboard() {
         'la trinidad benguet': 0,
         'maddela quirino': 0,
       }));
-  }, [filter]);
+
+    // Fetch most availed products/services
+    fetch(`/api/bookings/most-availed?filter=${filter}&year=${selectedYear}`)
+      .then(res => res.json())
+      .then(data => {
+        setMostAvailedProducts(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setMostAvailedProducts([]));
+  }, [filter, selectedYear]);
 
   return (
     <div className="admin-dashboard-layout">
@@ -501,8 +481,22 @@ export default function Dashboard() {
       <main className="admin-dashboard-main">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <h2 style={{ margin: 0 }}>Overview</h2>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <label style={{ fontWeight: 500, marginRight: 8 }}>Show:</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <label style={{ fontWeight: 500 }}>Show:</label>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              style={{ padding: '6px 16px', borderRadius: 4, border: '1px solid #ccc', fontSize: '1rem', color: '#222', background: '#fff', outline: 'none', boxShadow: 'none' }}
+            >
+              {(() => {
+                const startYear = 2025; // Fixed starting year
+                const currentYear = new Date().getFullYear();
+                const yearsToShow = Math.max(4, (currentYear - startYear) + 4); // At least 4 years, or more as time passes
+                return Array.from({ length: yearsToShow }, (_, i) => startYear + i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ));
+              })()}
+            </select>
             <select
               value={filter}
               onChange={e => {
@@ -717,7 +711,7 @@ export default function Dashboard() {
         
 
         <div className="admin-dashboard-revenue-card">
-          <div className="admin-dashboard-card-title">Annual Revenue Chart</div>
+          <div className="admin-dashboard-card-title">Annual Revenue Chart <span style={{ color: '#888', fontWeight: 400 }}>| {selectedYear}</span></div>
           <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '350px', minHeight: '250px' }}>
             {Array.isArray(revenueData) && revenueData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>

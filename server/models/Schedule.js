@@ -7,6 +7,10 @@ const scheduleSchema = new mongoose.Schema({
 	date: { type: String, required: true },
 	location: { type: String, required: true },
 	description: { type: String },
+	supplierId: { type: String },
+	supplierName: { type: String },
+	eventType: { type: String },
+	status: { type: String, default: 'pending' }, // pending, accepted, declined
 	createdAt: { type: Date, default: Date.now }
 });
 

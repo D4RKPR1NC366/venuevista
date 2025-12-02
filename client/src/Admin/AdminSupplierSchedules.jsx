@@ -92,10 +92,10 @@ const AdminSupplierSchedules = () => {
                 <div className="admin-schedules-list">
                   {accepted.length === 0 ? <div>No accepted schedules.</div> : accepted.map(sch => (
                     <div key={sch._id} className="admin-schedule-card accepted">
-                      <div><strong>{sch.title}</strong></div>
-                      {sch.description && <div style={{color:'#666', marginBottom:'2px'}}>{sch.description}</div>}
+                      <div><strong>{sch.eventType || sch.title}</strong></div>
+                      {sch.description && <div style={{color:'#666', marginBottom:'2px', whiteSpace:'pre-line'}}>{sch.description}</div>}
                       {sch.location && <div style={{color:'#888', fontSize:'0.97rem', marginBottom:'2px'}}>Location: {sch.location}</div>}
-                      <div>{sch.date}</div>
+                      <div>Date: {sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#4CAF50'}}>Accepted</span></div>
                       <button style={{marginTop:'8px',background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer',display:'inline-block'}} onClick={() => handleCancel(sch._id)}>Cancel</button>
@@ -109,10 +109,10 @@ const AdminSupplierSchedules = () => {
                 <div className="admin-schedules-list">
                   {declined.length === 0 ? <div>No declined schedules.</div> : declined.map(sch => (
                     <div key={sch._id} className="admin-schedule-card declined">
-                      <div><strong>{sch.title}</strong></div>
-                      {sch.description && <div style={{color:'#666', marginBottom:'2px'}}>{sch.description}</div>}
+                      <div><strong>{sch.eventType || sch.title}</strong></div>
+                      {sch.description && <div style={{color:'#666', marginBottom:'2px', whiteSpace:'pre-line'}}>{sch.description}</div>}
                       {sch.location && <div style={{color:'#888', fontSize:'0.97rem', marginBottom:'2px'}}>Location: {sch.location}</div>}
-                      <div>{sch.date}</div>
+                      <div>Date: {sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#f44336'}}>Declined</span></div>
                       <button style={{marginTop:'8px',background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer',display:'inline-block'}} onClick={() => handleDeleteDeclined(sch._id)}>Delete</button>

@@ -161,10 +161,59 @@ const sendSupplierRejectedEmail = async (email, firstName, lastName, companyName
     }
 };
 
+const sendSupplierNotificationEmail = async (email, firstName, lastName, eventType, date, location, time, description) => {
+    try {
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER || 'truegoldustcreation@gmail.com',
+            to: email,
+            subject: `New Event Notification - ${eventType}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background-color: #3b82f6; padding: 20px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">📅 New Event Notification</h1>
+                    </div>
+                    <div style="padding: 30px; background-color: #f9fafb;">
+                        <h2 style="color: #1f2937;">Event Details</h2>
+                        <p>Dear ${firstName} ${lastName},</p>
+                        <p>You have been notified about an upcoming event that requires your attention.</p>
+                        <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+                            <p style="margin: 0;"><strong>Event Type:</strong> ${eventType}</p>
+                            <p style="margin: 10px 0 0 0;"><strong>Date:</strong> ${date}</p>
+                            <p style="margin: 10px 0 0 0;"><strong>Location:</strong> ${location}</p>
+                            ${time ? `<p style="margin: 10px 0 0 0;"><strong>Time:</strong> ${time}</p>` : ''}
+                            ${description ? `<p style="margin: 10px 0 0 0;"><strong>Description:</strong> ${description}</p>` : ''}
+                        </div>
+                        <p><strong>What you should do:</strong></p>
+                        <ul style="line-height: 1.8;">
+                            <li>Review the event details carefully</li>
+                            <li>Log in to your supplier account to view more information</li>
+                            <li>Check your calendar for any conflicts</li>
+                            <li>Prepare necessary materials or resources</li>
+                        </ul>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="http://localhost:5173/login" style="background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">View in Calendar</a>
+                        </div>
+                        <p>If you have any questions, please contact us at <a href="mailto:truegoldustcreation@gmail.com">truegoldustcreation@gmail.com</a></p>
+                        <p style="margin-top: 30px;">Best regards,<br><strong>VenueVista Team</strong></p>
+                    </div>
+                    <div style="background-color: #1f2937; padding: 15px; text-align: center; color: #9ca3af; font-size: 12px;">
+                        <p style="margin: 0;">© 2025 Goldust Creations. All rights reserved.</p>
+                    </div>
+                </div>
+            `
+        });
+        return true;
+    } catch (error) {
+        console.error('Email send error:', error);
+        return false;
+    }
+};
+
 module.exports = {
     sendOTP,
     sendSupplierPendingEmail,
     sendSupplierApprovedEmail,
     sendSupplierRejectedEmail,
+    sendSupplierNotificationEmail,
     transporter
 };

@@ -8,6 +8,7 @@ const Notification = () => {
   const [declinedNotifications, setDeclinedNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('notifications');
+  const [timeFilter, setTimeFilter] = useState('1week'); // '1week', '2weeks', '1month'
 
   // Get logged-in user info
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -22,6 +23,27 @@ const Notification = () => {
       return dateStr.split('T')[0];
     }
     return dateStr;
+  };
+
+  // Filter function based on time range
+  const filterByTimeRange = (items) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let endDate = new Date(today);
+    if (timeFilter === '1week') {
+      endDate.setDate(today.getDate() + 7);
+    } else if (timeFilter === '2weeks') {
+      endDate.setDate(today.getDate() + 14);
+    } else if (timeFilter === '1month') {
+      endDate.setMonth(today.getMonth() + 1);
+    }
+
+    return items.filter(item => {
+      const itemDate = new Date(item.date);
+      itemDate.setHours(0, 0, 0, 0);
+      return itemDate >= today && itemDate <= endDate;
+    });
   };
 
   useEffect(() => {
@@ -48,7 +70,12 @@ const Notification = () => {
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
         let filtered = [];
         if (userRole === 'supplier') {
-          filtered = data.filter(rem => rem.type === 'Supplier' && (rem.person === userEmail || rem.person === userName));
+          // Filter schedules for this supplier that are still pending
+          filtered = data.filter(rem => 
+            rem.type === 'Supplier' && 
+            (rem.person === userEmail || rem.person === userName || rem.supplierId === userEmail) &&
+            (!rem.status || rem.status === 'pending')
+          );
           // Fetch accepted and declined schedules if supplier
           if (acceptedRes && acceptedRes.ok) {
             const acceptedData = await acceptedRes.json();
@@ -79,21 +106,26 @@ const Notification = () => {
           }
         }
 
-        // Filter notifications to only show those within 2 weeks from today
-        const today = new Date();
-        const twoWeeksFromNow = new Date();
-        twoWeeksFromNow.setDate(today.getDate() + 14);
-        // Check both .date and .eventDate fields for 2-week window
-        const isWithinTwoWeeks = (notif) => {
-          const dateFields = [notif.date, notif.eventDate];
-          return dateFields.some(dateStr => {
-            if (!dateStr) return false;
-            const d = new Date(dateStr);
-            return d >= today && d <= twoWeeksFromNow;
-          });
-        };
-        const filtered2Weeks = filtered.filter(isWithinTwoWeeks);
-        setNotifications(filtered2Weeks);
+        // Filter notifications based on role
+        // For suppliers: show all future notifications (no time limit)
+        // For customers: show only those within 2 weeks from today
+        let finalFiltered = filtered;
+        if (userRole === 'customer') {
+          const today = new Date();
+          const twoWeeksFromNow = new Date();
+          twoWeeksFromNow.setDate(today.getDate() + 14);
+          // Check both .date and .eventDate fields for 2-week window
+          const isWithinTwoWeeks = (notif) => {
+            const dateFields = [notif.date, notif.eventDate];
+            return dateFields.some(dateStr => {
+              if (!dateStr) return false;
+              const d = new Date(dateStr);
+              return d >= today && d <= twoWeeksFromNow;
+            });
+          };
+          finalFiltered = filtered.filter(isWithinTwoWeeks);
+        }
+        setNotifications(finalFiltered);
       } catch (err) {
         console.error('Error fetching notifications:', err);
         setNotifications([]);
@@ -212,55 +244,110 @@ const Notification = () => {
     <div className="notification-page">
       <ClientSidebar />
       <div className="notification-content">
-        <div className="notification-tabs" style={{
-          display: 'flex',
-          gap: '16px',
-          marginBottom: '24px'
-        }}>
-          <button 
-            onClick={() => setActiveTab('notifications')}
-            style={{
-              padding: '8px 16px',
-              background: activeTab === 'notifications' ? '#FFD700' : '#f0f0f0',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'notifications' ? 'bold' : 'normal'
-            }}
-          >
-            Notifications
-          </button>
+        <div style={{ marginBottom: '24px' }}>
+          <div className="notification-tabs" style={{
+            display: 'flex',
+            gap: '16px',
+            marginBottom: '16px'
+          }}>
+            <button 
+              onClick={() => setActiveTab('notifications')}
+              style={{
+                padding: '8px 16px',
+                background: activeTab === 'notifications' ? '#FFD700' : '#f0f0f0',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: activeTab === 'notifications' ? 'bold' : 'normal'
+              }}
+            >
+              Notifications
+            </button>
+            {userRole === 'supplier' && (
+              <>
+                <button 
+                  onClick={() => setActiveTab('accepted')}
+                  style={{
+                    padding: '8px 16px',
+                    background: activeTab === 'accepted' ? '#4CAF50' : '#f0f0f0',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: activeTab === 'accepted' ? 'white' : 'black',
+                    fontWeight: activeTab === 'accepted' ? 'bold' : 'normal'
+                  }}
+                >
+                  Accepted Schedules
+                </button>
+                <button 
+                  onClick={() => setActiveTab('declined')}
+                  style={{
+                    padding: '8px 16px',
+                    background: activeTab === 'declined' ? '#f44336' : '#f0f0f0',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: activeTab === 'declined' ? 'white' : 'black',
+                    fontWeight: activeTab === 'declined' ? 'bold' : 'normal'
+                  }}
+                >
+                  Declined Schedules
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Time Filter */}
           {userRole === 'supplier' && (
-            <>
-              <button 
-                onClick={() => setActiveTab('accepted')}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.9rem', color: '#666' }}>Filter by:</span>
+              <button
+                onClick={() => setTimeFilter('1week')}
                 style={{
-                  padding: '8px 16px',
-                  background: activeTab === 'accepted' ? '#4CAF50' : '#f0f0f0',
-                  border: 'none',
+                  padding: '6px 12px',
+                  background: timeFilter === '1week' ? '#FFD700' : '#fff',
+                  border: '1px solid #ddd',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  color: activeTab === 'accepted' ? 'white' : 'black',
-                  fontWeight: activeTab === 'accepted' ? 'bold' : 'normal'
+                  fontSize: '0.85rem',
+                  fontWeight: timeFilter === '1week' ? 'bold' : 'normal'
                 }}
               >
-                Accepted Schedules
+                1 Week
               </button>
-              <button 
-                onClick={() => setActiveTab('declined')}
+              <button
+                onClick={() => setTimeFilter('2weeks')}
                 style={{
-                  padding: '8px 16px',
-                  background: activeTab === 'declined' ? '#f44336' : '#f0f0f0',
-                  border: 'none',
+                  padding: '6px 12px',
+                  background: timeFilter === '2weeks' ? '#FFD700' : '#fff',
+                  border: '1px solid #ddd',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  color: activeTab === 'declined' ? 'white' : 'black',
-                  fontWeight: activeTab === 'declined' ? 'bold' : 'normal'
+                  fontSize: '0.85rem',
+                  fontWeight: timeFilter === '2weeks' ? 'bold' : 'normal'
                 }}
               >
-                Declined Schedules
+                2 Weeks
               </button>
-            </>
+              <button
+                onClick={() => setTimeFilter('1month')}
+                style={{
+                  padding: '6px 12px',
+                  background: timeFilter === '1month' ? '#FFD700' : '#fff',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: timeFilter === '1month' ? 'bold' : 'normal'
+                }}
+              >
+                1 Month
+              </button>
+            </div>
           )}
         </div>
 
@@ -272,7 +359,7 @@ const Notification = () => {
             ) : notifications.length === 0 ? (
               <div>No new notifications found.</div>
             ) : (
-              notifications.map((notif) => (
+              (userRole === 'supplier' ? filterByTimeRange(notifications) : notifications).map((notif) => (
               <div key={notif._id} className="notification-card" style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -284,12 +371,14 @@ const Notification = () => {
                 marginBottom: '12px'
               }}>
                 <div>
-                  <h4 style={{marginBottom: '8px'}}>{notif.title}</h4>
-                  <p style={{color: '#666', marginBottom: '4px'}}>{notif.description}</p>
+                  <h4 style={{marginBottom: '8px'}}>{notif.eventType || notif.title}</h4>
+                  {notif.description && (
+                    <p style={{color: '#666', marginBottom: '4px', whiteSpace: 'pre-line'}}>{notif.description}</p>
+                  )}
                   {notif.location && (
                     <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
                   )}
-                  <div style={{fontSize: '0.9rem', color: '#888'}}>{formatDate(notif.date)}</div>
+                  <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {formatDate(notif.date)}</div>
                 </div>
                 {userRole === 'supplier' && (
                   <div style={{display: 'flex', gap: '8px'}}>
@@ -333,8 +422,10 @@ const Notification = () => {
           <div className="notification-list">
             {acceptedNotifications.length === 0 ? (
               <div>No accepted schedules</div>
+            ) : filterByTimeRange(acceptedNotifications).length === 0 ? (
+              <div>No accepted schedules in this time range</div>
             ) : (
-              acceptedNotifications.map((notif) => (
+              filterByTimeRange(acceptedNotifications).map((notif) => (
                 <div key={notif._id} className="notification-card" style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -347,12 +438,14 @@ const Notification = () => {
                   borderLeft: '4px solid #4CAF50'
                 }}>
                   <div>
-                    <h4 style={{marginBottom: '8px'}}>{notif.title}</h4>
-                    <p style={{color: '#666', marginBottom: '4px'}}>{notif.description}</p>
+                    <h4 style={{marginBottom: '8px'}}>{notif.eventType || notif.title}</h4>
+                    {notif.description && (
+                      <p style={{color: '#666', marginBottom: '4px', whiteSpace: 'pre-line'}}>{notif.description}</p>
+                    )}
                     {notif.location && (
                       <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
                     )}
-                    <div style={{fontSize: '0.9rem', color: '#888'}}>{notif.date}</div>
+                    <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {notif.date}</div>
                   </div>
                   <div style={{color: '#4CAF50', fontWeight: '500'}}>Accepted</div>
                 </div>
@@ -366,8 +459,10 @@ const Notification = () => {
           <div className="notification-list">
             {declinedNotifications.length === 0 ? (
               <div>No declined schedules</div>
+            ) : filterByTimeRange(declinedNotifications).length === 0 ? (
+              <div>No declined schedules in this time range</div>
             ) : (
-              declinedNotifications.map((notif) => (
+              filterByTimeRange(declinedNotifications).map((notif) => (
                 <div key={notif._id} className="notification-card" style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -380,12 +475,14 @@ const Notification = () => {
                   borderLeft: '4px solid #f44336'
                 }}>
                   <div>
-                    <h4 style={{marginBottom: '8px'}}>{notif.title}</h4>
-                    <p style={{color: '#666', marginBottom: '4px'}}>{notif.description}</p>
+                    <h4 style={{marginBottom: '8px'}}>{notif.eventType || notif.title}</h4>
+                    {notif.description && (
+                      <p style={{color: '#666', marginBottom: '4px', whiteSpace: 'pre-line'}}>{notif.description}</p>
+                    )}
                     {notif.location && (
                       <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
                     )}
-                    <div style={{fontSize: '0.9rem', color: '#888'}}>{notif.date}</div>
+                    <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {notif.date}</div>
                   </div>
                   <div style={{color: '#f44336', fontWeight: '500'}}>Declined</div>
                 </div>
