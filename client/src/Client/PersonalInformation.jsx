@@ -135,9 +135,10 @@ const PersonalInformation = () => {
       if (user.role === 'supplier') {
         updateData.companyName = user.companyName;
         // Extract just the IDs from eventTypes (they might be objects or strings)
-        updateData.eventTypes = user.eventTypes.map(et => 
-          typeof et === 'string' ? et : et._id
-        );
+        updateData.eventTypes = user.eventTypes.map(et => {
+          const id = typeof et === 'string' ? et : (et._id ? String(et._id) : et);
+          return String(id);
+        });
         console.log('Sending event types:', updateData.eventTypes);
       }
       
@@ -573,18 +574,20 @@ const PersonalInformation = () => {
                             }}>
                               <input
                                 type="checkbox"
-                                checked={user.eventTypes.some(et => 
-                                  (typeof et === 'string' ? et : et._id) === eventType._id
-                                )}
+                                checked={user.eventTypes.some(et => {
+                                  const etId = typeof et === 'string' ? et : (et._id ? String(et._id) : et);
+                                  return etId === String(eventType._id);
+                                })}
                                 onChange={(e) => {
                                   const checked = e.target.checked;
                                   setUser(prev => ({
                                     ...prev,
                                     eventTypes: checked
                                       ? [...prev.eventTypes, eventType._id]
-                                      : prev.eventTypes.filter(et => 
-                                          (typeof et === 'string' ? et : et._id) !== eventType._id
-                                        )
+                                      : prev.eventTypes.filter(et => {
+                                          const etId = typeof et === 'string' ? et : (et._id ? String(et._id) : et);
+                                          return etId !== String(eventType._id);
+                                        })
                                   }));
                                 }}
                                 style={{ marginRight: 6, cursor: 'pointer', width: '18px', height: '18px' }}
