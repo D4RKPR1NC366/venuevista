@@ -1,10 +1,11 @@
 .admin-schedules-layout {
   display: flex;
+  gap: 24px;
 }
 .admin-schedules-page {
   flex: 1;
-  margin-left: 270px;
-  padding: 50px 50px;
+  margin-left: 294px;
+  padding: 50px 50px 32px 24px;
 }
 .admin-schedules-tabs {
   display: flex;
@@ -32,9 +33,6 @@
 .admin-schedules-tab-btn.active.declined {
   background: #f44336;
   color: #fff;
-}
-.admin-schedules-page {
-  padding: 32px 24px;
 }
 .admin-schedules-list {
   margin-bottom: 24px;

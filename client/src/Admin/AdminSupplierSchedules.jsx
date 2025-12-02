@@ -49,6 +49,24 @@ const AdminSupplierSchedules = () => {
     }
   }
 
+  // Delete accepted schedule
+  async function handleDeleteAccepted(id) {
+    if (!window.confirm('Are you sure you want to permanently delete this accepted schedule?')) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAccepted(prev => prev.filter(sch => sch._id !== id));
+        alert('Accepted schedule deleted successfully');
+      } else {
+        throw new Error('Failed to delete accepted schedule');
+      }
+    } catch (err) {
+      alert('Error deleting accepted schedule: ' + err.message);
+    }
+  }
+
   // Delete declined schedule
   async function handleDeleteDeclined(id) {
     if (!window.confirm('Are you sure you want to delete this declined schedule?')) {
@@ -98,7 +116,10 @@ const AdminSupplierSchedules = () => {
                       <div>Date: {sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#4CAF50'}}>Accepted</span></div>
-                      <button style={{marginTop:'8px',background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer',display:'inline-block'}} onClick={() => handleCancel(sch._id)}>Cancel</button>
+                      <div style={{display:'flex',gap:'8px',marginTop:'8px'}}>
+                        <button style={{background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer'}} onClick={() => handleCancel(sch._id)}>Cancel</button>
+                        <button style={{background:'#9e9e9e',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer'}} onClick={() => handleDeleteAccepted(sch._id)}>Delete</button>
+                      </div>
                     </div>
                   ))}
                 </div>

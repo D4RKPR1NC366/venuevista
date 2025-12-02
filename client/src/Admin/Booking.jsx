@@ -300,10 +300,36 @@ export default function AdminBooking() {
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
                       <div className="booking-card-date">Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
-                      <div className="booking-card-price" style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: 14, color: '#666' }}>Sub Total: <span style={{ fontWeight: 600, color: '#222' }}>PHP {booking.subTotal || booking.totalPrice || 0}</span></div>
-                        {booking.discount > 0 && <div style={{ fontSize: 14, color: '#e53935' }}>Discount: <span style={{ fontWeight: 600 }}>- PHP {booking.discount}</span></div>}
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#222', marginTop: 4 }}>Total: PHP {booking.totalPrice || 0}</div>
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ 
+                          fontSize: 14, 
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          borderRadius: 6,
+                          background: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ffebee';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#e8f5e9';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#e3f2fd';
+                            return '#f5f5f5';
+                          })(),
+                          color: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#3b82f6';
+                            return '#666';
+                          })(),
+                          border: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '1px solid #ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '1px solid #22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '1px solid #3b82f6';
+                            return '1px solid #ddd';
+                          })()
+                        }}>
+                          📍 {booking.eventVenue || 'No location'}
+                        </div>
                       </div>
                     </div>
                     <div className="booking-card-actions">
@@ -357,10 +383,36 @@ export default function AdminBooking() {
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
                       <div className="booking-card-date">Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
-                      <div className="booking-card-price" style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: 14, color: '#666' }}>Sub Total: <span style={{ fontWeight: 600, color: '#222' }}>PHP {booking.subTotal || booking.totalPrice || 0}</span></div>
-                        {booking.discount > 0 && <div style={{ fontSize: 14, color: '#e53935' }}>Discount: <span style={{ fontWeight: 600 }}>- PHP {booking.discount}</span></div>}
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#222', marginTop: 4 }}>Total: PHP {booking.totalPrice || 0}</div>
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ 
+                          fontSize: 14, 
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          borderRadius: 6,
+                          background: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ffebee';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#e8f5e9';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#e3f2fd';
+                            return '#f5f5f5';
+                          })(),
+                          color: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#3b82f6';
+                            return '#666';
+                          })(),
+                          border: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '1px solid #ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '1px solid #22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '1px solid #3b82f6';
+                            return '1px solid #ddd';
+                          })()
+                        }}>
+                          📍 {booking.eventVenue || 'No location'}
+                        </div>
                       </div>
                     </div>
                     <div className="booking-card-actions">
@@ -411,10 +463,36 @@ export default function AdminBooking() {
                       <div style={{ fontWeight: 500, fontSize: 18 }}>{booking.eventType || booking.title}</div>
                       <div style={{ fontSize: 15, marginTop: 2, color: '#444' }}>Booker: {booking.name || 'N/A'}</div>
                       <div style={{ fontSize: 14, marginTop: 4 }}>Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
-                      <div style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: 14, color: '#666' }}>Sub Total: <span style={{ fontWeight: 600, color: '#222' }}>PHP {booking.subTotal || booking.totalPrice || 0}</span></div>
-                        {booking.discount > 0 && <div style={{ fontSize: 14, color: '#e53935' }}>Discount: <span style={{ fontWeight: 600 }}>- PHP {booking.discount}</span></div>}
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#222', marginTop: 4 }}>Total: PHP {booking.totalPrice || 0}</div>
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ 
+                          fontSize: 14, 
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          borderRadius: 6,
+                          background: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ffebee';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#e8f5e9';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#e3f2fd';
+                            return '#f5f5f5';
+                          })(),
+                          color: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#3b82f6';
+                            return '#666';
+                          })(),
+                          border: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '1px solid #ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '1px solid #22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '1px solid #3b82f6';
+                            return '1px solid #ddd';
+                          })()
+                        }}>
+                          📍 {booking.eventVenue || 'No location'}
+                        </div>
                       </div>
                     </div>
                   </li>

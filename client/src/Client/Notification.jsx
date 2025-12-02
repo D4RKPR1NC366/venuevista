@@ -25,6 +25,29 @@ const Notification = () => {
     return dateStr;
   };
 
+  // Helper function to calculate days until event
+  const getDaysUntil = (dateStr) => {
+    if (!dateStr) return null;
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    const diffTime = eventDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Helper function to get due message
+  const getDueMessage = (dateStr) => {
+    const days = getDaysUntil(dateStr);
+    if (days === null) return '';
+    if (days < 0) return 'Overdue';
+    if (days === 0) return 'Due Today';
+    if (days === 1) return 'Due Tomorrow';
+    if (days <= 7) return `Due in ${days} days`;
+    return '';
+  };
+
   // Filter function based on time range
   const filterByTimeRange = (items) => {
     const today = new Date();
@@ -54,78 +77,159 @@ const Notification = () => {
         console.log('User email:', userEmail, 'Role:', userRole);
         console.log('Is customer?', userRole === 'customer');
         
-        // Fetch all types of schedules
-        const schedulesRes = await fetch('/api/schedules');
-        const acceptedRes = userRole === 'supplier' ? await fetch('/api/schedules/status/accepted?supplierId=' + userEmail) : null;
-        const declinedRes = userRole === 'supplier' ? await fetch('/api/schedules/status/declined?supplierId=' + userEmail) : null;
-        const appointmentsRes = (userRole === 'customer' || userRole === 'admin') ? await fetch('/api/appointments/user/' + encodeURIComponent(userEmail)) : null;
-        
-        console.log('appointmentsRes:', appointmentsRes, 'Status:', appointmentsRes?.status);
-
-        if (!schedulesRes.ok) throw new Error('Failed to fetch reminders');
-        const data = await schedulesRes.json();
-        console.log('Schedules data:', data);
-
-        // Get user's name and email
+        // Get user's name
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        
+        // Fetch all types of events: schedules, accepted schedules, bookings, and appointments
+        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+          fetch('/api/schedules'),
+          fetch('/api/schedules/status/accepted'),
+          userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
+          fetch('/api/bookings/pending'),
+          fetch('/api/bookings/approved'),
+          fetch('/api/bookings/finished'),
+          fetch('/api/appointments/user/' + encodeURIComponent(userEmail)),
+        ]);
+
+        const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
+        const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
+        const declinedSchedules = declinedSchedulesRes.ok ? await declinedSchedulesRes.json() : [];
+        const pending = pendingRes.ok ? await pendingRes.json() : [];
+        const approved = approvedRes.ok ? await approvedRes.json() : [];
+        const finished = finishedRes.ok ? await finishedRes.json() : [];
+        const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
+
+        console.log('Fetched data:', { schedules, acceptedSchedules, pending, approved, finished, appointments });
+
         let filtered = [];
+        
         if (userRole === 'supplier') {
-          // Filter schedules for this supplier that are still pending
-          filtered = data.filter(rem => 
+          // For suppliers: show pending schedules assigned to them
+          const pendingSchedules = schedules.filter(rem => 
             rem.type === 'Supplier' && 
             (rem.person === userEmail || rem.person === userName || rem.supplierId === userEmail) &&
             (!rem.status || rem.status === 'pending')
           );
-          // Fetch accepted and declined schedules if supplier
-          if (acceptedRes && acceptedRes.ok) {
-            const acceptedData = await acceptedRes.json();
-            setAcceptedNotifications(acceptedData);
-          }
-          if (declinedRes && declinedRes.ok) {
-            const declinedData = await declinedRes.json();
-            setDeclinedNotifications(declinedData);
-          }
+          
+          // Get accepted schedules for supplier
+          const userAcceptedSchedules = acceptedSchedules.filter(ev => 
+            ev.type === 'Supplier' && 
+            (ev.person === userEmail || ev.person === userName || ev.supplierId === userEmail)
+          );
+          
+          // Filter accepted schedules within 1 week for main notifications
+          const acceptedWithin1Week = userAcceptedSchedules.filter(ev => {
+            const days = getDaysUntil(ev.date);
+            return days !== null && days >= 0 && days <= 7;
+          });
+          
+          // Get bookings for this supplier (all statuses)
+          // For suppliers, check if they are in the suppliers array or match by company name
+          const allBookings = [...pending, ...approved, ...finished].filter(b => {
+            // Check if user email/name matches
+            if (b.email === userEmail || b.name === userName) return true;
+            // Check if supplier is in the suppliers array
+            if (b.suppliers && Array.isArray(b.suppliers)) {
+              return b.suppliers.some(s => 
+                s.email === userEmail || 
+                s.companyName === user.companyName ||
+                s.name === userName
+              );
+            }
+            // Check if booking has supplier info matching this user
+            if (b.supplierEmail === userEmail || b.supplierName === userName) return true;
+            if (b.companyName && user.companyName && b.companyName === user.companyName) return true;
+            return false;
+          });
+          const bookingEvents = allBookings.filter(b => b.date).map(b => ({
+            _id: b._id,
+            title: b.eventType || b.title || 'Booking',
+            type: 'Booking',
+            person: b.name || b.contact || b.email || '',
+            date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+            location: b.eventVenue || '',
+            description: b.specialRequest || b.details || '',
+            status: b.status || '',
+            eventType: b.eventType
+          }));
+          
+          // Get appointments for this supplier
+          const appointmentEvents = appointments.map(a => ({
+            _id: a._id,
+            title: 'Appointment',
+            type: 'Appointment',
+            person: a.clientName || a.clientEmail || '',
+            date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
+            location: a.location || '',
+            description: a.description || 'No description provided',
+            status: a.status || ''
+          }));
+          
+          // Combine all events for suppliers
+          filtered = [...pendingSchedules, ...acceptedWithin1Week, ...bookingEvents, ...appointmentEvents];
+          
+          // Set all accepted schedules for the accepted tab
+          setAcceptedNotifications(userAcceptedSchedules);
+          
+          const userDeclinedSchedules = declinedSchedules.filter(ev => 
+            ev.type === 'Supplier' && 
+            (ev.person === userEmail || ev.person === userName || ev.supplierId === userEmail)
+          );
+          setDeclinedNotifications(userDeclinedSchedules);
         } else {
-          filtered = data.filter(rem => rem.type === 'Customer' && (rem.person === userEmail || rem.person === userName));
-          // Add appointments for customers (and admins testing)
-          if (appointmentsRes && appointmentsRes.ok) {
-            const appointments = await appointmentsRes.json();
-            // Only show appointments that are not finished
-            const appointmentNotifications = appointments
-              .filter(a => a.status !== 'finished')
-              .map(a => ({
-                _id: a._id,
-                title: `Appointment - ${a.status || 'upcoming'}`,
-                type: 'Appointment',
-                person: a.clientName || a.clientEmail || '',
-                date: a.date,
-                location: a.location || '',
-                description: a.description || 'No description provided'
-              }));
-            filtered = [...filtered, ...appointmentNotifications];
-          }
+          // For customers: show all their events (schedules, accepted schedules, bookings, appointments)
+          
+          // 1. Pending schedules
+          const userSchedules = schedules.filter(rem => 
+            rem.type === 'Customer' && 
+            (rem.person === userEmail || rem.person === userName)
+          );
+          
+          // 2. Get all accepted schedules
+          const allUserAcceptedSchedules = acceptedSchedules.filter(ev => 
+            ev.type === 'Customer' && 
+            (ev.person === userEmail || ev.person === userName)
+          ).map(ev => ({ ...ev, status: 'accepted' }));
+          
+          // Filter accepted schedules within 1 week for main notifications
+          const acceptedWithin1Week = allUserAcceptedSchedules.filter(ev => {
+            const days = getDaysUntil(ev.date);
+            return days !== null && days >= 0 && days <= 7;
+          });
+          
+          // 3. Bookings (all statuses)
+          const allBookings = [...pending, ...approved, ...finished].filter(b => 
+            b.email === userEmail || b.name === userName
+          );
+          const bookingEvents = allBookings.filter(b => b.date).map(b => ({
+            _id: b._id,
+            title: b.eventType || b.title || 'Booking',
+            type: 'Booking',
+            person: b.name || b.contact || b.email || '',
+            date: typeof b.date === 'string' ? b.date.slice(0, 10) : new Date(b.date).toISOString().slice(0, 10),
+            location: b.eventVenue || '',
+            description: b.specialRequest || b.details || '',
+            status: b.status || '',
+            eventType: b.eventType
+          }));
+          
+          // 4. Appointments
+          const appointmentEvents = appointments.map(a => ({
+            _id: a._id,
+            title: 'Appointment',
+            type: 'Appointment',
+            person: a.clientName || a.clientEmail || '',
+            date: typeof a.date === 'string' ? a.date : new Date(a.date).toISOString().slice(0, 10),
+            location: a.location || '',
+            description: a.description || 'No description provided',
+            status: a.status || ''
+          }));
+          
+          filtered = [...userSchedules, ...acceptedWithin1Week, ...bookingEvents, ...appointmentEvents];
         }
 
-        // Filter notifications based on role
-        // For suppliers: show all future notifications (no time limit)
-        // For customers: show only those within 2 weeks from today
-        let finalFiltered = filtered;
-        if (userRole === 'customer') {
-          const today = new Date();
-          const twoWeeksFromNow = new Date();
-          twoWeeksFromNow.setDate(today.getDate() + 14);
-          // Check both .date and .eventDate fields for 2-week window
-          const isWithinTwoWeeks = (notif) => {
-            const dateFields = [notif.date, notif.eventDate];
-            return dateFields.some(dateStr => {
-              if (!dateStr) return false;
-              const d = new Date(dateStr);
-              return d >= today && d <= twoWeeksFromNow;
-            });
-          };
-          finalFiltered = filtered.filter(isWithinTwoWeeks);
-        }
-        setNotifications(finalFiltered);
+        console.log('Filtered notifications:', filtered);
+        setNotifications(filtered);
       } catch (err) {
         console.error('Error fetching notifications:', err);
         setNotifications([]);
@@ -297,58 +401,56 @@ const Notification = () => {
             )}
           </div>
 
-          {/* Time Filter */}
-          {userRole === 'supplier' && (
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              alignItems: 'center'
-            }}>
-              <span style={{ fontSize: '0.9rem', color: '#666' }}>Filter by:</span>
-              <button
-                onClick={() => setTimeFilter('1week')}
-                style={{
-                  padding: '6px 12px',
-                  background: timeFilter === '1week' ? '#FFD700' : '#fff',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: timeFilter === '1week' ? 'bold' : 'normal'
-                }}
-              >
-                1 Week
-              </button>
-              <button
-                onClick={() => setTimeFilter('2weeks')}
-                style={{
-                  padding: '6px 12px',
-                  background: timeFilter === '2weeks' ? '#FFD700' : '#fff',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: timeFilter === '2weeks' ? 'bold' : 'normal'
-                }}
-              >
-                2 Weeks
-              </button>
-              <button
-                onClick={() => setTimeFilter('1month')}
-                style={{
-                  padding: '6px 12px',
-                  background: timeFilter === '1month' ? '#FFD700' : '#fff',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: timeFilter === '1month' ? 'bold' : 'normal'
-                }}
-              >
-                1 Month
-              </button>
-            </div>
-          )}
+          {/* Time Filter - Available for all users */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '0.9rem', color: '#666' }}>Filter by:</span>
+            <button
+              onClick={() => setTimeFilter('1week')}
+              style={{
+                padding: '6px 12px',
+                background: timeFilter === '1week' ? '#FFD700' : '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: timeFilter === '1week' ? 'bold' : 'normal'
+              }}
+            >
+              1 Week
+            </button>
+            <button
+              onClick={() => setTimeFilter('2weeks')}
+              style={{
+                padding: '6px 12px',
+                background: timeFilter === '2weeks' ? '#FFD700' : '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: timeFilter === '2weeks' ? 'bold' : 'normal'
+              }}
+            >
+              2 Weeks
+            </button>
+            <button
+              onClick={() => setTimeFilter('1month')}
+              style={{
+                padding: '6px 12px',
+                background: timeFilter === '1month' ? '#FFD700' : '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: timeFilter === '1month' ? 'bold' : 'normal'
+              }}
+            >
+              1 Month
+            </button>
+          </div>
         </div>
 
         {/* Notifications Tab */}
@@ -358,8 +460,10 @@ const Notification = () => {
               <div>Loading...</div>
             ) : notifications.length === 0 ? (
               <div>No new notifications found.</div>
+            ) : filterByTimeRange(notifications).length === 0 ? (
+              <div>No notifications in this time range.</div>
             ) : (
-              (userRole === 'supplier' ? filterByTimeRange(notifications) : notifications).map((notif) => (
+              filterByTimeRange(notifications).map((notif) => (
               <div key={notif._id} className="notification-card" style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -368,10 +472,57 @@ const Notification = () => {
                 padding: '16px 20px',
                 borderRadius: '8px',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                marginBottom: '12px'
+                marginBottom: '12px',
+                borderLeft: `4px solid ${
+                  notif.type === 'Booking' ? '#2196F3' : 
+                  notif.type === 'Appointment' ? '#9C27B0' : 
+                  notif.status === 'accepted' ? '#4CAF50' : '#FFD700'
+                }`
               }}>
                 <div>
-                  <h4 style={{marginBottom: '8px'}}>{notif.eventType || notif.title}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <h4 style={{margin: 0}}>{notif.eventType || notif.title}</h4>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: notif.type === 'Booking' ? '#E3F2FD' : 
+                                notif.type === 'Appointment' ? '#F3E5F5' : '#FFF9C4',
+                      color: notif.type === 'Booking' ? '#1976D2' : 
+                            notif.type === 'Appointment' ? '#7B1FA2' : '#F57F17'
+                    }}>
+                      {notif.type}
+                    </span>
+                    {notif.status && notif.status !== 'pending' && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: notif.status === 'accepted' ? '#E8F5E9' : 
+                                  notif.status === 'approved' ? '#E8F5E9' : 
+                                  notif.status === 'finished' ? '#E0E0E0' : '#FFF9C4',
+                        color: notif.status === 'accepted' ? '#2E7D32' : 
+                              notif.status === 'approved' ? '#2E7D32' : 
+                              notif.status === 'finished' ? '#424242' : '#F57F17'
+                      }}>
+                        {notif.status}
+                      </span>
+                    )}
+                    {getDueMessage(notif.date) && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: getDaysUntil(notif.date) === 0 ? '#FFEBEE' : 
+                                  getDaysUntil(notif.date) === 1 ? '#FFF3E0' : '#E3F2FD',
+                        color: getDaysUntil(notif.date) === 0 ? '#C62828' : 
+                              getDaysUntil(notif.date) === 1 ? '#E65100' : '#1565C0',
+                        fontWeight: 'bold'
+                      }}>
+                        {getDueMessage(notif.date)}
+                      </span>
+                    )}
+                  </div>
                   {notif.description && (
                     <p style={{color: '#666', marginBottom: '4px', whiteSpace: 'pre-line'}}>{notif.description}</p>
                   )}
@@ -380,7 +531,7 @@ const Notification = () => {
                   )}
                   <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {formatDate(notif.date)}</div>
                 </div>
-                {userRole === 'supplier' && (
+                {userRole === 'supplier' && notif.type === 'Supplier' && (!notif.status || notif.status === 'pending') && (
                   <div style={{display: 'flex', gap: '8px'}}>
                     <button
                       onClick={() => handleAccept(notif)}
