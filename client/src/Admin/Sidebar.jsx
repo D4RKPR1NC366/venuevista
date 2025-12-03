@@ -53,7 +53,7 @@ export default function Sidebar() {
       <div className="admin-sidebar-header">
         <div className="admin-sidebar-title">
           <img 
-            src="/venuevista-logo.png" 
+            src="/goldustlogo1.png" 
             alt="Venuevista" 
             className="sidebar-logo"
             onError={(e) => {
@@ -70,8 +70,8 @@ export default function Sidebar() {
           {isOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
       </div>
-      <nav className={`admin-sidebar-nav ${isOpen ? 'nav-visible' : 'nav-hidden'}`}>
-        <ul>
+      <nav className={`admin-sidebar-nav ${isOpen ? 'nav-visible' : 'nav-hidden'}`} style={{flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 120px)'}}>
+        <ul style={{margin: 0, padding: 0}}>
           {navItems.map(item => (
             <li key={item.path} className={location.pathname === item.path ? 'active' : ''}>
               <Link 

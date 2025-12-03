@@ -751,7 +751,7 @@ export default function Dashboard() {
               <tr style={{ background: '#f3f4f6' }}>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Name</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Email</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Times Booked</th>
+                <th style={{ textAlign: 'right', padding: '8px' }}>Times Booked</th>
               </tr>
             </thead>
             <tbody>
@@ -760,7 +760,7 @@ export default function Dashboard() {
                   <tr key={c.customerId} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '8px' }}>{c.customerName}</td>
                     <td style={{ padding: '8px' }}>{c.customerEmail}</td>
-                    <td style={{ padding: '8px', textAlign: 'center' }}>{c.count}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{c.count}</td>
                   </tr>
                 ))
               ) : (
@@ -794,7 +794,7 @@ export default function Dashboard() {
                 <th style={{ textAlign: 'left', padding: '8px' }}>Company Name</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Phone</th>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Email</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Times Booked</th>
+                <th style={{ textAlign: 'right', padding: '8px' }}>Times Booked</th>
               </tr>
             </thead>
             <tbody>
@@ -804,7 +804,7 @@ export default function Dashboard() {
                     <td style={{ padding: '8px' }}>{s.supplierName}</td>
                     <td style={{ padding: '8px' }}>{s.supplierPhone || '-'}</td>
                     <td style={{ padding: '8px' }}>{s.supplierEmail}</td>
-                    <td style={{ padding: '8px', textAlign: 'center' }}>{s.count}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{s.count}</td>
                   </tr>
                 ))
               ) : (
@@ -836,7 +836,7 @@ export default function Dashboard() {
             <thead>
               <tr style={{ background: '#f3f4f6' }}>
                 <th style={{ textAlign: 'left', padding: '8px' }}>Product/Service Name</th>
-                <th style={{ textAlign: 'left', padding: '8px' }}>Times Availed</th>
+                <th style={{ textAlign: 'right', padding: '8px' }}>Times Availed</th>
               </tr>
             </thead>
             <tbody>
@@ -844,7 +844,7 @@ export default function Dashboard() {
                 mostAvailedProducts.slice(0, 10).map(p => (
                   <tr key={p.productId} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '8px' }}>{p.productName}</td>
-                    <td style={{ padding: '8px', textAlign: 'center' }}>{p.count}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{p.count}</td>
                   </tr>
                 ))
               ) : (

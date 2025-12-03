@@ -214,6 +214,11 @@ const SignUp = () => {
       <Box className="auth-panel">
         <Box className="auth-form-panel">
           <Paper elevation={0} className="auth-form">
+            <img
+              src="/goldustlogo1.png"
+              alt="Goldust Logo"
+              style={{ width: '80px', marginBottom: '12px', display: 'block', marginLeft: 0 }}
+            />
             <Typography variant="h5" align="left" gutterBottom className="auth-title">
               {type === 'supplier' ? 'Supplier Sign Up' : 'Customer Sign Up'}
             </Typography>
@@ -393,6 +398,7 @@ const SignUp = () => {
           </Paper>
         </Box>
         <Box className="auth-side-panel">
+         
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>Welcome to Venuevista</Typography>
           <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>by Goldust Creations</Typography>
         </Box>

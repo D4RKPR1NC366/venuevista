@@ -20,7 +20,8 @@ export default function Reminders() {
   const [reminders, setReminders] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
-  const [filter, setFilter] = useState('1week');
+  const [dateFilter, setDateFilter] = useState('1week');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   useEffect(() => {
     async function fetchReminders() {
@@ -109,37 +110,42 @@ export default function Reminders() {
     }
     fetchReminders();
   }, []);
-  // Filter reminders based on selected time range
+  // Filter reminders based on selected time range and type
   const getFilteredReminders = () => {
     const now = new Date();
     now.setHours(0,0,0,0); // normalize to midnight
-    
     // Determine end date based on filter
     let endDate;
-    if (filter === 'all') {
-      // Show all future reminders (no upper limit)
-      endDate = new Date(2099, 11, 31); // Far future date
-    } else if (filter === '1week') {
+    if (dateFilter === 'all') {
+      endDate = new Date(2099, 11, 31);
+    } else if (dateFilter === '1week') {
       endDate = new Date(now);
       endDate.setDate(now.getDate() + 7);
-    } else if (filter === '2week') {
+    } else if (dateFilter === '2week') {
       endDate = new Date(now);
       endDate.setDate(now.getDate() + 14);
-    } else if (filter === '1month') {
+    } else if (dateFilter === '1month') {
       endDate = new Date(now);
       endDate.setDate(now.getDate() + 30);
     } else {
       endDate = new Date(2099, 11, 31);
     }
-    
     // Filter reminders: show today and future events within the selected range
-    const filtered = reminders.filter(reminder => {
+    let filtered = reminders.filter(reminder => {
       if (!reminder.date) return false;
       const reminderDate = new Date(reminder.date);
       reminderDate.setHours(0,0,0,0);
       return reminderDate >= now && reminderDate <= endDate;
     });
-    
+    // Filter by type
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(reminder => {
+        if (typeFilter === 'booking') return reminder.type === 'Booking';
+        if (typeFilter === 'schedule') return reminder.type === 'Schedule' || reminder.type === 'Supplier';
+        if (typeFilter === 'appointment') return reminder.type === 'Appointment';
+        return true;
+      });
+    }
     // Sort by soonest date first
     return filtered.slice().sort((a, b) => {
       if (!a.date) return 1;
@@ -155,16 +161,27 @@ export default function Reminders() {
         <div className="admin-reminders-root">
           <div className="reminders-header">
             <h2>Reminders</h2>
-            <div className="reminders-header-controls">
-              <label className="reminders-filter-label">Show:</label>
+            <div className="reminders-header-controls" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <label className="reminders-filter-label">Date Range:</label>
               <select
                 className="reminders-filter-select"
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
+                value={dateFilter}
+                onChange={e => setDateFilter(e.target.value)}
               >
                 <option value="1week">1 Week</option>
                 <option value="2week">2 Weeks</option>
                 <option value="1month">1 Month</option>
+              </select>
+              <label className="reminders-filter-label">Type:</label>
+              <select
+                className="reminders-filter-select"
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="booking">Booking Event Date</option>
+                <option value="schedule">Supplier Schedules</option>
+                <option value="appointment">Customer Appointments</option>
               </select>
             </div>
           </div>

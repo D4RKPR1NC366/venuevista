@@ -72,7 +72,7 @@ const TopBar = () => {
     <header className={`topbar${expanded ? " topbar-expanded" : ""}`}>
       <div className="topbar-logo">
         <img 
-          src="/venuevista-logo.png" 
+          src="/goldustlogo1.png" 
           alt="Venuevista by Goldust Creations" 
           style={{
             height: expanded ? '52px' : '38px',

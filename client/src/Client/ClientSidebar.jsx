@@ -33,7 +33,7 @@ const ClientSidebar = () => {
       <div className="client-sidebar-header">
         <div className="client-sidebar-title">
           <img 
-            src="/venuevista-logo.png" 
+            src="/goldustlogo1.png" 
             alt="Venuevista" 
             className="sidebar-logo"
             onError={(e) => {

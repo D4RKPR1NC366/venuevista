@@ -75,7 +75,7 @@ const BookSummary = () => {
                   Promo Applied: {booking.promoTitle}
                 </div>
               )}
-              <div style={{ marginBottom: 12, color: '#111', fontWeight: 'bold' }}>Total Price (after promo): <span style={{ color: '#111', fontWeight: 500 }}>PHP {Math.round(totalWithPromo)}</span></div>
+             
             </div>
           </div>
           {/* Services and Products Availed */}

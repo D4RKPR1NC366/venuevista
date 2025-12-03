@@ -197,6 +197,7 @@ export default function AdminBooking() {
   };
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'approved'
+    const [locationFilter, setLocationFilter] = useState('all'); // 'all', 'maddela', 'latrinidad', 'stafe'
   const [search, setSearch] = useState('');
 
   const handleOpenModal = (booking) => {
@@ -221,6 +222,18 @@ export default function AdminBooking() {
     filteredPending = [];
     filteredApproved = [];
   }
+  // Location filter
+  const locationMatch = (venue, locFilter) => {
+    if (locFilter === 'all') return true;
+    const v = (venue || '').toLowerCase();
+    if (locFilter === 'maddela') return v.includes('maddela') || v.includes('quirino');
+    if (locFilter === 'latrinidad') return v.includes('la trinidad') || v.includes('latrinidad') || v.includes('benguet');
+    if (locFilter === 'stafe') return v.includes('sta. fe') || v.includes('sta fe') || v.includes('stafe') || v.includes('santa fe') || v.includes('nueva vizcaya');
+    return true;
+  };
+  filteredPending = filteredPending.filter(b => locationMatch(b.eventVenue, locationFilter));
+  filteredApproved = filteredApproved.filter(b => locationMatch(b.eventVenue, locationFilter));
+  filteredFinished = filteredFinished.filter(b => locationMatch(b.eventVenue, locationFilter));
   // Further filter by search (booking type or booker name)
   const searchLower = search.trim().toLowerCase();
   if (searchLower) {
@@ -278,11 +291,24 @@ export default function AdminBooking() {
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
                 className="admin-booking-filter-select"
+                style={{ marginRight: 8 }}
               >
                 <option value="all">All</option>
                 <option value="pending">Pending Only</option>
                 <option value="approved">Approved Only</option>
                 <option value="finished">Finished Only</option>
+              </select>
+              <label htmlFor="location-filter" className="admin-booking-filter-label">Location:</label>
+              <select
+                id="location-filter"
+                value={locationFilter}
+                onChange={e => setLocationFilter(e.target.value)}
+                className="admin-booking-filter-select"
+              >
+                <option value="all">All Locations</option>
+                <option value="maddela">Maddela, Quirino</option>
+                <option value="latrinidad">La Trinidad, Benguet</option>
+                <option value="stafe">Sta. Fe, Nueva Vizcaya</option>
               </select>
             </div>
           </div>
