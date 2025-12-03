@@ -224,7 +224,7 @@ export default function AdminBooking() {
       await fetch(`/api/bookings/pending/${booking._id}`, {
         method: 'DELETE'
       });
-      // 3. Save appointment to calendar DB with meeting location
+      // 3. Save appointment to calendar DB with meeting location and branch
       const appointmentRes = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +234,8 @@ export default function AdminBooking() {
           clientName: booking.name,
           date: typeof date === 'string' ? date : formatPHTime(date, 'YYYY-MM-DD'),
           description: desc,
-          location: location // Meeting location from admin input
+          location: location, // Meeting location from admin input
+          branchLocation: booking.branchLocation // Branch from booking
         })
       });
       if (!appointmentRes.ok) {
@@ -252,7 +253,7 @@ export default function AdminBooking() {
   };
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'approved'
-    const [locationFilter, setLocationFilter] = useState('all'); // 'all', 'maddela', 'latrinidad', 'stafe'
+    const [branchFilter, setBranchFilter] = useState('all'); // 'all', 'maddela', 'latrinidad', 'stafe'
   const [search, setSearch] = useState('');
 
   const handleOpenModal = (booking) => {
@@ -277,18 +278,18 @@ export default function AdminBooking() {
     filteredPending = [];
     filteredApproved = [];
   }
-  // Location filter
-  const locationMatch = (venue, locFilter) => {
-    if (locFilter === 'all') return true;
-    const v = (venue || '').toLowerCase();
-    if (locFilter === 'maddela') return v.includes('maddela') || v.includes('quirino');
-    if (locFilter === 'latrinidad') return v.includes('la trinidad') || v.includes('latrinidad') || v.includes('benguet');
-    if (locFilter === 'stafe') return v.includes('sta. fe') || v.includes('sta fe') || v.includes('stafe') || v.includes('santa fe') || v.includes('nueva vizcaya');
+  // Branch filter
+  const branchMatch = (branch, branchFilt) => {
+    if (branchFilt === 'all') return true;
+    const b = (branch || '').toLowerCase();
+    if (branchFilt === 'maddela') return b.includes('maddela') && b.includes('quirino');
+    if (branchFilt === 'latrinidad') return b.includes('la trinidad') && b.includes('benguet');
+    if (branchFilt === 'stafe') return b.includes('sta') && b.includes('fe') && b.includes('nueva vizcaya');
     return true;
   };
-  filteredPending = filteredPending.filter(b => locationMatch(b.eventVenue, locationFilter));
-  filteredApproved = filteredApproved.filter(b => locationMatch(b.eventVenue, locationFilter));
-  filteredFinished = filteredFinished.filter(b => locationMatch(b.eventVenue, locationFilter));
+  filteredPending = filteredPending.filter(b => branchMatch(b.branchLocation, branchFilter));
+  filteredApproved = filteredApproved.filter(b => branchMatch(b.branchLocation, branchFilter));
+  filteredFinished = filteredFinished.filter(b => branchMatch(b.branchLocation, branchFilter));
   // Further filter by search (booking type or booker name)
   const searchLower = search.trim().toLowerCase();
   if (searchLower) {
@@ -353,14 +354,14 @@ export default function AdminBooking() {
                 <option value="approved">Approved Only</option>
                 <option value="finished">Finished Only</option>
               </select>
-              <label htmlFor="location-filter" className="admin-booking-filter-label">Location:</label>
+              <label htmlFor="branch-filter" className="admin-booking-filter-label">Branch:</label>
               <select
-                id="location-filter"
-                value={locationFilter}
-                onChange={e => setLocationFilter(e.target.value)}
+                id="branch-filter"
+                value={branchFilter}
+                onChange={e => setBranchFilter(e.target.value)}
                 className="admin-booking-filter-select"
               >
-                <option value="all">All Locations</option>
+                <option value="all">All Branches</option>
                 <option value="maddela">Maddela, Quirino</option>
                 <option value="latrinidad">La Trinidad, Benguet</option>
                 <option value="stafe">Sta. Fe, Nueva Vizcaya</option>

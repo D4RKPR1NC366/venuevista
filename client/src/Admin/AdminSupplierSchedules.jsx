@@ -134,35 +134,47 @@ const AdminSupplierSchedules = () => {
                 <div className="admin-schedules-list">
                   {accepted.filter(sch => {
                     if (branchFilter === 'all') return true;
-                    const location = (sch.location || '').toLowerCase();
+                    const branch = (sch.branchLocation || '').toLowerCase();
                     if (branchFilter === 'sta-fe') {
-                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                      return branch.includes('sta') && (branch.includes('fe') || branch.includes('nueva vizcaya'));
                     }
                     if (branchFilter === 'la-trinidad') {
-                      return location.includes('la trinidad') || location.includes('benguet');
+                      return branch.includes('la trinidad') || branch.includes('benguet');
                     }
                     if (branchFilter === 'maddela') {
-                      return location.includes('maddela') || location.includes('quirino');
+                      return branch.includes('maddela') || branch.includes('quirino');
                     }
                     return true;
                   }).length === 0 ? <div>No accepted schedules.</div> : accepted.filter(sch => {
                     if (branchFilter === 'all') return true;
-                    const location = (sch.location || '').toLowerCase();
+                    const branch = (sch.branchLocation || '').toLowerCase();
                     if (branchFilter === 'sta-fe') {
-                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                      return branch.includes('sta') && (branch.includes('fe') || branch.includes('nueva vizcaya'));
                     }
                     if (branchFilter === 'la-trinidad') {
-                      return location.includes('la trinidad') || location.includes('benguet');
+                      return branch.includes('la trinidad') || branch.includes('benguet');
                     }
                     if (branchFilter === 'maddela') {
-                      return location.includes('maddela') || location.includes('quirino');
+                      return branch.includes('maddela') || branch.includes('quirino');
                     }
                     return true;
-                  }).map(sch => (
-                    <div key={sch._id} className="admin-schedule-card accepted">
+                  }).map(sch => {
+                    // Determine border color based on branchLocation
+                    let borderColor = '#FFD700'; // Default yellow
+                    const branch = (sch.branchLocation || '').toLowerCase();
+                    if (branch.includes('sta') && (branch.includes('fe') || branch.includes('nueva vizcaya'))) {
+                      borderColor = '#FF6B6B'; // Red for Sta. Fe
+                    } else if (branch.includes('la trinidad') || branch.includes('benguet')) {
+                      borderColor = '#4CAF50'; // Green for La Trinidad
+                    } else if (branch.includes('maddela') || branch.includes('quirino')) {
+                      borderColor = '#2196F3'; // Blue for Maddela
+                    }
+                    return (
+                    <div key={sch._id} className="admin-schedule-card accepted" style={{borderLeft: `4px solid ${borderColor}`}}>
                       <div><strong>{sch.eventType || sch.title}</strong></div>
                       {sch.description && <div style={{color:'#666', marginBottom:'2px', whiteSpace:'pre-line'}}>{sch.description}</div>}
                       {sch.location && <div style={{color:'#888', fontSize:'0.97rem', marginBottom:'2px'}}>Location: {sch.location}</div>}
+                      {sch.branchLocation && <div style={{color:'#888', fontSize:'0.97rem', marginBottom:'2px'}}>Branch: {sch.branchLocation}</div>}
                       <div>Date: {sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#4CAF50'}}>Accepted</span></div>
@@ -171,7 +183,7 @@ const AdminSupplierSchedules = () => {
                         <button style={{background:'#9e9e9e',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer'}} onClick={() => handleDeleteAccepted(sch._id)}>Delete</button>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </>
             )}
@@ -180,41 +192,53 @@ const AdminSupplierSchedules = () => {
                 <div className="admin-schedules-list">
                   {declined.filter(sch => {
                     if (branchFilter === 'all') return true;
-                    const location = (sch.location || '').toLowerCase();
+                    const branch = (sch.branchLocation || '').toLowerCase();
                     if (branchFilter === 'sta-fe') {
-                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                      return branch.includes('sta') && (branch.includes('fe') || branch.includes('nueva vizcaya'));
                     }
                     if (branchFilter === 'la-trinidad') {
-                      return location.includes('la trinidad') || location.includes('benguet');
+                      return branch.includes('la trinidad') || branch.includes('benguet');
                     }
                     if (branchFilter === 'maddela') {
-                      return location.includes('maddela') || location.includes('quirino');
+                      return branch.includes('maddela') || branch.includes('quirino');
                     }
                     return true;
                   }).length === 0 ? <div>No declined schedules.</div> : declined.filter(sch => {
                     if (branchFilter === 'all') return true;
-                    const location = (sch.location || '').toLowerCase();
+                    const branch = (sch.branchLocation || '').toLowerCase();
                     if (branchFilter === 'sta-fe') {
-                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                      return branch.includes('sta') && (branch.includes('fe') || branch.includes('nueva vizcaya'));
                     }
                     if (branchFilter === 'la-trinidad') {
-                      return location.includes('la trinidad') || location.includes('benguet');
+                      return branch.includes('la trinidad') || branch.includes('benguet');
                     }
                     if (branchFilter === 'maddela') {
-                      return location.includes('maddela') || location.includes('quirino');
+                      return branch.includes('maddela') || branch.includes('quirino');
                     }
                     return true;
-                  }).map(sch => (
-                    <div key={sch._id} className="admin-schedule-card declined">
+                  }).map(sch => {
+                    // Determine border color based on branchLocation
+                    let borderColor = '#FFD700'; // Default yellow
+                    const branch = (sch.branchLocation || '').toLowerCase();
+                    if (branch.includes('sta') && (branch.includes('fe') || branch.includes('nueva vizcaya'))) {
+                      borderColor = '#FF6B6B'; // Red for Sta. Fe
+                    } else if (branch.includes('la trinidad') || branch.includes('benguet')) {
+                      borderColor = '#4CAF50'; // Green for La Trinidad
+                    } else if (branch.includes('maddela') || branch.includes('quirino')) {
+                      borderColor = '#2196F3'; // Blue for Maddela
+                    }
+                    return (
+                    <div key={sch._id} className="admin-schedule-card declined" style={{borderLeft: `4px solid ${borderColor}`}}>
                       <div><strong>{sch.eventType || sch.title}</strong></div>
                       {sch.description && <div style={{color:'#666', marginBottom:'2px', whiteSpace:'pre-line'}}>{sch.description}</div>}
                       {sch.location && <div style={{color:'#888', fontSize:'0.97rem', marginBottom:'2px'}}>Location: {sch.location}</div>}
+                      {sch.branchLocation && <div style={{color:'#888', fontSize:'0.97rem', marginBottom:'2px'}}>Branch: {sch.branchLocation}</div>}
                       <div>Date: {sch.date}</div>
                       <div>Supplier: {sch.supplierName || sch.supplierId}</div>
                       <div>Status: <span style={{color:'#f44336'}}>Declined</span></div>
                       <button style={{marginTop:'8px',background:'#f44336',color:'#fff',border:'none',borderRadius:'4px',padding:'6px 24px',fontWeight:'600',cursor:'pointer',display:'inline-block'}} onClick={() => handleDeleteDeclined(sch._id)}>Delete</button>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </>
             )}

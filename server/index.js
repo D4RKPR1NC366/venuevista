@@ -1042,6 +1042,11 @@ app.post('/api/admin/suppliers/:id/notify', async (req, res) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
+    // Get branch location from supplier's branchContacts (use first one if multiple)
+    const branchLocation = supplier.branchContacts && supplier.branchContacts.length > 0
+      ? supplier.branchContacts[0]
+      : null;
+
     // Create a schedule entry in the scheduleCalendar database
     const schedule = new Schedule({
       title: `${eventType}${supplier.companyName ? ' - ' + supplier.companyName : ''}`,
@@ -1053,6 +1058,7 @@ app.post('/api/admin/suppliers/:id/notify', async (req, res) => {
       supplierId: supplier.email,
       supplierName: `${supplier.firstName} ${supplier.lastName}`,
       eventType: eventType, // Store the actual event type separately
+      branchLocation: branchLocation,
       status: 'pending' // Initial status is pending
     });
 
@@ -1367,6 +1373,7 @@ app.get('/api/revenue', async (req, res) => {
   try {
     const filter = req.query.filter || 'thisMonth';
     const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+    const branch = req.query.branch || 'all';
     const now = new Date();
     let startDate;
     let endDate;
@@ -1407,23 +1414,38 @@ app.get('/api/revenue', async (req, res) => {
       }
     }
 
+    // Build query with optional branch filter
+    const dateQuery = { date: { $gte: startDate, $lte: endDate } };
+    
     // Get all relevant bookings for the selected year
     const [finishedBookings, approvedBookings] = await Promise.all([
-      FinishedBooking.find({
-        date: { $gte: startDate, $lte: endDate }
-      }),
-      ApprovedBooking.find({
-        date: { $gte: startDate, $lte: endDate }
-      })
+      FinishedBooking.find(dateQuery),
+      ApprovedBooking.find(dateQuery)
     ]);
 
     // Combine and process bookings
-    const allBookings = [...finishedBookings, ...approvedBookings];
+    let allBookings = [...finishedBookings, ...approvedBookings];
+    
+    // Filter by branch if specified
+    if (branch !== 'all') {
+      allBookings = allBookings.filter(booking => {
+        const branchLocation = (booking.branchLocation || '').toLowerCase();
+        if (branch === 'santafe') {
+          return branchLocation.includes('sta') && branchLocation.includes('fe') && branchLocation.includes('nueva vizcaya');
+        } else if (branch === 'latrinidad') {
+          return branchLocation.includes('la trinidad') && branchLocation.includes('benguet');
+        } else if (branch === 'maddela') {
+          return branchLocation.includes('maddela') && branchLocation.includes('quirino');
+        }
+        return false;
+      });
+    }
     
     console.log('Revenue calculation - Found bookings:', {
       finished: finishedBookings.length,
       approved: approvedBookings.length,
-      total: allBookings.length
+      total: allBookings.length,
+      branch: branch
     });
     
     // Initialize array for all months

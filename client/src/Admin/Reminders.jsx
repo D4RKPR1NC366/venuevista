@@ -63,6 +63,7 @@ export default function Reminders() {
               type: 'Booking',
               person: b.name || b.contact || b.email || '',
               location: b.eventVenue || '',
+              branch: b.branchLocation || '',
               description: b.specialRequest || '',
               status: b.status || '',
             };
@@ -84,6 +85,7 @@ export default function Reminders() {
             type: 'Appointment',
             person: a.clientName || a.clientEmail || '',
             location: a.location || '',
+            branch: a.branchLocation || '',
             description: a.description || '',
             status: a.status || '',
           };
@@ -99,6 +101,7 @@ export default function Reminders() {
           title: s.title || s.type || 'Schedule',
           person: s.person || '',
           location: s.location || '',
+          branch: s.branchLocation || '',
           description: s.description || '',
         }));
 
@@ -147,18 +150,18 @@ export default function Reminders() {
         return true;
       });
     }
-    // Filter by branch (UI only - matching location text)
+    // Filter by branch (matching branchLocation field)
     if (branchFilter !== 'all') {
       filtered = filtered.filter(reminder => {
-        const location = (reminder.location || '').toLowerCase();
+        const branch = (reminder.branch || '').toLowerCase();
         if (branchFilter === 'sta-fe') {
-          return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya');
+          return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
         }
         if (branchFilter === 'la-trinidad') {
-          return location.includes('la trinidad') || location.includes('benguet');
+          return branch.includes('la trinidad') && branch.includes('benguet');
         }
         if (branchFilter === 'maddela') {
-          return location.includes('maddela') || location.includes('quirino');
+          return branch.includes('maddela') && branch.includes('quirino');
         }
         return true;
       });

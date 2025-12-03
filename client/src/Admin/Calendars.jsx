@@ -137,7 +137,7 @@ export default function Calendars() {
               type: 'Booking',
               person: b.name || b.contact || b.email || '',
               date: dateStr,
-              location: b.eventVenue || '',
+              location: b.branchLocation || b.eventVenue || '',
               description: b.specialRequest || b.details || '',
               status: b.status || '',
             };
@@ -159,16 +159,29 @@ export default function Calendars() {
             type: 'Appointment',
             person: a.clientName || a.clientEmail,
             date: dateStr,
-            location: a.location || '',
+            location: a.branchLocation || a.location || '', // Use branchLocation for color coding
             description: a.description || '',
             status: a.status || '',
           };
-        });
+        })
+        .filter(a => a.status === 'upcoming'); // Only show upcoming appointments on calendar
+
+        // Map accepted schedules to ensure branchLocation is used for location field (for color coding)
+        const acceptedScheduleEvents = (Array.isArray(acceptedSchedules) ? acceptedSchedules : []).map(s => ({
+          ...s,
+          location: s.branchLocation || s.location || ''
+        }));
+
+        // Map regular schedules to ensure branchLocation is used for location field (for color coding)
+        const scheduleEvents = (Array.isArray(schedules) ? schedules : []).map(s => ({
+          ...s,
+          location: s.branchLocation || s.location || ''
+        }));
 
         // Merge all events: schedules, accepted schedules, booking events, and appointment events
         const allEvents = [
-          ...(Array.isArray(schedules) ? schedules : []),
-          ...(Array.isArray(acceptedSchedules) ? acceptedSchedules : []),
+          ...scheduleEvents,
+          ...acceptedScheduleEvents,
           ...bookingEvents,
           ...appointmentEvents
         ];
@@ -216,17 +229,17 @@ export default function Calendars() {
     return events.filter(ev => ev.date === d);
   };
 
-    // Helper to get color based on location
+    // Helper to get color based on branch location
     function getLocationColor(location) {
       if (!location) return '#ffe082'; // default yellow
       const loc = location.toLowerCase();
       
       // Sta Fe, Nueva Vizcaya - Red
-      if ((loc.includes('santa fe') || loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe')) && loc.includes('nueva vizcaya')) {
+      if (loc.includes('sta') && loc.includes('fe') && loc.includes('nueva vizcaya')) {
         return 'rgba(255, 89, 89, 1)'; // light red
       }
       // La Trinidad, Benguet - Green
-      if ((loc.includes('la trinidad') || loc.includes('latrinidad')) && loc.includes('benguet')) {
+      if (loc.includes('la trinidad') && loc.includes('benguet')) {
         return 'rgba(57, 247, 126, 1)'; // light green
       }
       // Maddela, Quirino - Blue

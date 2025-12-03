@@ -9,6 +9,8 @@ const supplierScheduleBaseSchema = new mongoose.Schema({
     description: { type: String },
     supplierId: { type: String, required: true },
     supplierName: { type: String, required: true },
+    eventType: { type: String },
+    branchLocation: { type: String },
     status: { type: String, enum: ['accepted', 'declined'], required: true },
     createdAt: { type: Date, default: Date.now },
     actionDate: { type: Date, default: Date.now }
