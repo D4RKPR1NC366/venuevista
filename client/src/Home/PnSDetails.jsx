@@ -108,22 +108,27 @@ export default function PnSDetails() {
   useEffect(() => {
     // Try to get category from location.state or from query param
     let cat = '';
-    if (location.state && location.state.category && location.state.category.title) {
-      cat = location.state.category.title;
+    let categoryProducts = [];
+    if (location.state && location.state.category) {
+      cat = location.state.category.title || '';
+      // Use the filtered products passed from Home.jsx (already filtered by branch)
+      categoryProducts = location.state.category.products || [];
+      setCategoryTitle(cat);
+      setProducts(Array.isArray(categoryProducts) ? categoryProducts : []);
     } else {
       // fallback: try to get from URL (e.g. /pns-details?category=we)
       const params = new URLSearchParams(window.location.search);
       cat = params.get('category') || '';
-    }
-    setCategoryTitle(cat);
-    if (cat) {
-      // Fetch products for this category from API
-  fetch(`${API_BASE}/products/${encodeURIComponent(cat)}`)
-        .then(res => res.json())
-        .then(data => setProducts(Array.isArray(data) ? data : []))
-        .catch(() => setProducts([]));
-    } else {
-      setProducts([]);
+      setCategoryTitle(cat);
+      if (cat) {
+        // Fetch products for this category from API (no branch filter applied)
+        fetch(`${API_BASE}/products/${encodeURIComponent(cat)}`)
+          .then(res => res.json())
+          .then(data => setProducts(Array.isArray(data) ? data : []))
+          .catch(() => setProducts([]));
+      } else {
+        setProducts([]);
+      }
     }
   }, [location]);
 
@@ -214,11 +219,37 @@ export default function PnSDetails() {
                 </div>
                   <div style={{ padding: 24, paddingTop: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 6, textAlign: 'left', width: '100%' }}>{prod.title}</div>
                         {prod.price && (
-                          <div style={{ textAlign: 'left', color: '#888', fontWeight: 600, fontSize: 15, marginBottom: 4, width: '100%' }}>
+                          <div style={{ textAlign: 'left', color: '#888', fontWeight: 600, fontSize: 15, marginBottom: 8, width: '100%' }}>
                             PHP {prod.price}
+                          </div>
+                        )}
+                        {/* Branch availability indicator */}
+                        {prod.branches && prod.branches.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                            {prod.branches.map((branch, branchIdx) => (
+                              <span 
+                                key={branchIdx}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '4px 10px',
+                                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                  color: '#fff',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  borderRadius: 12,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                  boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)'
+                                }}
+                              >
+                                <span style={{ marginRight: 4 }}>📍</span>
+                                {branch.replace(', ', ' ')}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>

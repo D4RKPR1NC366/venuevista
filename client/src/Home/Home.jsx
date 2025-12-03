@@ -14,6 +14,7 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [eventType, setEventType] = useState('all');
+  const [branchFilter, setBranchFilter] = useState('all');
   const [bgImages, setBgImages] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
   const [reviewIndex, setReviewIndex] = useState(0); // no longer used for scrolling
@@ -45,17 +46,22 @@ const Home = () => {
       .catch(() => setUserReviews([]));
   }, []);
 
-  // Filter categories by event type
+  // Filter categories by event type and products by branch
   useEffect(() => {
-    if (eventType === 'all') {
-      setFilteredCategories(categories);
-    } else {
-      setFilteredCategories(categories.filter(cat => {
-        // Assume each category has an 'events' array property listing applicable event types
-        return Array.isArray(cat.events) && cat.events.includes(eventType);
+    let filtered = categories;
+    if (eventType !== 'all') {
+      filtered = filtered.filter(cat => Array.isArray(cat.events) && cat.events.includes(eventType));
+    }
+    if (branchFilter !== 'all') {
+      filtered = filtered.map(cat => ({
+        ...cat,
+        products: Array.isArray(cat.products)
+          ? cat.products.filter(prod => Array.isArray(prod.branches) && prod.branches.includes(branchFilter))
+          : []
       }));
     }
-  }, [categories, eventType]);
+    setFilteredCategories(filtered);
+  }, [categories, eventType, branchFilter]);
 
   const allReviews = userReviews;
 
@@ -120,6 +126,13 @@ const Home = () => {
       .then(res => setEventTypes(Array.isArray(res.data) ? res.data : []))
       .catch(() => setEventTypes([]));
   }, []);
+
+  const BRANCHES = [
+    { value: 'all', label: 'All Branches' },
+    { value: 'Maddela, Quirino', label: 'Maddela, Quirino' },
+    { value: 'La Trinidad, Benguet', label: 'La Trinidad, Benguet' },
+    { value: 'Santa Fe, Nueva Vizcaya', label: 'Santa Fe, Nueva Vizcaya' }
+  ];
 
   return (
     <div className="home-root">
@@ -266,9 +279,12 @@ const Home = () => {
 
       <section className="home-services" id="services" style={{ background: '#ffffffff', padding: '2rem 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <h2 className="home-services-title" style={{ color: 'black', fontSize: '3rem', fontWeight: 500, textAlign: 'center', margin: 0 }}>Products and Services</h2>
+          <h2 className="home-services-title" style={{ color: 'black', fontSize: '3rem', fontWeight: 500, textAlign: 'center', margin: 0 }}>
+            Products and Services
+          </h2>
         </div>
-        <div className="home-services-filter-row" style={{ marginBottom: '1rem' }}>
+        <div style={{ height: '1.5rem' }}></div> {/* Added extra gap between title and filters */}
+        <div className="home-services-filter-row" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'center' }}>
           <label htmlFor="eventType" style={{ marginRight: '0.5rem' }}>Filter by Event:</label>
           <select
             id="eventType"
@@ -279,6 +295,17 @@ const Home = () => {
             <option value="all">All Events</option>
             {eventTypes.map(type => (
               <option key={type._id || type.name} value={type.name}>{type.name.charAt(0).toUpperCase() + type.name.slice(1)}</option>
+            ))}
+          </select>
+          <label htmlFor="branchFilter" style={{ marginLeft: '1rem' }}>Filter by Goldust Creations Branch:</label>
+          <select
+            id="branchFilter"
+            value={branchFilter}
+            onChange={e => setBranchFilter(e.target.value)}
+            style={{ padding: '0.4rem', borderRadius: '4px', background: '#fff', color: '#222', border: '1px solid #ccc' }}
+          >
+            {BRANCHES.map(branch => (
+              <option key={branch.value} value={branch.value}>{branch.label}</option>
             ))}
           </select>
         </div>

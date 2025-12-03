@@ -62,6 +62,12 @@ export default function ProductsAndServices() {
   const [showEventTypeModal, setShowEventTypeModal] = useState(false);
   const [newEventType, setNewEventType] = useState({ name: '', description: '' });
   const [editEventTypeIdx, setEditEventTypeIdx] = useState(null);
+  const BRANCHES = [
+    'Maddela, Quirino',
+    'La Trinidad, Benguet',
+    'Santa Fe, Nueva Vizcaya'
+  ];
+  const [productBranches, setProductBranches] = useState([]);
 
 
   // Fetch categories from API
@@ -122,7 +128,7 @@ export default function ProductsAndServices() {
       alert('Please enter a category title');
       return;
     }
-    const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents };
+        const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents, branches: productBranches };
     try {
       const res = await fetch(`${API_BASE}/categories`, {
         method: 'POST',
@@ -725,6 +731,7 @@ export default function ProductsAndServices() {
                     available: productAvailable,
                     additionals: showAdditionals ? additionals.filter(a => a.description && a.price) : [],
                     categoryTitle: selectedCategory.title,
+                    branches: productBranches,
                   };
                   try {
                     const res = await fetch(`${API_BASE}/products`, {
@@ -940,6 +947,28 @@ export default function ProductsAndServices() {
                       multiline
                       minRows={3}
                     />
+                    {/* Branch selection checkboxes */}
+                    <div style={{ margin: '16px 0' }}>
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>Available In Branches:</div>
+                      {BRANCHES.map(branch => (
+                        <label key={branch} style={{ marginRight: 16 }}>
+                          <input
+                            type="checkbox"
+                            value={branch}
+                            checked={productBranches.includes(branch)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setProductBranches([...productBranches, branch]);
+                              } else {
+                                setProductBranches(productBranches.filter(b => b !== branch));
+                              }
+                            }}
+                            style={{ marginRight: 4 }}
+                          />
+                          {branch}
+                        </label>
+                      ))}
+                    </div>
                     <Button
                       variant={showAdditionals ? "contained" : "outlined"}
                       color={showAdditionals ? "primary" : "secondary"}
@@ -1119,8 +1148,34 @@ export default function ProductsAndServices() {
                           <div style={{ padding: 24, paddingTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                             <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 6, textAlign: 'left', width: '100%' }}>{prod.title}</div>
                             {prod.price && (
-                              <div style={{ textAlign: 'left', color: '#888', fontWeight: 600, fontSize: 15, marginBottom: 4, width: '100%' }}>
+                              <div style={{ textAlign: 'left', color: '#888', fontWeight: 600, fontSize: 15, marginBottom: 8, width: '100%' }}>
                                 PHP {prod.price}
+                              </div>
+                            )}
+                            {/* Branch availability indicator */}
+                            {prod.branches && prod.branches.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, marginBottom: 4 }}>
+                                {prod.branches.map((branch, branchIdx) => (
+                                  <span 
+                                    key={branchIdx}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      padding: '4px 10px',
+                                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                      color: '#fff',
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      borderRadius: 12,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)'
+                                    }}
+                                  >
+                                    <span style={{ marginRight: 4 }}>📍</span>
+                                    {branch.replace(', ', ' ')}
+                                  </span>
+                                ))}
                               </div>
                             )}
                             <div style={{ fontSize: 13, color: prod.available === false ? '#e53935' : '#43a047', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1377,6 +1432,30 @@ export default function ProductsAndServices() {
                             multiline
                             minRows={3}
                           />
+                          {/* Branch selection checkboxes for edit */}
+                          <div style={{ margin: '16px 0' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 8 }}>Available In Branches:</div>
+                            {BRANCHES.map(branch => (
+                              <label key={branch} style={{ marginRight: 16 }}>
+                                <input
+                                  type="checkbox"
+                                  value={branch}
+                                  checked={editProductData.branches?.includes(branch)}
+                                  onChange={e => {
+                                    let updated;
+                                    if (e.target.checked) {
+                                      updated = [...(editProductData.branches || []), branch];
+                                    } else {
+                                      updated = (editProductData.branches || []).filter(b => b !== branch);
+                                    }
+                                    setEditProductData({ ...editProductData, branches: updated });
+                                  }}
+                                  style={{ marginRight: 4 }}
+                                />
+                                {branch}
+                              </label>
+                            ))}
+                          </div>
                           {/* Additionals Section */}
                           <div style={{ marginTop: 16, width: '100%' }}>
                             <div style={{ fontWeight: 600, marginBottom: 12, fontSize: '1.1rem' }}>Additionals</div>
