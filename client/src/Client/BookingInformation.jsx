@@ -269,11 +269,47 @@ const BookingInformation = () => {
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Type:</strong> {selectedBooking.eventType}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Date:</strong> {selectedBooking.date ? new Date(selectedBooking.date).toLocaleDateString() : ''}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Venue:</strong> {selectedBooking.eventVenue}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Branch Location:</strong> {selectedBooking.branchLocation || 'Not specified'}</div>
+                    {selectedBooking.theme && <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Theme:</strong> {selectedBooking.theme}</div>}
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Guest Count:</strong> {selectedBooking.guestCount}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Appointment Method:</strong> {selectedBooking.outsidePH === 'yes' ? 'Face to Face' : selectedBooking.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</div>
                   </div>
                 </div>
               </div>
+              
+              {/* Assigned Suppliers Section */}
+              {selectedBooking.suppliers && selectedBooking.suppliers.length > 0 && (
+                <div style={{marginBottom: 24}}>
+                  <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Assigned Suppliers</h3>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12}}>
+                    {selectedBooking.suppliers.map((supplier, idx) => (
+                      <div key={supplier._id || idx} style={{
+                        background: '#fff3cd',
+                        borderRadius: 10,
+                        padding: 16,
+                        border: '2px solid #F3C13A',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                      }}>
+                        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: '#222' }}>
+                          {supplier.companyName || 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
+                          📧 {supplier.email || 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#666' }}>
+                          📞 {supplier.phone || supplier.contact || 'N/A'}
+                        </div>
+                        {supplier.branchContacts && supplier.branchContacts.length > 0 && (
+                          <div style={{ fontSize: 13, color: '#888', marginTop: 6 }}>
+                            📍 {supplier.branchContacts.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Services and Products Availed</h3>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: 24}}>
                 {selectedBooking.products && selectedBooking.products.length > 0 ? (

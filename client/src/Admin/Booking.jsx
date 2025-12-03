@@ -27,6 +27,7 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
           console.log('Total suppliers:', data.length);
           data.forEach(s => {
             console.log('Supplier:', s.companyName);
+            console.log('  _id:', s._id);
             console.log('  branchContacts:', s.branchContacts);
           });
           setSuppliers(data);
@@ -228,19 +229,27 @@ export default function AdminBooking() {
   const handleApprove = async (date, desc, location, supplierIds) => {
     // Move booking to approved in backend
     const booking = approveModal.booking;
+    console.log('=== APPROVAL PROCESS ===');
+    console.log('Supplier IDs being sent:', supplierIds);
+    console.log('Supplier IDs type:', typeof supplierIds, Array.isArray(supplierIds));
     try {
       // 1. Add to approved bookings in backend with suppliers
-      await fetch('/api/bookings/approved', {
+      const approvalPayload = {
+        ...booking,
+        status: 'approved',
+        approvedDate: date,
+        approvedDesc: desc,
+        suppliers: supplierIds
+      };
+      console.log('Full approval payload suppliers:', approvalPayload.suppliers);
+      const response = await fetch('/api/bookings/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...booking,
-          status: 'approved',
-          approvedDate: date,
-          approvedDesc: desc,
-          suppliers: supplierIds
-        })
+        body: JSON.stringify(approvalPayload)
       });
+      const savedBooking = await response.json();
+      console.log('Saved booking returned from server:', savedBooking);
+      console.log('Saved booking suppliers:', savedBooking.suppliers);
       // 2. Remove from pending bookings in backend
       await fetch(`/api/bookings/pending/${booking._id}`, {
         method: 'DELETE'
