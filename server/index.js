@@ -478,6 +478,8 @@ const bookingBaseSchema = new mongoose.Schema({
   eventType: String,
   date: Date,
   eventVenue: String,
+  branchLocation: String,
+  theme: String,
   guestCount: Number,
   subTotal: Number, // undiscounted price
   promoId: String, // reference to the promo
