@@ -107,13 +107,11 @@ export default function ProductDetailsModal({ open, onClose, product, onEdit }) 
                 {price && <div style={{ color: '#888', fontWeight: 700, fontSize: 20, marginBottom: 24, letterSpacing: 1 }}>PHP {price}</div>}
               </div>
             </div>
-            {/* Description contents without card */}
+            {/* Description contents */}
             {description && (
-              <ul style={{ margin: '32px 0 0 0', paddingLeft: 18, fontSize: 17, color: '#222', width: '100%' }}>
-                {description.split(/\n|\r|•|\d+\./).filter(Boolean).map((line, idx) => (
-                  <li key={idx}>{line.trim()}</li>
-                ))}
-              </ul>
+              <div style={{ margin: '32px 0 0 0', fontSize: 17, color: '#222', width: '100%', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                {description}
+              </div>
             )}
           </div>
         </div>

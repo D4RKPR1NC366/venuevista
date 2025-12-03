@@ -69,6 +69,43 @@ export default function Reminders() {
             };
           });
 
+        // Create warning reminders for approved bookings without suppliers (within 2 weeks)
+        const now = new Date();
+        const twoWeeksFromNow = new Date();
+        twoWeeksFromNow.setDate(now.getDate() + 14);
+        
+        const missingSupplierReminders = approved
+          .filter(b => {
+            // Check if booking has no suppliers or empty suppliers array
+            const hasNoSuppliers = !b.suppliers || b.suppliers.length === 0;
+            if (!hasNoSuppliers || !b.date) return false;
+            
+            // Check if event is within 2 weeks
+            const eventDate = new Date(b.date);
+            return eventDate >= now && eventDate <= twoWeeksFromNow;
+          })
+          .map(b => {
+            let dateStr = '';
+            if (typeof b.date === 'string') {
+              dateStr = b.date.slice(0, 10);
+            } else {
+              const d = new Date(b.date);
+              dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            return {
+              _id: `warning-${b._id}`,
+              title: `⚠️ Missing Suppliers: ${b.eventType || 'Booking'}`,
+              date: dateStr,
+              type: 'Warning',
+              person: b.name || b.contact || b.email || '',
+              location: b.eventVenue || '',
+              branch: b.branchLocation || '',
+              description: `This booking has no assigned suppliers yet. Event date: ${dateStr}. Please assign suppliers soon.`,
+              status: 'urgent',
+              originalBookingId: b._id,
+            };
+          });
+
         // Map appointments to reminder-like objects
         const appointmentReminders = appointments.map(a => {
           let dateStr = '';
@@ -105,8 +142,8 @@ export default function Reminders() {
           description: s.description || '',
         }));
 
-        // Combine all reminders
-        setReminders([...scheduleReminders, ...bookingReminders, ...appointmentReminders]);
+        // Combine all reminders including missing supplier warnings
+        setReminders([...scheduleReminders, ...bookingReminders, ...appointmentReminders, ...missingSupplierReminders]);
       } catch (err) {
         console.error('Error fetching reminders:', err);
         setReminders([]);
@@ -147,6 +184,7 @@ export default function Reminders() {
         if (typeFilter === 'booking') return reminder.type === 'Booking';
         if (typeFilter === 'schedule') return reminder.type === 'Schedule' || reminder.type === 'Supplier';
         if (typeFilter === 'appointment') return reminder.type === 'Appointment';
+        if (typeFilter === 'warning') return reminder.type === 'Warning';
         return true;
       });
     }
@@ -202,6 +240,7 @@ export default function Reminders() {
                 <option value="booking">Booking Event Date</option>
                 <option value="schedule">Supplier Schedules</option>
                 <option value="appointment">Customer Appointments</option>
+                <option value="warning">⚠️ Missing Suppliers</option>
               </select>
               <label className="reminders-filter-label">Branch:</label>
               <select
@@ -244,15 +283,21 @@ export default function Reminders() {
                     dueLabel = 'Due in 2 Days';
                   }
                 }
+                const isWarning = reminder.type === 'Warning';
                 return (
                   <li
                     key={reminder._id}
                     className={`reminder-card${isDueSoon ? ' reminder-card-due-soon' : ''}`}
+                    style={isWarning ? { 
+                      background: 'linear-gradient(135deg, #ffebee 0%, #ffccbc 100%)', 
+                      border: '3px solid #d32f2f',
+                      boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
+                    } : {}}
                     onClick={() => { setSelectedReminder(reminder); setModalOpen(true); }}
                     title="Click to view details"
                   >
-                    <div className="reminder-card-title">{reminder.title}</div>
-                    <div className="reminder-card-date">Due: {typeof reminder.date === 'string' && reminder.date.includes('T') ? reminder.date.split('T')[0] : reminder.date}</div>
+                    <div className="reminder-card-title" style={isWarning ? { color: '#b71c1c', fontWeight: 800 } : {}}>{reminder.title}</div>
+                    <div className="reminder-card-date" style={isWarning ? { color: '#c62828', fontWeight: 600 } : {}}>Due: {typeof reminder.date === 'string' && reminder.date.includes('T') ? reminder.date.split('T')[0] : reminder.date}</div>
                     {isDueSoon && (
                       <div className="reminder-card-due-label">{dueLabel}</div>
                     )}

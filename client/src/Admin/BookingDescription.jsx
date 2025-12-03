@@ -76,6 +76,10 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
   const [selectedCategory, setSelectedCategory] = React.useState(null);
   const [categories, setCategories] = React.useState([]);
 
+  // Supplier management
+  const [allSuppliers, setAllSuppliers] = React.useState([]);
+  const [selectedSupplierIds, setSelectedSupplierIds] = React.useState([]);
+
   // PSGC API endpoints
   const PSGC_API = 'https://psgc.gitlab.io/api';
 
@@ -222,8 +226,27 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       
       // Reset venue dropdown
       setVenueDropdown({ province: '', city: '', barangay: '' });
+      
+      // Initialize selected supplier IDs from booking
+      if (booking.suppliers && Array.isArray(booking.suppliers)) {
+        const supplierIds = booking.suppliers.map(s => typeof s === 'string' ? s : s._id).filter(Boolean);
+        setSelectedSupplierIds(supplierIds);
+      } else {
+        setSelectedSupplierIds([]);
+      }
     }
   }, [booking, promos]);
+
+  // Fetch all suppliers when component mounts
+  React.useEffect(() => {
+    fetch('/api/admin/suppliers/approved')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Fetched suppliers for edit:', data);
+        setAllSuppliers(data);
+      })
+      .catch(err => console.error('Failed to fetch suppliers:', err));
+  }, []);
 
   // Handle payment proof file upload
   const handlePaymentProofUpload = (e) => {
@@ -898,39 +921,166 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
             </div>
           </div>
           {/* Assigned Suppliers Section */}
-          {editData.suppliers && editData.suppliers.length > 0 && (
-            <div style={{ marginBottom: 40, background: '#fff3cd', borderRadius: 12, padding: 20, border: '2px solid #F3C13A' }}>
-              <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14, color: '#222' }}>
-                Assigned Suppliers
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                {editData.suppliers.map((supplier, idx) => (
-                  <div key={supplier._id || idx} style={{
-                    background: 'white',
-                    borderRadius: 8,
-                    padding: 12,
-                    border: '1px solid #e0e0e0',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                  }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: '#222' }}>
-                      {supplier.companyName || 'N/A'}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 3 }}>
-                      📧 {supplier.email || 'N/A'}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#666' }}>
-                      📞 {supplier.phone || 'N/A'}
-                    </div>
-                    {supplier.branchContacts && supplier.branchContacts.length > 0 && (
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
-                        📍 {supplier.branchContacts.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+          <div style={{ marginBottom: 40, background: '#fff3cd', borderRadius: 12, padding: 20, border: '2px solid #F3C13A' }}>
+            <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14, color: '#222', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Assigned Suppliers
+              {isEditing && editData.branchLocation && (
+                <div style={{ fontSize: 13, color: '#666', fontWeight: 400 }}>
+                  Showing suppliers for: {editData.branchLocation}
+                </div>
+              )}
             </div>
-          )}
+
+            {isEditing ? (
+              <>
+                {/* Add Supplier Section in Edit Mode */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontWeight: 600, fontSize: 15, color: '#222', display: 'block', marginBottom: 8 }}>
+                    Add Suppliers (Hold Ctrl/Cmd to select multiple)
+                  </label>
+                  <select
+                    multiple
+                    value={selectedSupplierIds}
+                    onChange={(e) => {
+                      const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+                      setSelectedSupplierIds(selectedIds);
+                      // Update editData.suppliers with full supplier objects
+                      const selectedSuppliers = allSuppliers.filter(s => selectedIds.includes(s._id));
+                      setEditData(prev => ({ ...prev, suppliers: selectedSuppliers }));
+                    }}
+                    style={{
+                      width: '100%',
+                      minHeight: '120px',
+                      padding: '8px',
+                      border: '2px solid #F3C13A',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
+                  >
+                    {allSuppliers
+                      .filter(supplier => {
+                        // Filter by branch location
+                        if (!editData.branchLocation) return true;
+                        if (!supplier.branchContacts || supplier.branchContacts.length === 0) return false;
+                        return supplier.branchContacts.some(branch => 
+                          branch.toLowerCase().trim() === editData.branchLocation.toLowerCase().trim()
+                        );
+                      })
+                      .map(supplier => (
+                        <option key={supplier._id} value={supplier._id}>
+                          {supplier.companyName} - {supplier.email}
+                        </option>
+                      ))}
+                  </select>
+                  {allSuppliers.filter(supplier => {
+                    if (!editData.branchLocation) return true;
+                    if (!supplier.branchContacts || supplier.branchContacts.length === 0) return false;
+                    return supplier.branchContacts.some(branch => 
+                      branch.toLowerCase().trim() === editData.branchLocation.toLowerCase().trim()
+                    );
+                  }).length === 0 && (
+                    <div style={{ color: '#e53935', fontSize: 14, marginTop: 8 }}>
+                      No suppliers available for {editData.branchLocation}
+                    </div>
+                  )}
+                </div>
+
+                {/* Display selected suppliers with remove button */}
+                {editData.suppliers && editData.suppliers.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                    {editData.suppliers.map((supplier, idx) => (
+                      <div key={supplier._id || idx} style={{
+                        background: 'white',
+                        borderRadius: 8,
+                        padding: 12,
+                        border: '1px solid #e0e0e0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        position: 'relative'
+                      }}>
+                        <button
+                          onClick={() => {
+                            const newSuppliers = editData.suppliers.filter((_, i) => i !== idx);
+                            const newIds = newSuppliers.map(s => s._id);
+                            setEditData(prev => ({ ...prev, suppliers: newSuppliers }));
+                            setSelectedSupplierIds(newIds);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            background: '#e53935',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            padding: '4px 8px',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                          title="Remove supplier"
+                        >
+                          ✕
+                        </button>
+                        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: '#222', paddingRight: 40 }}>
+                          {supplier.companyName || 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#666', marginBottom: 3 }}>
+                          📧 {supplier.email || 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#666' }}>
+                          📞 {supplier.phone || 'N/A'}
+                        </div>
+                        {supplier.branchContacts && supplier.branchContacts.length > 0 && (
+                          <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+                            📍 {supplier.branchContacts.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: '#888', fontSize: 15, padding: 20, textAlign: 'center', background: 'white', borderRadius: 8 }}>
+                    No suppliers assigned yet
+                  </div>
+                )}
+              </>
+            ) : (
+              /* View Mode - Show suppliers without edit controls */
+              editData.suppliers && editData.suppliers.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                  {editData.suppliers.map((supplier, idx) => (
+                    <div key={supplier._id || idx} style={{
+                      background: 'white',
+                      borderRadius: 8,
+                      padding: 12,
+                      border: '1px solid #e0e0e0',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}>
+                      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: '#222' }}>
+                        {supplier.companyName || 'N/A'}
+                      </div>
+                      <div style={{ fontSize: 13, color: '#666', marginBottom: 3 }}>
+                        📧 {supplier.email || 'N/A'}
+                      </div>
+                      <div style={{ fontSize: 13, color: '#666' }}>
+                        📞 {supplier.phone || 'N/A'}
+                      </div>
+                      {supplier.branchContacts && supplier.branchContacts.length > 0 && (
+                        <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+                          📍 {supplier.branchContacts.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: '#888', fontSize: 15, padding: 20, textAlign: 'center', background: 'white', borderRadius: 8 }}>
+                  No suppliers assigned
+                </div>
+              )
+            )}
+          </div>
 
           {/* Services and Products Availed */}
           <div style={{ marginBottom: 40 }}>
