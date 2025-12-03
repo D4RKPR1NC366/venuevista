@@ -94,6 +94,8 @@ const SignUp = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -396,28 +398,82 @@ const SignUp = () => {
                   required
                   className={`auth-input${type !== 'supplier' ? ' auth-input-span' : ''}`}
                 />
-                <TextField
-                  label="Password"
-                  name="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  fullWidth
-                  margin="dense"
-                  required
-                  className="auth-input"
-                />
-                <TextField
-                  label="Confirm Password"
-                  name="confirmPassword"
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  fullWidth
-                  margin="dense"
-                  required
-                  className="auth-input"
-                />
+                <Box sx={{ position: 'relative' }}>
+                  <TextField
+                    label="Password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="dense"
+                    required
+                    className="auth-input"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    sx={{
+                      position: 'absolute',
+                      right: 8,
+                      top: 12,
+                      minWidth: 0,
+                      padding: '2px 8px',
+                      fontSize: '0.85rem',
+                      color: '#111',
+                      background: '#fff',
+                      boxShadow: 'none',
+                      outline: 'none',
+                      border: 'none',
+                      '&:focus': { outline: 'none', boxShadow: 'none' },
+                      '&:active': { outline: 'none', boxShadow: 'none' },
+                      '&:hover': { background: '#fff' }
+                    }}
+                    disableElevation
+                    disableFocusRipple
+                    disableRipple
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </Button>
+                </Box>
+                <Box sx={{ position: 'relative' }}>
+                  <TextField
+                    label="Confirm Password"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="dense"
+                    required
+                    className="auth-input"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    sx={{
+                      position: 'absolute',
+                      right: 8,
+                      top: 12,
+                      minWidth: 0,
+                      padding: '2px 8px',
+                      fontSize: '0.85rem',
+                      color: '#111',
+                      background: '#fff',
+                      boxShadow: 'none',
+                      outline: 'none',
+                      border: 'none',
+                      '&:focus': { outline: 'none', boxShadow: 'none' },
+                      '&:active': { outline: 'none', boxShadow: 'none' },
+                      '&:hover': { background: '#fff' }
+                    }}
+                    disableElevation
+                    disableFocusRipple
+                    disableRipple
+                  >
+                    {showConfirmPassword ? 'Hide' : 'Show'}
+                  </Button>
+                </Box>
               </Box>
               <FormGroup className="auth-checkbox-group">
                 <FormControlLabel

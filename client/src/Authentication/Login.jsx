@@ -21,6 +21,7 @@ import Alert from '@mui/material/Alert';
 
 const Login = () => {
   const [form, setForm] = useState({ emailOrPhone: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [showMFADialog, setShowMFADialog] = useState(false);
   const [mfaCode, setMFACode] = useState("");
@@ -189,17 +190,44 @@ const Login = () => {
                 required
                 className="auth-input"
               />
-              <TextField
-                label="Password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                fullWidth
-                margin="dense"
-                required
-                className="auth-input"
-              />
+              <Box sx={{ position: 'relative' }}>
+                <TextField
+                  label="Password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  fullWidth
+                  margin="dense"
+                  required
+                  className="auth-input"
+                />
+                <Button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  sx={{
+                    position: 'absolute',
+                    right: 8,
+                    top: 12,
+                    minWidth: 0,
+                    padding: '2px 8px',
+                    fontSize: '0.85rem',
+                    color: '#111',
+                    background: '#fff',
+                    boxShadow: 'none',
+                    outline: 'none',
+                    border: 'none',
+                    '&:focus': { outline: 'none', boxShadow: 'none' },
+                    '&:active': { outline: 'none', boxShadow: 'none' },
+                    '&:hover': { background: '#fff' }
+                  }}
+                  disableElevation
+                  disableFocusRipple
+                  disableRipple
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </Button>
+              </Box>
               <Box className="auth-form-row">
                 <FormGroup>
                   <FormControlLabel

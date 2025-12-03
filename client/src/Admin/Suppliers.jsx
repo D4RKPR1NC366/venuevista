@@ -14,6 +14,20 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
 export default function Suppliers() {
+  // Password visibility state for suppliers
+  const [visiblePasswords, setVisiblePasswords] = useState({});
+    // Handler to show password after admin authentication
+    const handleShowPassword = async (supplierId, supplierObj) => {
+      console.log('Supplier object:', supplierObj);
+      const adminPassword = window.prompt('Enter admin password to view supplier password:');
+      // Replace this with your actual admin password check
+      // For demo, hardcoded password is 'admin123'. In production, use a secure API call.
+      if (adminPassword === 'admin123') {
+        setVisiblePasswords(prev => ({ ...prev, [supplierId]: true }));
+      } else if (adminPassword !== null) {
+        window.alert('Incorrect admin password.');
+      }
+    };
   // Notification dialog state
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifySupplierId, setNotifySupplierId] = useState(null);
@@ -214,6 +228,8 @@ export default function Suppliers() {
                     <TableCell>Phone</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Event Types</TableCell>
+                    <TableCell>Password</TableCell>
+                    <TableCell>Debug</TableCell>
                     {activeTab === 1 && <TableCell>Availability</TableCell>}
                     {activeTab === 0 && <TableCell>Actions</TableCell>}
                     {activeTab === 1 && <TableCell>Actions</TableCell>}
@@ -254,6 +270,28 @@ export default function Suppliers() {
                               );
                             })
                           ) : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {visiblePasswords[supplier._id]
+                            ? <span>{
+                                supplier.password ||
+                                supplier.supplierPassword ||
+                                supplier.userPassword ||
+                                supplier.pass ||
+                                supplier.pw ||
+                                '-'
+                              }</span>
+                            : <>
+                                <span style={{ letterSpacing: 2 }}>••••••••</span>
+                                <button
+                                  style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 4, border: '1px solid #ccc', background: '#f5f5f5', cursor: 'pointer', fontSize: '0.9rem' }}
+                                  onClick={() => handleShowPassword(supplier._id, supplier)}
+                                >Show</button>
+                              </>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <span style={{ fontSize: '0.7rem', color: '#888' }}>{Object.keys(supplier).join(', ')}</span>
                         </TableCell>
                         {activeTab === 0 && (
                           <TableCell>
