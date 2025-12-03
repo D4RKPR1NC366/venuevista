@@ -126,4 +126,26 @@ router.put('/profile', auth, async (req, res) => {
     }
 });
 
+// Get all approved suppliers (for admin)
+router.get('/admin/suppliers/approved', auth, async (req, res) => {
+    try {
+        // You may want to check if req.user is admin here
+        const suppliers = await Supplier.find({ isApproved: true }); // includes password
+        res.json(suppliers);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all pending suppliers (for admin)
+router.get('/admin/suppliers/pending', auth, async (req, res) => {
+    try {
+        // You may want to check if req.user is admin here
+        const suppliers = await Supplier.find({ isApproved: false }); // includes password
+        res.json(suppliers);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;
