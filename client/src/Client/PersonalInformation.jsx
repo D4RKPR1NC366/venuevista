@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ClientSidebar from './ClientSidebar';
-import { TextField, Button, Divider, Switch, FormControlLabel } from '@mui/material';
+import { TextField, Button, Divider, Switch, FormControlLabel, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { users } from '../services/api';
 import { toast } from 'react-toastify';
 import MFASettings from '../Authentication/MFASettings';
@@ -14,6 +14,10 @@ const PersonalInformation = () => {
   const navigate = useNavigate();
   const [editMode, setEditMode] = React.useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const [verifyPasswordOpen, setVerifyPasswordOpen] = useState(false);
+  const [verifyPasswordInput, setVerifyPasswordInput] = useState('');
   const [user, setUser] = React.useState({
     firstName: '',
     middleName: '',
@@ -26,7 +30,8 @@ const PersonalInformation = () => {
     isAvailable: true,
     companyName: '',
     eventTypes: [],
-    branchContacts: []
+    branchContacts: [],
+    location: { province: '', city: '', barangay: '' }
   });
   const [availableEventTypes, setAvailableEventTypes] = React.useState([]);
 
@@ -56,12 +61,17 @@ const PersonalInformation = () => {
           email: userData.email || '',
           phone: userData.phone || '',
           contact: userData.contact || '',
-          password: '********',
+          password: userData.password || '',
           role: userRole,
           isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
           companyName: userData.companyName || '',
           eventTypes: userData.eventTypes || [],
-          branchContacts: userData.branchContacts || []
+          branchContacts: userData.branchContacts || [],
+          location: {
+            province: userData.province || '',
+            city: userData.city || '',
+            barangay: userData.barangay || ''
+          }
         };
         
         console.log('Setting user state to:', newUserState);
@@ -167,12 +177,17 @@ const PersonalInformation = () => {
           email: userData.email || '',
           phone: userData.phone || '',
           contact: userData.contact || '',
-          password: '********',
+          password: userData.password || '',
           role: userRole,
           isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
           companyName: userData.companyName || '',
           eventTypes: userData.eventTypes || [],
-          branchContacts: userData.branchContacts || []
+          branchContacts: userData.branchContacts || [],
+          location: {
+            province: userData.province || '',
+            city: userData.city || '',
+            barangay: userData.barangay || ''
+          }
         };
         
         console.log('New user state after save:', newUserState);
@@ -185,6 +200,50 @@ const PersonalInformation = () => {
       console.error('Error updating profile:', error);
       toast.error(error.response?.data?.message || 'Failed to update profile');
     }
+  };
+
+  const handlePasswordReveal = () => {
+    setVerifyPasswordOpen(true);
+  };
+
+  const handlePasswordVerify = async () => {
+    try {
+      console.log('Verifying password for email:', user.email);
+      const response = await fetch('/api/auth/verify-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+          password: verifyPasswordInput
+        })
+      });
+
+      const data = await response.json();
+      console.log('Password verification response:', { ok: response.ok, status: response.status, data });
+
+      if (response.ok && data.success) {
+        setPasswordVerified(true);
+        setShowPassword(true);
+        setVerifyPasswordOpen(false);
+        setVerifyPasswordInput('');
+        toast.success('Password verified');
+      } else {
+        console.log('Password verification failed, showing error toast');
+        toast.error(data.error || 'Incorrect password');
+        setVerifyPasswordInput('');
+      }
+    } catch (error) {
+      console.error('Error verifying password:', error);
+      toast.error('Failed to verify password');
+      setVerifyPasswordInput('');
+    }
+  };
+
+  const handleCloseVerifyModal = () => {
+    setVerifyPasswordOpen(false);
+    setVerifyPasswordInput('');
   };
 
   React.useEffect(() => {
@@ -339,14 +398,45 @@ const PersonalInformation = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
                     <label htmlFor="password" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Password:</label>
-                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>&#8226;&#8226;&#8226;</span>
+                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
+                      {passwordVerified ? user.password : '•••••••••'}
+                    </span>
+                    {!passwordVerified && (
+                      <Button
+                        onClick={handlePasswordReveal}
+                        style={{
+                          marginLeft: 12,
+                          fontSize: '0.875rem',
+                          textTransform: 'none',
+                          minWidth: 60,
+                          padding: '4px 12px',
+                          background: '#F3C13A',
+                          color: '#000'
+                        }}
+                      >
+                        Reveal
+                      </Button>
+                    )}
+                  </div>
+                  {user.role === 'supplier' && (
+                    <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                      <label htmlFor="companyName" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Company Name:</label>
+                      <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.companyName}</span>
+                    </div>
+                  )}
+                </div>
+                {/* Column 2 */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                    <label htmlFor="middleName" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Middle Name:</label>
+                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.middleName}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                    <label htmlFor="email" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Email address:</label>
+                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.email}</span>
                   </div>
                   {user.role === 'supplier' && (
                     <>
-                      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
-                        <label htmlFor="companyName" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Company Name:</label>
-                        <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.companyName}</span>
-                      </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
                         <label htmlFor="eventTypes" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Event Types:</label>
                         <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
@@ -397,21 +487,6 @@ const PersonalInformation = () => {
                       </div>
                     </>
                   )}
-                </div>
-                {/* Column 2 */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
-                    <label htmlFor="middleName" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Middle Name:</label>
-                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.middleName}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
-                    <label htmlFor="email" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Email address:</label>
-                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.email}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
-                    <label htmlFor="contact" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Contact:</label>
-                    <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.contact}</span>
-                  </div>
                   {/* Customer Location display */}
                   {user.role === 'customer' && (
                     <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
@@ -756,41 +831,6 @@ const PersonalInformation = () => {
                       }}
                     />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
-                    <label htmlFor="contact" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Contact:</label>
-                    <TextField 
-                      id="contact"
-                      className="personal-info-field"
-                      value={user.contact}
-                      placeholder="Enter your contact"
-                      margin="normal"
-                      variant="outlined"
-                      size="small"
-                      fullWidth
-                      onChange={handleChange('contact')}
-                      sx={{
-                        marginLeft: 1.5,
-                        background: '#fff',
-                        borderRadius: 2,
-                        fontSize: '1.1rem',
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          fontSize: '1.1rem',
-                          height: 40,
-                          '& fieldset': {
-                            borderColor: '#ccc',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#F3C13A',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#F3C13A',
-                            borderWidth: 2,
-                          },
-                        },
-                      }}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -816,6 +856,35 @@ const PersonalInformation = () => {
           }}
           email={user.email}
         />
+
+        {/* Password Verification Modal */}
+        <Dialog open={verifyPasswordOpen} onClose={handleCloseVerifyModal}>
+          <DialogTitle>Verify Password</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Enter your password"
+              type="password"
+              fullWidth
+              value={verifyPasswordInput}
+              onChange={(e) => setVerifyPasswordInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordVerify();
+                }
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseVerifyModal} color="secondary">
+              Cancel
+            </Button>
+            <Button onClick={handlePasswordVerify} variant="contained" style={{ background: '#F3C13A', color: '#000' }}>
+              Verify
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     </div>
   );

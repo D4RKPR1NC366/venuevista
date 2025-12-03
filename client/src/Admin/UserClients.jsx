@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import './userclients.css';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Box } from '@mui/material';
+import LocationSelector from '../components/LocationSelector';
 import api from '../services/api';
 
 export default function UserClients() {
@@ -9,18 +10,23 @@ export default function UserClients() {
   const [search, setSearch] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
   const [visiblePasswords, setVisiblePasswords] = useState({});
+  
+  // Edit customer state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    email: '',
+    phone: '',
+    province: '',
+    city: '',
+    barangay: ''
+  });
 
   useEffect(() => {
-    // Fetch customers only
-    api.get('/customers')
-      .then((res) => {
-        setCustomers(res.data);
-        console.log('Loaded customers:', res.data);
-      })
-      .catch(error => {
-        console.error('Error fetching customers:', error);
-        setCustomers([]);
-      });
+    fetchCustomers();
   }, []);
 
   // Filter customers by name and location
@@ -39,23 +45,99 @@ export default function UserClients() {
     }
     if (locQ) {
       matchesLocation = (
-        (user.address || '').toLowerCase().includes(locQ) ||
+        (user.barangay || '').toLowerCase().includes(locQ) ||
         (user.city || '').toLowerCase().includes(locQ) ||
-        (user.branch || '').toLowerCase().includes(locQ)
+        (user.province || '').toLowerCase().includes(locQ)
       );
     }
     return matchesName && matchesLocation;
   });
 
+  const fetchCustomers = () => {
+    api.get('/customers')
+      .then((res) => {
+        setCustomers(res.data);
+        console.log('Loaded customers:', res.data);
+      })
+      .catch(error => {
+        console.error('Error fetching customers:', error);
+        setCustomers([]);
+      });
+  };
+
   // Handler to show password after admin authentication
   const handleShowPassword = async (userId) => {
     const adminPassword = window.prompt('Enter admin password to view user password:');
-    // Replace this with your actual admin password check
-    // For demo, hardcoded password is 'admin123'. In production, use a secure API call.
     if (adminPassword === 'admin123') {
       setVisiblePasswords(prev => ({ ...prev, [userId]: true }));
     } else if (adminPassword !== null) {
       window.alert('Incorrect admin password.');
+    }
+  };
+
+  const handleOpenEdit = (customer) => {
+    setEditCustomer(customer);
+    setEditForm({
+      firstName: customer.firstName || '',
+      lastName: customer.lastName || '',
+      middleName: customer.middleName || '',
+      email: customer.email || '',
+      phone: customer.phone || customer.contact || customer.phoneNumber || '',
+      province: customer.province || '',
+      city: customer.city || '',
+      barangay: customer.barangay || ''
+    });
+    setEditOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    setEditOpen(false);
+    setEditCustomer(null);
+    setEditForm({
+      firstName: '',
+      lastName: '',
+      middleName: '',
+      email: '',
+      phone: '',
+      province: '',
+      city: '',
+      barangay: ''
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/admin/customers/${editCustomer._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      
+      if (!res.ok) throw new Error('Failed to update customer');
+      
+      alert('Customer updated successfully!');
+      handleCloseEdit();
+      fetchCustomers();
+    } catch (err) {
+      alert('Error updating customer: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) return;
+    
+    try {
+      const res = await fetch(`/api/admin/customers/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!res.ok) throw new Error('Failed to delete customer');
+      
+      alert('Customer deleted successfully!');
+      fetchCustomers();
+    } catch (err) {
+      alert('Error deleting customer: ' + err.message);
     }
   };
 
@@ -114,6 +196,7 @@ export default function UserClients() {
                   <TableCell>Email Address</TableCell>
                   <TableCell>Location</TableCell>
                   <TableCell>Password</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -143,16 +226,102 @@ export default function UserClients() {
                             </>
                         }
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          size="small"
+                          onClick={() => handleOpenEdit(user)}
+                          sx={{ mr: 1 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDelete(user._id, `${user.firstName} ${user.lastName}`)}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">No users found.</TableCell>
+                    <TableCell colSpan={8} align="center">No users found.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </TableContainer>
+          
+          {/* Edit Customer Dialog */}
+          <Dialog open={editOpen} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
+            <DialogTitle>Edit Customer Details</DialogTitle>
+            <form onSubmit={handleEditSubmit}>
+              <DialogContent dividers>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                  <TextField
+                    label="First Name"
+                    value={editForm.firstName}
+                    onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))}
+                    fullWidth
+                    required
+                  />
+                  <TextField
+                    label="Last Name"
+                    value={editForm.lastName}
+                    onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))}
+                    fullWidth
+                    required
+                  />
+                  <TextField
+                    label="Middle Name"
+                    value={editForm.middleName}
+                    onChange={e => setEditForm(f => ({ ...f, middleName: e.target.value }))}
+                    fullWidth
+                  />
+                </Box>
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  fullWidth
+                  required
+                  margin="normal"
+                />
+                <TextField
+                  label="Phone"
+                  value={editForm.phone}
+                  onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                  fullWidth
+                  required
+                  margin="normal"
+                />
+                <LocationSelector
+                  value={{
+                    province: editForm.province,
+                    city: editForm.city,
+                    barangay: editForm.barangay
+                  }}
+                  onChange={(location) => setEditForm(f => ({
+                    ...f,
+                    province: location.province,
+                    city: location.city,
+                    barangay: location.barangay
+                  }))}
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleCloseEdit} color="secondary">Cancel</Button>
+                <Button type="submit" variant="contained" color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </form>
+          </Dialog>
         </div>
       </main>
     </div>

@@ -16,6 +16,9 @@ const customerSchema = new mongoose.Schema({
     phone: String,
     contact: String,
     mfaEnabled: { type: Boolean, required: true, default: false },
+    province: { type: String },
+    city: { type: String },
+    barangay: { type: String },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -39,6 +42,7 @@ const supplierSchema = new mongoose.Schema({
     approvedAt: Date,
     approvedBy: String,
     eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }],
+    branchContacts: [{ type: String }],
     isAvailable: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 });

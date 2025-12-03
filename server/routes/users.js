@@ -10,9 +10,9 @@ router.get('/profile', auth, async (req, res) => {
         let user;
         
         if (role === 'customer') {
-            user = await Customer.findById(id).select('-password');
+            user = await Customer.findById(id);
         } else if (role === 'supplier') {
-            user = await Supplier.findById(id).select('-password');
+            user = await Supplier.findById(id);
             
             // Ensure isAvailable field exists for older suppliers
             if (user && user.isAvailable === undefined) {

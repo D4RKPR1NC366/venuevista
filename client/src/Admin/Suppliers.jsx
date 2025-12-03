@@ -7,25 +7,49 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Sidebar from './Sidebar';
 import './suppliers.css';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Tabs, Tab, Box, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Tabs, Tab, Box, FormControl, InputLabel, Select, MenuItem, Chip, Checkbox, FormControlLabel, Typography } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
 export default function Suppliers() {
+  // Edit supplier state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSupplier, setEditSupplier] = useState(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    email: '',
+    phone: '',
+    companyName: '',
+    eventTypes: [],
+    branchContacts: []
+  });
+  
   // Password visibility state for suppliers
   const [visiblePasswords, setVisiblePasswords] = useState({});
     // Handler to show password after admin authentication
     const handleShowPassword = async (supplierId, supplierObj) => {
-      console.log('Supplier object:', supplierObj);
       const adminPassword = window.prompt('Enter admin password to view supplier password:');
-      // Replace this with your actual admin password check
-      // For demo, hardcoded password is 'admin123'. In production, use a secure API call.
-      if (adminPassword === 'admin123') {
-        setVisiblePasswords(prev => ({ ...prev, [supplierId]: true }));
-      } else if (adminPassword !== null) {
-        window.alert('Incorrect admin password.');
+      if (!adminPassword) return;
+      
+      try {
+        const adminEmail = localStorage.getItem('userEmail');
+        const response = await fetch('/api/auth/verify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: adminEmail, password: adminPassword })
+        });
+        
+        if (response.ok) {
+          setVisiblePasswords(prev => ({ ...prev, [supplierId]: true }));
+        } else {
+          window.alert('Incorrect admin password.');
+        }
+      } catch (error) {
+        window.alert('Error verifying admin password.');
       }
     };
   // Notification dialog state
@@ -79,6 +103,7 @@ export default function Suppliers() {
   const [activeTab, setActiveTab] = useState(0);
   const [availableEventTypes, setAvailableEventTypes] = useState([]);
   const [selectedEventType, setSelectedEventType] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
 
   const fetchSuppliers = async () => {
     try {
@@ -146,7 +171,82 @@ export default function Suppliers() {
     }
   };
 
-  // Filter suppliers by search and event type
+  const handleOpenEdit = (supplier) => {
+    setEditSupplier(supplier);
+    setEditForm({
+      firstName: supplier.firstName || '',
+      lastName: supplier.lastName || '',
+      middleName: supplier.middleName || '',
+      email: supplier.email || '',
+      phone: supplier.phone || '',
+      companyName: supplier.companyName || '',
+      eventTypes: supplier.eventTypes ? supplier.eventTypes.map(et => typeof et === 'object' ? et._id : et) : [],
+      branchContacts: supplier.branchContacts || []
+    });
+    setEditOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    setEditOpen(false);
+    setEditSupplier(null);
+    setEditForm({
+      firstName: '',
+      lastName: '',
+      middleName: '',
+      email: '',
+      phone: '',
+      companyName: '',
+      eventTypes: [],
+      branchContacts: []
+    });
+  };
+
+  const handleBranchToggle = (branch) => {
+    setEditForm(prev => ({
+      ...prev,
+      branchContacts: prev.branchContacts.includes(branch)
+        ? prev.branchContacts.filter(b => b !== branch)
+        : [...prev.branchContacts, branch]
+    }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/admin/suppliers/${editSupplier._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      
+      if (!res.ok) throw new Error('Failed to update supplier');
+      
+      alert('Supplier updated successfully!');
+      handleCloseEdit();
+      fetchSuppliers();
+    } catch (err) {
+      alert('Error updating supplier: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (id, companyName) => {
+    if (!confirm(`Are you sure you want to delete ${companyName}? This action cannot be undone.`)) return;
+    
+    try {
+      const res = await fetch(`/api/admin/suppliers/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!res.ok) throw new Error('Failed to delete supplier');
+      
+      alert('Supplier deleted successfully!');
+      fetchSuppliers();
+    } catch (err) {
+      alert('Error deleting supplier: ' + err.message);
+    }
+  };
+
+  // Filter suppliers by search, event type, and branch
   const currentSuppliers = activeTab === 0 ? pendingSuppliers : approvedSuppliers;
   const filteredSuppliers = currentSuppliers.filter(supplier => {
     const q = search.trim().toLowerCase();
@@ -163,7 +263,10 @@ export default function Suppliers() {
         (typeof et === 'string' ? et : et._id) === selectedEventType
       ));
     
-    return matchesSearch && matchesEventType;
+    const matchesBranch = !selectedBranch ||
+      (supplier.branchContacts && supplier.branchContacts.includes(selectedBranch));
+    
+    return matchesSearch && matchesEventType && matchesBranch;
   });
 
   return (
@@ -187,6 +290,19 @@ export default function Suppliers() {
                       {eventType.name}
                     </MenuItem>
                   ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 200, background: '#fff' }}>
+                <InputLabel>Filter by Branch</InputLabel>
+                <Select
+                  value={selectedBranch}
+                  onChange={e => setSelectedBranch(e.target.value)}
+                  label="Filter by Branch"
+                >
+                  <MenuItem value="">All Branches</MenuItem>
+                  <MenuItem value="Sta. Fe, Nueva Vizcaya">Sta. Fe, Nueva Vizcaya</MenuItem>
+                  <MenuItem value="La Trinidad, Benguet">La Trinidad, Benguet</MenuItem>
+                  <MenuItem value="Maddela, Quirino">Maddela, Quirino</MenuItem>
                 </Select>
               </FormControl>
               <input
@@ -228,8 +344,8 @@ export default function Suppliers() {
                     <TableCell>Phone</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Event Types</TableCell>
+                    <TableCell>Supplier Branch</TableCell>
                     <TableCell>Password</TableCell>
-                    <TableCell>Debug</TableCell>
                     {activeTab === 1 && <TableCell>Availability</TableCell>}
                     {activeTab === 0 && <TableCell>Actions</TableCell>}
                     {activeTab === 1 && <TableCell>Actions</TableCell>}
@@ -272,6 +388,19 @@ export default function Suppliers() {
                           ) : 'N/A'}
                         </TableCell>
                         <TableCell>
+                          {supplier.branchContacts && supplier.branchContacts.length > 0 ? (
+                            supplier.branchContacts.map((branch, idx) => (
+                              <span key={idx} style={{ 
+                                display: 'block', 
+                                fontSize: '0.85rem',
+                                marginBottom: 4
+                              }}>
+                                {branch}
+                              </span>
+                            ))
+                          ) : 'N/A'}
+                        </TableCell>
+                        <TableCell>
                           {visiblePasswords[supplier._id]
                             ? <span>{
                                 supplier.password ||
@@ -289,9 +418,6 @@ export default function Suppliers() {
                                 >Show</button>
                               </>
                           }
-                        </TableCell>
-                        <TableCell>
-                          <span style={{ fontSize: '0.7rem', color: '#888' }}>{Object.keys(supplier).join(', ')}</span>
                         </TableCell>
                         {activeTab === 0 && (
                           <TableCell>
@@ -376,6 +502,125 @@ export default function Suppliers() {
                                   </DialogActions>
                                 </form>
                               </Dialog>
+                              
+                              {/* Edit Supplier Dialog */}
+                              <Dialog open={editOpen} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
+                                <DialogTitle>Edit Supplier Details</DialogTitle>
+                                <form onSubmit={handleEditSubmit}>
+                                  <DialogContent dividers>
+                                    <TextField
+                                      label="Company Name"
+                                      value={editForm.companyName}
+                                      onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                    />
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2, mt: 2 }}>
+                                      <TextField
+                                        label="First Name"
+                                        value={editForm.firstName}
+                                        onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))}
+                                        fullWidth
+                                        required
+                                      />
+                                      <TextField
+                                        label="Last Name"
+                                        value={editForm.lastName}
+                                        onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))}
+                                        fullWidth
+                                        required
+                                      />
+                                      <TextField
+                                        label="Middle Name"
+                                        value={editForm.middleName}
+                                        onChange={e => setEditForm(f => ({ ...f, middleName: e.target.value }))}
+                                        fullWidth
+                                      />
+                                    </Box>
+                                    <TextField
+                                      label="Email"
+                                      type="email"
+                                      value={editForm.email}
+                                      onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                    />
+                                    <TextField
+                                      label="Phone"
+                                      value={editForm.phone}
+                                      onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                                      fullWidth
+                                      required
+                                      margin="normal"
+                                    />
+                                    <FormControl fullWidth margin="normal">
+                                      <InputLabel>Event Types</InputLabel>
+                                      <Select
+                                        multiple
+                                        value={editForm.eventTypes}
+                                        onChange={e => setEditForm(f => ({ ...f, eventTypes: e.target.value }))}
+                                        label="Event Types"
+                                        renderValue={(selected) => (
+                                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {selected.map((value) => {
+                                              const eventType = availableEventTypes.find(et => et._id === value);
+                                              return <Chip key={value} label={eventType?.name || value} size="small" />;
+                                            })}
+                                          </Box>
+                                        )}
+                                      >
+                                        {availableEventTypes.map((eventType) => (
+                                          <MenuItem key={eventType._id} value={eventType._id}>
+                                            {eventType.name}
+                                          </MenuItem>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                    <Box sx={{ mt: 2 }}>
+                                      <Typography variant="subtitle2" gutterBottom>
+                                        Supplier Branch (Select branches you can service):
+                                      </Typography>
+                                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        <FormControlLabel
+                                          control={
+                                            <Checkbox
+                                              checked={editForm.branchContacts.includes("Sta. Fe, Nueva Vizcaya")}
+                                              onChange={() => handleBranchToggle("Sta. Fe, Nueva Vizcaya")}
+                                            />
+                                          }
+                                          label="Sta. Fe, Nueva Vizcaya"
+                                        />
+                                        <FormControlLabel
+                                          control={
+                                            <Checkbox
+                                              checked={editForm.branchContacts.includes("La Trinidad, Benguet")}
+                                              onChange={() => handleBranchToggle("La Trinidad, Benguet")}
+                                            />
+                                          }
+                                          label="La Trinidad, Benguet"
+                                        />
+                                        <FormControlLabel
+                                          control={
+                                            <Checkbox
+                                              checked={editForm.branchContacts.includes("Maddela, Quirino")}
+                                              onChange={() => handleBranchToggle("Maddela, Quirino")}
+                                            />
+                                          }
+                                          label="Maddela, Quirino"
+                                        />
+                                      </Box>
+                                    </Box>
+                                  </DialogContent>
+                                  <DialogActions>
+                                    <Button onClick={handleCloseEdit} color="secondary">Cancel</Button>
+                                    <Button type="submit" variant="contained" color="primary">
+                                      Save Changes
+                                    </Button>
+                                  </DialogActions>
+                                </form>
+                              </Dialog>
                         {activeTab === 1 && (
                           <>
                             <TableCell>
@@ -400,10 +645,29 @@ export default function Suppliers() {
                                 disabled={!supplier.isAvailable}
                                 sx={{ 
                                   opacity: supplier.isAvailable ? 1 : 0.5,
-                                  cursor: supplier.isAvailable ? 'pointer' : 'not-allowed'
+                                  cursor: supplier.isAvailable ? 'pointer' : 'not-allowed',
+                                  mb: 1
                                 }}
                               >
                                 Notify
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="warning"
+                                size="small"
+                                onClick={() => handleOpenEdit(supplier)}
+                                sx={{ mb: 1, ml: 1 }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={() => handleDelete(supplier._id, supplier.companyName)}
+                                sx={{ ml: 1 }}
+                              >
+                                Delete
                               </Button>
                               {!supplier.isAvailable && (
                                 <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>

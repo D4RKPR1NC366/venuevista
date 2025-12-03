@@ -361,7 +361,59 @@ app.post('/api/auth/login-customer', async (req, res) => {
   }
 });
 
+// Verify admin password
+app.post('/api/auth/verify-admin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: 'Missing password' });
+    }
+    
+    // Check if password matches admin password
+    if (password === 'admin123') {
+      res.json({ success: true, message: 'Admin verified' });
+    } else {
+      res.status(401).json({ error: 'Invalid admin password' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
+// Verify user password
+app.post('/api/auth/verify-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Try to find user in Customer collection
+    let user = await Customer.findOne({ email });
+    let userType = 'customer';
+
+    // If not found in Customer, try Supplier collection
+    if (!user) {
+      user = await Supplier.findOne({ email });
+      userType = 'supplier';
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Compare the provided password with stored password
+    if (password === user.password) {
+      res.json({ success: true, message: 'Password verified', userType });
+    } else {
+      res.status(401).json({ error: 'Incorrect password' });
+    }
+  } catch (err) {
+    console.error('Error verifying password:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 const MONGO_URI = `${process.env.MONGODB_URI}/ProductsAndServices`;
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -742,7 +794,6 @@ app.delete('/api/products/:id', async (req, res) => {
 app.get('/api/admin/suppliers/pending', async (req, res) => {
   try {
     const pendingSuppliers = await Supplier.find({ isApproved: false })
-      .select('-password')
       .sort({ createdAt: -1 })
       .lean();
     
@@ -774,7 +825,6 @@ app.get('/api/admin/suppliers/pending', async (req, res) => {
 app.get('/api/admin/suppliers/approved', async (req, res) => {
   try {
     const approvedSuppliers = await Supplier.find({ isApproved: true })
-      .select('-password')
       .sort({ approvedAt: -1 })
       .lean();
     
@@ -875,6 +925,101 @@ app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
   } catch (error) {
     console.error('Error rejecting supplier:', error);
     res.status(500).json({ error: 'Failed to reject supplier' });
+  }
+});
+
+// Update supplier details
+app.put('/api/admin/suppliers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, middleName, email, phone, companyName, eventTypes, branchContacts } = req.body;
+    
+    const supplier = await Supplier.findById(id);
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    // Update supplier fields
+    supplier.firstName = firstName;
+    supplier.lastName = lastName;
+    supplier.middleName = middleName;
+    supplier.email = email;
+    supplier.phone = phone;
+    supplier.contact = phone;
+    supplier.companyName = companyName;
+    supplier.eventTypes = eventTypes;
+    supplier.branchContacts = branchContacts;
+
+    await supplier.save();
+
+    res.json({ message: 'Supplier updated successfully', supplier });
+  } catch (error) {
+    console.error('Error updating supplier:', error);
+    res.status(500).json({ error: 'Failed to update supplier' });
+  }
+});
+
+// Delete supplier permanently
+app.delete('/api/admin/suppliers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const supplier = await Supplier.findByIdAndDelete(id);
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    res.json({ message: 'Supplier deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting supplier:', error);
+    res.status(500).json({ error: 'Failed to delete supplier' });
+  }
+});
+
+// Update customer details
+app.put('/api/admin/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, middleName, email, phone, province, city, barangay } = req.body;
+    
+    const customer = await Customer.findById(id);
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    // Update customer fields
+    customer.firstName = firstName;
+    customer.lastName = lastName;
+    customer.middleName = middleName;
+    customer.email = email;
+    customer.phone = phone;
+    customer.province = province;
+    customer.city = city;
+    customer.barangay = barangay;
+
+    await customer.save();
+
+    res.json({ message: 'Customer updated successfully', customer });
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    res.status(500).json({ error: 'Failed to update customer' });
+  }
+});
+
+// Delete customer permanently
+app.delete('/api/admin/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const customer = await Customer.findByIdAndDelete(id);
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    res.json({ message: 'Customer deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting customer:', error);
+    res.status(500).json({ error: 'Failed to delete customer' });
   }
 });
 
@@ -1062,6 +1207,7 @@ app.put('/api/suppliers/availability', async (req, res) => {
 app.post('/api/auth/register-supplier', async (req, res) => {
   try {
     console.log('Supplier registration request:', req.body);
+    console.log('branchContacts received:', req.body.branchContacts);
     
     const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes, branchContacts } = req.body;
     
@@ -1104,7 +1250,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
     console.log('Attempting to save supplier:', {
       email: supplier.email,
       companyName: supplier.companyName,
-      phone: supplier.phone
+      phone: supplier.phone,
+      branchContacts: supplier.branchContacts
     });
 
     await supplier.save();
@@ -1152,7 +1299,10 @@ app.post('/api/auth/register-supplier', async (req, res) => {
 
 app.post('/api/auth/register-customer', async (req, res) => {
   try {
+    console.log('Customer registration request:', req.body);
     const { email, password, firstName, lastName, middleName, phone, province, city, barangay } = req.body;
+    console.log('Location data received:', { province, city, barangay });
+    
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -1170,13 +1320,31 @@ app.post('/api/auth/register-customer', async (req, res) => {
       middleName, 
       phone, 
       contact: phone,
+      phoneNumber: phone,
       province,
       city,
       barangay
     });
+    
+    console.log('Attempting to save customer:', {
+      email: customer.email,
+      phone: customer.phone,
+      province: customer.province,
+      city: customer.city,
+      barangay: customer.barangay
+    });
+    
     await customer.save();
+    
+    console.log('Customer registered successfully:', {
+      id: customer._id,
+      email: customer.email,
+      location: { province: customer.province, city: customer.city, barangay: customer.barangay }
+    });
+    
     res.status(201).json({ message: 'Customer registered successfully', user: customer });
   } catch (err) {
+    console.error('Customer registration error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
