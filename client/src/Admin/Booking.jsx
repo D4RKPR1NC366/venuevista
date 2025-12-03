@@ -13,33 +13,54 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
   const [selectedSuppliers, setSelectedSuppliers] = useState([]);
   
   React.useEffect(() => {
-    if (open) {
+    if (open && booking) {
       setDate(null); // Always blank for admin to pick
       setDesc('');
-      setLocation('');
+      // Pre-populate location with booking's branch location
+      setLocation(booking.branchLocation || '');
       setSelectedSuppliers([]);
       // Fetch approved suppliers
-      fetch('/api/users/suppliers/approved')
+      fetch('/api/admin/suppliers/approved')
         .then(res => res.json())
-        .then(data => setSuppliers(data))
+        .then(data => {
+          console.log('=== FETCHED SUPPLIERS ===');
+          console.log('Total suppliers:', data.length);
+          data.forEach(s => {
+            console.log('Supplier:', s.companyName);
+            console.log('  branchContacts:', s.branchContacts);
+          });
+          setSuppliers(data);
+        })
         .catch(err => console.error('Failed to fetch suppliers:', err));
     }
-  }, [open]);
+  }, [open, booking]);
   
   if (!open) return null;
   
-  // Filter suppliers by branch contact matching the location
+  // Filter suppliers by branch contact matching the booking's branch location
+  const bookingBranch = booking?.branchLocation || location;
+  console.log('=== FILTERING SUPPLIERS ===');
+  console.log('Booking branch location:', bookingBranch);
+  console.log('Total suppliers to filter:', suppliers.length);
+  
   const filteredSuppliers = suppliers.filter(supplier => {
-    // Check if supplier's branchContacts array includes the location
+    // Check if supplier's branchContacts array includes the branch location
     if (supplier.branchContacts && supplier.branchContacts.length > 0) {
-      return supplier.branchContacts.some(branch => 
-        location && location.toLowerCase().includes(branch.toLowerCase().split(',')[0])
-      );
+      const matches = supplier.branchContacts.some(branch => {
+        // Match branch location (e.g., "Sta. Fe, Nueva Vizcaya" matches "Sta. Fe, Nueva Vizcaya")
+        if (!bookingBranch) return false;
+        const branchMatch = branch.toLowerCase().trim() === bookingBranch.toLowerCase().trim();
+        console.log(`  Comparing "${branch}" with "${bookingBranch}": ${branchMatch}`);
+        return branchMatch;
+      });
+      console.log(`Supplier ${supplier.companyName}: ${matches ? 'MATCHES' : 'NO MATCH'}`);
+      return matches;
     }
-    // Fallback to old contact field if branchContacts not available
-    return supplier.contact && location && 
-           supplier.contact.toLowerCase().includes(location.toLowerCase());
+    console.log(`Supplier ${supplier.companyName}: NO branchContacts`);
+    return false;
   });
+  
+  console.log('Filtered suppliers count:', filteredSuppliers.length);
   return (
     <div className="approve-modal-overlay">
       <div className="approve-modal-content">

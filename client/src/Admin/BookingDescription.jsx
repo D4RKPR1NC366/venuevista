@@ -895,6 +895,10 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Guest Count:</span>
                     <input style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.guestCount || ''} onChange={handleChange('guestCount')} />
                   </div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Theme:</span>
+                    <input style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent', width: '300px' }} value={editData.theme || ''} onChange={handleChange('theme')} placeholder="Optional - e.g., Garden, Vintage, Modern" />
+                  </div>
                 </>
               ) : (
                 <>
@@ -904,6 +908,18 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Branch Location:</span> <span style={{ color: '#222' }}>{editData.branchLocation || 'Not specified'}</span></div>
                   {editData.theme && <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Theme:</span> <span style={{ color: '#222' }}>{editData.theme}</span></div>}
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Guest Count:</span> <span style={{ color: '#222' }}>{editData.guestCount || ''}</span></div>
+                  {editData.suppliers && editData.suppliers.length > 0 && (
+                    <div style={{ marginBottom: 10, fontSize: 15 }}>
+                      <span style={{ fontWeight: 700, color: '#000000ff' }}>Assigned Suppliers:</span>
+                      <div style={{ marginTop: 6, paddingLeft: 10 }}>
+                        {editData.suppliers.map((supplier, idx) => (
+                          <div key={supplier._id || idx} style={{ color: '#222', marginBottom: 4, fontSize: 14 }}>
+                            • {supplier.companyName || 'N/A'} ({supplier.email || 'N/A'})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Appointment Method:</span> <span style={{ color: '#222' }}>{editData.outsidePH === 'yes' ? 'Face to Face' : editData.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
                 </>
               )}
