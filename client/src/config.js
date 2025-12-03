@@ -45,19 +45,29 @@ export const getFullApiUrl = (path) => {
   return `${API_BASE_URL}${cleanPath}`;
 };
 
+// Log the configuration on load
+console.log('[CONFIG] API_BASE_URL:', API_BASE_URL);
+console.log('[CONFIG] Environment:', import.meta.env.MODE);
+console.log('[CONFIG] VITE_API_URL:', import.meta.env.VITE_API_URL);
+
 // Override global fetch to automatically use full URLs in production
-const originalFetch = window.fetch;
-window.fetch = function(url, options) {
-  // Only intercept API calls (those starting with /api or /uploads or /gallery)
-  if (typeof url === 'string' && 
-      (url.startsWith('/api') || url.startsWith('/uploads') || url.startsWith('/gallery'))) {
-    const fullUrl = getFullApiUrl(url);
-    console.log(`[API] ${url} -> ${fullUrl}`);
-    return originalFetch(fullUrl, options);
-  }
-  
-  // Pass through all other requests
-  return originalFetch(url, options);
-};
+if (typeof window !== 'undefined' && window.fetch) {
+  const originalFetch = window.fetch;
+  window.fetch = function(url, options) {
+    // Only intercept API calls (those starting with /api or /uploads or /gallery)
+    if (typeof url === 'string' && 
+        (url.startsWith('/api') || url.startsWith('/uploads') || url.startsWith('/gallery'))) {
+      const fullUrl = getFullApiUrl(url);
+      console.log(`[API] ${url} -> ${fullUrl}`);
+      return originalFetch(fullUrl, options);
+    }
+    
+    // Pass through all other requests
+    return originalFetch(url, options);
+  };
+  console.log('[CONFIG] Fetch override installed');
+} else {
+  console.error('[CONFIG] window.fetch not available!');
+}
 
 export default { API_BASE_URL, getFullApiUrl };
