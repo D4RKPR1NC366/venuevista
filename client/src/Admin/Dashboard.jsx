@@ -353,11 +353,26 @@ export default function Dashboard() {
         fetch('/api/appointments')
           .then(res => res.json())
           .then(data => {
+            const matchesAppointmentBranch = (appointment) => {
+              if (branchFilter === 'all') return true;
+              const branch = (appointment.branchLocation || '').toLowerCase();
+              if (branchFilter === 'santafe') {
+                return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+              }
+              if (branchFilter === 'latrinidad') {
+                return branch.includes('la trinidad') && branch.includes('benguet');
+              }
+              if (branchFilter === 'maddela') {
+                return branch.includes('maddela') && branch.includes('quirino');
+              }
+              return true;
+            };
+            
             const upcoming = data.filter(a => {
-              return matchesFilter(a.date, filter, selectedYear) && a.status === 'upcoming';
+              return matchesFilter(a.date, filter, selectedYear) && a.status === 'upcoming' && matchesAppointmentBranch(a);
             }).length;
             const finished = data.filter(a => {
-              return matchesFilter(a.date, filter, selectedYear) && a.status === 'finished';
+              return matchesFilter(a.date, filter, selectedYear) && a.status === 'finished' && matchesAppointmentBranch(a);
             }).length;
             setUpcomingAppointments(upcoming);
             setFinishedAppointments(finished);
@@ -396,29 +411,96 @@ export default function Dashboard() {
           return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime() || d.getTime() === dayAfterTomorrow.getTime();
         };
         
+        // Helper to check branch for schedules
+        const matchesScheduleBranch = (schedule) => {
+          if (branchFilter === 'all') return true;
+          const branch = (schedule.branchLocation || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+          }
+          if (branchFilter === 'latrinidad') {
+            return branch.includes('la trinidad') && branch.includes('benguet');
+          }
+          if (branchFilter === 'maddela') {
+            return branch.includes('maddela') && branch.includes('quirino');
+          }
+          return true;
+        };
+        
+        // Helper to check branch for bookings
+        const matchesBookingBranch = (booking) => {
+          if (branchFilter === 'all') return true;
+          const branch = (booking.branchLocation || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+          }
+          if (branchFilter === 'latrinidad') {
+            return branch.includes('la trinidad') && branch.includes('benguet');
+          }
+          if (branchFilter === 'maddela') {
+            return branch.includes('maddela') && branch.includes('quirino');
+          }
+          return true;
+        };
+        
+        // Helper to check branch for appointments
+        const matchesAppointmentBranch = (appointment) => {
+          if (branchFilter === 'all') return true;
+          const branch = (appointment.branchLocation || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+          }
+          if (branchFilter === 'latrinidad') {
+            return branch.includes('la trinidad') && branch.includes('benguet');
+          }
+          if (branchFilter === 'maddela') {
+            return branch.includes('maddela') && branch.includes('quirino');
+          }
+          return true;
+        };
+        
         // Count urgent schedules (both regular and accepted)
         [...schedules, ...acceptedSchedules].forEach(s => {
-          if (isUrgent(s.date)) count++;
+          if (isUrgent(s.date) && matchesScheduleBranch(s)) count++;
         });
         
         // Count urgent bookings (all statuses: pending, approved, finished)
         [...pendingBookings, ...approvedBookings, ...finishedBookings].forEach(b => {
-          if (isUrgent(b.date)) count++;
+          if (isUrgent(b.date) && matchesBookingBranch(b)) count++;
         });
         
         // Count urgent appointments
         appointments.forEach(a => {
-          if (isUrgent(a.date)) count++;
+          if (isUrgent(a.date) && matchesAppointmentBranch(a)) count++;
         });
         
         setUrgentReminders(count);
       })
       .catch(() => setUrgentReminders(0));
+    // Helper to match branch filter
+    const matchesBranchFilter = (booking) => {
+      if (branchFilter === 'all') return true;
+      const branch = (booking.branchLocation || '').toLowerCase();
+      if (branchFilter === 'santafe') {
+        return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+      }
+      if (branchFilter === 'latrinidad') {
+        return branch.includes('la trinidad') && branch.includes('benguet');
+      }
+      if (branchFilter === 'maddela') {
+        return branch.includes('maddela') && branch.includes('quirino');
+      }
+      return true;
+    };
+
     // Fetch pending events
     fetch('/api/bookings/pending')
       .then(res => res.json())
       .then(data => {
-        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
+        const count = data.filter(ev => 
+          matchesFilter(ev.date || ev.createdAt, filter, selectedYear) && 
+          matchesBranchFilter(ev)
+        ).length;
         setPendingEvents(count);
       })
       .catch(() => setPendingEvents(0));
@@ -427,7 +509,10 @@ export default function Dashboard() {
     fetch('/api/bookings/approved')
       .then(res => res.json())
       .then(data => {
-        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
+        const count = data.filter(ev => 
+          matchesFilter(ev.date || ev.createdAt, filter, selectedYear) && 
+          matchesBranchFilter(ev)
+        ).length;
         setApprovedBookings(count);
       })
       .catch(() => setApprovedBookings(0));
@@ -436,7 +521,10 @@ export default function Dashboard() {
     fetch('/api/bookings/finished')
       .then(res => res.json())
       .then(data => {
-        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
+        const count = data.filter(ev => 
+          matchesFilter(ev.date || ev.createdAt, filter, selectedYear) && 
+          matchesBranchFilter(ev)
+        ).length;
         setFinishedBookings(count);
       })
       .catch(() => setFinishedBookings(0));
@@ -451,11 +539,11 @@ export default function Dashboard() {
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
         
-        // Only include bookings created within the filter month (not event date)
+        // Only include bookings created within the filter month and matching branch
         const filteredBookings = allBookings.filter(b => {
           // Bookings have userId, name, email directly (not nested in customer object)
           if (!b.userId && !b.email) return false; // Need at least userId or email
-          return matchesFilter(b.createdAt, filter, selectedYear);
+          return matchesFilter(b.createdAt, filter, selectedYear) && matchesBranchFilter(b);
         });
         // Count bookings per customer
         const customerCounts = {};
@@ -486,7 +574,7 @@ export default function Dashboard() {
       });
 
     // Fetch most active suppliers based on accepted schedules
-    fetch(`/api/suppliers/most-active?filter=${filter}&year=${selectedYear}`)
+    fetch(`/api/suppliers/most-active?filter=${filter}&year=${selectedYear}&branch=${branchFilter}`)
       .then(res => res.json())
       .then(data => {
         setActiveSuppliers(data);
@@ -514,8 +602,9 @@ export default function Dashboard() {
         };
 
         allBookings.forEach(booking => {
-          // Check if booking matches the selected year and month filter
+          // Check if booking matches the selected year and month filter AND branch filter
           if (!matchesFilter(booking.date || booking.createdAt, filter, selectedYear)) return;
+          if (!matchesBranchFilter(booking)) return;
           
           const branch = (booking.branchLocation || '').toLowerCase().trim();
           
@@ -542,13 +631,13 @@ export default function Dashboard() {
       }));
 
     // Fetch most availed products/services
-    fetch(`/api/bookings/most-availed?filter=${filter}&year=${selectedYear}`)
+    fetch(`/api/bookings/most-availed?filter=${filter}&year=${selectedYear}&branch=${branchFilter}`)
       .then(res => res.json())
       .then(data => {
         setMostAvailedProducts(Array.isArray(data) ? data : []);
       })
       .catch(() => setMostAvailedProducts([]));
-  }, [filter, selectedYear]);
+  }, [filter, selectedYear, branchFilter]);
 
   return (
     <div className="admin-dashboard-layout">

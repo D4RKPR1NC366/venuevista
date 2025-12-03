@@ -544,6 +544,7 @@ app.get('/api/bookings/most-availed', async (req, res) => {
   try {
     const filter = req.query.filter;
     const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+    const branch = req.query.branch || 'all';
     
     // Fetch all bookings
     const [pending, approved, finished] = await Promise.all([
@@ -570,6 +571,23 @@ app.get('/api/bookings/most-availed', async (req, res) => {
         if (!b.createdAt) return false;
         const bookingDate = new Date(b.createdAt);
         return bookingDate.getFullYear() === year;
+      });
+    }
+    
+    // Filter by branch
+    if (branch !== 'all') {
+      filteredBookings = filteredBookings.filter(b => {
+        const branchLocation = (b.branchLocation || '').toLowerCase();
+        if (branch === 'santafe') {
+          return branchLocation.includes('sta') && branchLocation.includes('fe') && branchLocation.includes('nueva vizcaya');
+        }
+        if (branch === 'latrinidad') {
+          return branchLocation.includes('la trinidad') && branchLocation.includes('benguet');
+        }
+        if (branch === 'maddela') {
+          return branchLocation.includes('maddela') && branchLocation.includes('quirino');
+        }
+        return false;
       });
     }
     
@@ -1109,8 +1127,9 @@ app.get('/api/suppliers', async (req, res) => {
 // Get most active suppliers based on accepted schedules
 app.get('/api/suppliers/most-active', async (req, res) => {
   try {
-    const { filter, year } = req.query;
+    const { filter, year, branch } = req.query;
     const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+    const branchFilter = branch || 'all';
     
     // Build date filter
     let dateFilter = {};
@@ -1136,7 +1155,24 @@ app.get('/api/suppliers/most-active', async (req, res) => {
     }
 
     // Aggregate accepted schedules by supplier
-    const acceptedSchedules = await SupplierAccepted.find(dateFilter);
+    let acceptedSchedules = await SupplierAccepted.find(dateFilter);
+    
+    // Filter by branch if specified
+    if (branchFilter !== 'all') {
+      acceptedSchedules = acceptedSchedules.filter(schedule => {
+        const branchLocation = (schedule.branchLocation || '').toLowerCase();
+        if (branchFilter === 'santafe') {
+          return branchLocation.includes('sta') && branchLocation.includes('fe') && branchLocation.includes('nueva vizcaya');
+        }
+        if (branchFilter === 'latrinidad') {
+          return branchLocation.includes('la trinidad') && branchLocation.includes('benguet');
+        }
+        if (branchFilter === 'maddela') {
+          return branchLocation.includes('maddela') && branchLocation.includes('quirino');
+        }
+        return false;
+      });
+    }
     
     // Count schedules per supplier
     const supplierCounts = {};
@@ -1158,7 +1194,7 @@ app.get('/api/suppliers/most-active', async (req, res) => {
       }
     });
 
-    // Fetch supplier details for phone numbers
+    // Fetch supplier details for phone numbers and branch contacts
     const supplierIds = Object.keys(supplierCounts);
     const suppliers = await Supplier.find({ email: { $in: supplierIds } });
     
@@ -1166,11 +1202,34 @@ app.get('/api/suppliers/most-active', async (req, res) => {
       if (supplierCounts[supplier.email]) {
         supplierCounts[supplier.email].supplierPhone = supplier.phone || '';
         supplierCounts[supplier.email].supplierName = supplier.companyName || supplierCounts[supplier.email].supplierName;
+        supplierCounts[supplier.email].branchContacts = supplier.branchContacts || [];
       }
     });
 
-    // Convert to array and sort by count
-    const result = Object.values(supplierCounts).sort((a, b) => b.count - a.count);
+    // Filter suppliers by their branchContacts if branch filter is specified
+    let filteredSupplierCounts = Object.values(supplierCounts);
+    if (branchFilter !== 'all') {
+      filteredSupplierCounts = filteredSupplierCounts.filter(supplierCount => {
+        const branchContacts = supplierCount.branchContacts || [];
+        // Check if any of the supplier's branchContacts matches the selected branch
+        return branchContacts.some(contact => {
+          const contactLower = (contact || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return contactLower.includes('sta') && contactLower.includes('fe');
+          }
+          if (branchFilter === 'latrinidad') {
+            return contactLower.includes('la trinidad');
+          }
+          if (branchFilter === 'maddela') {
+            return contactLower.includes('maddela');
+          }
+          return false;
+        });
+      });
+    }
+
+    // Sort by count
+    const result = filteredSupplierCounts.sort((a, b) => b.count - a.count);
     
     res.json(result);
   } catch (error) {
