@@ -13,8 +13,9 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SecondProductsAndServices from './SecondProductsAndServices';
 import ProductDetailsModal from '../Home/ProductDetailsModal';
+import { API_BASE_URL } from '../utils/apiConfig';
 
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 export default function ProductsAndServices() {
   const [categories, setCategories] = useState([]);

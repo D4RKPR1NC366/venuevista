@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 import "./topbar.css";
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 const TopBar = () => {
   const [expanded, setExpanded] = useState(true);

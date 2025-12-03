@@ -3,8 +3,9 @@ import React, { useState, useEffect } from "react";
 import TopBar from "./TopBar";
 import "./home.css";
 import Footer from "./Footer";
+import { API_BASE_URL, getImageUrl } from "../utils/apiConfig";
 
-const API_BASE = "/api";
+const API_BASE = API_BASE_URL;
 
 const Gallery = () => {
   const [images, setImages] = useState([]);
@@ -35,7 +36,7 @@ const Gallery = () => {
             <div style={{ textAlign: 'center', color: '#888', fontSize: 18 }}>No images yet.</div>
           ) : (
             images.map(img => (
-              <img key={img._id || img.url} src={img.url} alt={img.name || "Gallery"} style={{ width: '380px', height: '260px', borderRadius: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.10)', objectFit: 'cover' }} />
+              <img key={img._id || img.url} src={getImageUrl(img.url)} alt={img.name || "Gallery"} style={{ width: '380px', height: '260px', borderRadius: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.10)', objectFit: 'cover' }} />
             ))
           )}
         </div>

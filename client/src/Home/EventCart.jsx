@@ -3,8 +3,9 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TopBar from './TopBar';
 import './EventCart.css';
+import { API_BASE_URL } from '../utils/apiConfig';
 
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 const EventCart = () => {
   const [cart, setCart] = useState([]);

@@ -12,9 +12,10 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { useLocation } from 'react-router-dom';
 import TopBar from './TopBar';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 const CART_LOCAL_KEY = 'gd_event_cart';
 

@@ -3,8 +3,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import './backgroundgallery.css';
+import { API_BASE_URL, getImageUrl } from '../utils/apiConfig';
 
-const API_URL = '/api/background-images';
+const API_URL = `${API_BASE_URL}/background-images`;
 
 const BackgroundGallery = () => {
   const [images, setImages] = useState([]);
@@ -80,7 +81,7 @@ const BackgroundGallery = () => {
             {!loading && images.length === 0 && <p style={{ color: '#888' }}>No images added yet.</p>}
             {images.map((img) => (
               <div key={img._id} className="bg-gallery-img-card" style={{ position: 'relative', width: 180, height: 120, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={img.url} alt={img.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} />
+                <img src={getImageUrl(img.url)} alt={img.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} />
                 <button
                   onClick={() => handleDelete(img._id)}
                   style={{ position: 'absolute', top: 6, right: 6, background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}

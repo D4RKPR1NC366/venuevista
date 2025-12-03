@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import Sidebar from "./Sidebar";
 import "./goldustgallery.css";
+import { API_BASE_URL, getImageUrl } from "../utils/apiConfig";
 
-const API_BASE = "/api";
+const API_BASE = API_BASE_URL;
 
 const GoldustGallery = () => {
   const [images, setImages] = useState([]);
@@ -122,7 +123,7 @@ const GoldustGallery = () => {
           ) : (
             images.map(img => (
               <div className="gallery-card" key={img._id || img.url}>
-                <img src={img.url} alt={img.name || "Gallery"} />
+                <img src={getImageUrl(img.url)} alt={img.name || "Gallery"} />
                 <button className="gallery-card-delete" onClick={() => handleDelete(img._id)}>✕</button>
               </div>
             ))
