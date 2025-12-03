@@ -8,6 +8,8 @@ import './dashboard.css';
 
 
 export default function Dashboard() {
+  // Branch filter for revenue chart (UI only)
+  const [branchFilter, setBranchFilter] = useState('all');
   // Most availed products/services
   const [mostAvailedProducts, setMostAvailedProducts] = useState([]);
   // Expand state for tables
@@ -858,7 +860,19 @@ export default function Dashboard() {
         
 
         <div className="admin-dashboard-revenue-card">
-          <div className="admin-dashboard-card-title">Annual Revenue Chart <span style={{ color: '#888', fontWeight: 400 }}>| {selectedYear}</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div className="admin-dashboard-card-title">Annual Revenue Chart <span style={{ color: '#888', fontWeight: 400 }}>| {selectedYear}</span></div>
+            <select
+              value={branchFilter}
+              onChange={e => setBranchFilter(e.target.value)}
+              style={{ padding: '6px 16px', borderRadius: 4, border: '1px solid #ccc', fontSize: '1rem', color: '#222', background: '#fff', outline: 'none', boxShadow: 'none' }}
+            >
+              <option value="all">All Branches</option>
+              <option value="maddela">Maddela, Quirino</option>
+              <option value="santafe">Sta. Fe, Nueva Vizcaya</option>
+              <option value="latrinidad">La Trinidad, Benguet</option>
+            </select>
+          </div>
           <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '350px', minHeight: '250px' }}>
             {Array.isArray(revenueData) && revenueData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
