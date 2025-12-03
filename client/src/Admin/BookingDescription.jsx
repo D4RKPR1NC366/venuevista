@@ -109,29 +109,37 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       .catch(() => setEventTypes([]));
   }, []);
 
-  // Load categories and products for search
+  // Load categories on mount
   React.useEffect(() => {
-    if (showProductSearch) {
-      // Load categories
-      api.get('/categories')
-        .then(res => {
-          setCategories(res.data || []);
-          setSelectedCategory(null);
+    api.get('/categories')
+      .then(res => {
+        console.log('Categories loaded:', res.data);
+        setCategories(res.data || []);
+      })
+      .catch(err => {
+        console.error('Failed to fetch categories:', err);
+        setCategories([]);
+      });
+  }, []);
+  
+  // Load products when category is selected
+  React.useEffect(() => {
+    if (selectedCategory && selectedCategory.title) {
+      console.log('Fetching products for category:', selectedCategory.title);
+      fetch(`/api/products/${encodeURIComponent(selectedCategory.title)}`)
+        .then(res => res.json())
+        .then(products => {
+          console.log('Products loaded for category:', products);
+          setAvailableProducts(products || []);
         })
-        .catch(err => {
-          console.error('Failed to fetch categories:', err);
-          setCategories([]);
-        });
-
-      // Load all products
-      api.get('/products')
-        .then(res => setAvailableProducts(res.data || []))
         .catch(err => {
           console.error('Failed to fetch products:', err);
           setAvailableProducts([]);
         });
+    } else {
+      setAvailableProducts([]);
     }
-  }, [showProductSearch]);
+  }, [selectedCategory]);
 
   // Handle booking data updates - reset everything when booking changes
   React.useEffect(() => {
@@ -246,6 +254,19 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
     console.log('Is editing:', isEditing);
     console.log('Formatted date for input:', formatDateForInput(editData.date));
   }, [editData, isEditing]);
+
+  // Auto-recalculate total price when products change
+  React.useEffect(() => {
+    if (isEditing && editData.products) {
+      const totals = calculateTotal(editData.products, null, editData.discountType || '');
+      setEditData(prev => ({
+        ...prev,
+        subTotal: totals.subTotal,
+        totalPrice: totals.finalTotal,
+        discount: totals.discount
+      }));
+    }
+  }, [editData.products?.length, isEditing]);
 
   // Load cities when province changes
   React.useEffect(() => {
@@ -1674,92 +1695,103 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       </DialogContent>
 
       {/* Product Search Modal */}
-      <Dialog open={showProductSearch} onClose={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} maxWidth="md" fullWidth>
+      <Dialog open={showProductSearch} onClose={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} maxWidth="lg" fullWidth>
         <DialogTitle style={{ background: '#F3C13A', color: '#222', fontWeight: 700 }}>
-          {selectedCategory ? 'Select Product/Service' : 'Select Category'}
+          {selectedCategory ? `${selectedCategory.name || 'Products'} - Products & Services` : 'Select Category'}
           <IconButton onClick={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} style={{ position: 'absolute', right: 8, top: 8 }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent style={{ padding: 20, background: '#fafafa' }}>
+        <DialogContent style={{ padding: 24, background: '#fafafa', minHeight: 500 }}>
           {!selectedCategory ? (
-            /* Category Selection */
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-              {categories.map((category) => (
+            /* Category Selection - Grid Layout */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+              {categories.map((category) => {
+                console.log('Rendering category:', category);
+                return (
                 <div
                   key={category._id}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => {
+                    console.log('Selected category:', category);
+                    console.log('Available products:', availableProducts);
+                    console.log('Products for this category:', availableProducts.filter(p => p.category === category._id));
+                    setSelectedCategory(category);
+                  }}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 15,
-                    padding: '16px',
                     background: 'white',
-                    borderRadius: '8px',
-                    marginBottom: '12px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
                     cursor: 'pointer',
                     border: '2px solid #e0e0e0',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    transition: 'all 0.3s',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = '#F3C13A';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(243,193,58,0.2)';
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(243,193,58,0.3)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = '#e0e0e0';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.08)';
                   }}
                 >
                   {category.image && (
-                    <img src={category.image} alt={category.name} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                    <img src={category.image} alt={category.name} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
                   )}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 18, color: '#222' }}>{category.name}</div>
+                  <div style={{ padding: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 18, color: '#222', marginBottom: 8 }}>{category.name}</div>
                     {category.description && (
-                      <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>{category.description}</div>
+                      <div style={{ color: '#666', fontSize: 14, lineHeight: 1.4 }}>{category.description}</div>
                     )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           ) : (
-            /* Product Selection */
+            /* Product Selection - Grid Layout */
             <>
-              <button
-                onClick={() => { setSelectedCategory(null); setProductSearchTerm(''); }}
-                style={{
-                  background: '#666',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '8px 16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  marginBottom: 16
-                }}
-              >
-                ← Back to Categories
-              </button>
-              <input
-                type="text"
-                placeholder="Search products/services..."
-                value={productSearchTerm}
-                onChange={(e) => setProductSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
-                  border: '2px solid #ddd',
-                  borderRadius: '8px',
-                  marginBottom: '16px',
-                  background: 'white'
-                }}
-              />
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <div style={{ marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
+                <button
+                  onClick={() => { setSelectedCategory(null); setProductSearchTerm(''); }}
+                  style={{
+                    background: '#666',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '10px 20px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}
+                >
+                  ← Back
+                </button>
+                <input
+                  type="text"
+                  placeholder="Search products/services..."
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    fontSize: '15px',
+                    border: '2px solid #ddd',
+                    borderRadius: '8px',
+                    background: 'white'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, maxHeight: 450, overflowY: 'auto', paddingRight: 8 }}>
                 {availableProducts
-                  .filter(p => p.category === selectedCategory._id && p.title?.toLowerCase().includes(productSearchTerm.toLowerCase()))
+                  .filter(p => p.title?.toLowerCase().includes(productSearchTerm.toLowerCase()))
                   .map((product) => (
                     <div
                       key={product._id}
@@ -1768,8 +1800,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                           image: product.image,
                           title: product.title,
                           price: product.price,
-                          description: product.description,
-                          additionals: []
+                          description: product.description || '',
+                          additionals: product.additionals || []
                         };
                         setEditData(prev => ({
                           ...prev,
@@ -1780,36 +1812,42 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                         setProductSearchTerm('');
                       }}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 15,
-                        padding: '12px',
                         background: 'white',
-                        borderRadius: '8px',
-                        marginBottom: '10px',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
                         cursor: 'pointer',
                         border: '2px solid #e0e0e0',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = '#F3C13A';
-                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(243,193,58,0.2)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 12px rgba(243,193,58,0.25)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = '#e0e0e0';
-                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
                       }}
                     >
                       {product.image && (
-                        <img src={product.image} alt={product.title} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                        <img src={product.image} alt={product.title} style={{ width: '100%', height: 140, objectFit: 'cover' }} />
                       )}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, color: '#222' }}>{product.title}</div>
-                        <div style={{ color: '#F3C13A', fontSize: 15, fontWeight: 600 }}>PHP {product.price}</div>
+                      <div style={{ padding: 12 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: '#222', minHeight: 40, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.title}</div>
+                        <div style={{ color: '#F3C13A', fontSize: 16, fontWeight: 700 }}>₱{product.price}</div>
                       </div>
                     </div>
                   ))}
               </div>
+              {availableProducts.filter(p => p.title?.toLowerCase().includes(productSearchTerm.toLowerCase())).length === 0 && (
+                <div style={{ textAlign: 'center', padding: 60, color: '#999', fontSize: 16 }}>
+                  {productSearchTerm ? `No products found matching "${productSearchTerm}"` : 'No products available in this category'}
+                </div>
+              )}
             </>
           )}
         </DialogContent>
