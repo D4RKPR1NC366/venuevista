@@ -22,6 +22,7 @@ export default function Reminders() {
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [dateFilter, setDateFilter] = useState('1week');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [branchFilter, setBranchFilter] = useState('all');
 
   useEffect(() => {
     async function fetchReminders() {
@@ -146,6 +147,22 @@ export default function Reminders() {
         return true;
       });
     }
+    // Filter by branch (UI only - matching location text)
+    if (branchFilter !== 'all') {
+      filtered = filtered.filter(reminder => {
+        const location = (reminder.location || '').toLowerCase();
+        if (branchFilter === 'sta-fe') {
+          return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya');
+        }
+        if (branchFilter === 'la-trinidad') {
+          return location.includes('la trinidad') || location.includes('benguet');
+        }
+        if (branchFilter === 'maddela') {
+          return location.includes('maddela') || location.includes('quirino');
+        }
+        return true;
+      });
+    }
     // Sort by soonest date first
     return filtered.slice().sort((a, b) => {
       if (!a.date) return 1;
@@ -182,6 +199,17 @@ export default function Reminders() {
                 <option value="booking">Booking Event Date</option>
                 <option value="schedule">Supplier Schedules</option>
                 <option value="appointment">Customer Appointments</option>
+              </select>
+              <label className="reminders-filter-label">Branch:</label>
+              <select
+                className="reminders-filter-select"
+                value={branchFilter}
+                onChange={e => setBranchFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="sta-fe">Sta. Fe, Nueva Vizcaya</option>
+                <option value="la-trinidad">La Trinidad, Benguet</option>
+                <option value="maddela">Maddela, Quirino</option>
               </select>
             </div>
           </div>

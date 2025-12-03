@@ -7,6 +7,7 @@ const AdminSupplierSchedules = () => {
   const [declined, setDeclined] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('accepted');
+  const [branchFilter, setBranchFilter] = useState('all');
 
   useEffect(() => {
     async function fetchSchedules() {
@@ -89,6 +90,29 @@ const AdminSupplierSchedules = () => {
     <div className="admin-schedules-layout">
       <Sidebar />
       <div className="admin-schedules-page">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700' }}>Supplier Schedules</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: '600' }}>Branch:</label>
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                backgroundColor: '#fff'
+              }}
+            >
+              <option value="all">All</option>
+              <option value="sta-fe">Sta. Fe, Nueva Vizcaya</option>
+              <option value="la-trinidad">La Trinidad, Benguet</option>
+              <option value="maddela">Maddela, Quirino</option>
+            </select>
+          </div>
+        </div>
         <div className="admin-schedules-tabs">
           <button
             onClick={() => setActiveTab('accepted')}
@@ -108,7 +132,33 @@ const AdminSupplierSchedules = () => {
             {activeTab === 'accepted' && (
               <>
                 <div className="admin-schedules-list">
-                  {accepted.length === 0 ? <div>No accepted schedules.</div> : accepted.map(sch => (
+                  {accepted.filter(sch => {
+                    if (branchFilter === 'all') return true;
+                    const location = (sch.location || '').toLowerCase();
+                    if (branchFilter === 'sta-fe') {
+                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                    }
+                    if (branchFilter === 'la-trinidad') {
+                      return location.includes('la trinidad') || location.includes('benguet');
+                    }
+                    if (branchFilter === 'maddela') {
+                      return location.includes('maddela') || location.includes('quirino');
+                    }
+                    return true;
+                  }).length === 0 ? <div>No accepted schedules.</div> : accepted.filter(sch => {
+                    if (branchFilter === 'all') return true;
+                    const location = (sch.location || '').toLowerCase();
+                    if (branchFilter === 'sta-fe') {
+                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                    }
+                    if (branchFilter === 'la-trinidad') {
+                      return location.includes('la trinidad') || location.includes('benguet');
+                    }
+                    if (branchFilter === 'maddela') {
+                      return location.includes('maddela') || location.includes('quirino');
+                    }
+                    return true;
+                  }).map(sch => (
                     <div key={sch._id} className="admin-schedule-card accepted">
                       <div><strong>{sch.eventType || sch.title}</strong></div>
                       {sch.description && <div style={{color:'#666', marginBottom:'2px', whiteSpace:'pre-line'}}>{sch.description}</div>}
@@ -128,7 +178,33 @@ const AdminSupplierSchedules = () => {
             {activeTab === 'declined' && (
               <>
                 <div className="admin-schedules-list">
-                  {declined.length === 0 ? <div>No declined schedules.</div> : declined.map(sch => (
+                  {declined.filter(sch => {
+                    if (branchFilter === 'all') return true;
+                    const location = (sch.location || '').toLowerCase();
+                    if (branchFilter === 'sta-fe') {
+                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                    }
+                    if (branchFilter === 'la-trinidad') {
+                      return location.includes('la trinidad') || location.includes('benguet');
+                    }
+                    if (branchFilter === 'maddela') {
+                      return location.includes('maddela') || location.includes('quirino');
+                    }
+                    return true;
+                  }).length === 0 ? <div>No declined schedules.</div> : declined.filter(sch => {
+                    if (branchFilter === 'all') return true;
+                    const location = (sch.location || '').toLowerCase();
+                    if (branchFilter === 'sta-fe') {
+                      return location.includes('sta') && location.includes('fe') || location.includes('nueva vizcaya') || location.includes('vizcaya');
+                    }
+                    if (branchFilter === 'la-trinidad') {
+                      return location.includes('la trinidad') || location.includes('benguet');
+                    }
+                    if (branchFilter === 'maddela') {
+                      return location.includes('maddela') || location.includes('quirino');
+                    }
+                    return true;
+                  }).map(sch => (
                     <div key={sch._id} className="admin-schedule-card declined">
                       <div><strong>{sch.eventType || sch.title}</strong></div>
                       {sch.description && <div style={{color:'#666', marginBottom:'2px', whiteSpace:'pre-line'}}>{sch.description}</div>}
