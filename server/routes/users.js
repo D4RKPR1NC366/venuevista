@@ -73,15 +73,25 @@ router.put('/profile', auth, async (req, res) => {
         if (phone) user.phone = phone;
         if (contact) user.contact = contact;
         
-        // Update customer location fields
-        if (role === 'customer') {
-            if (province !== undefined) user.province = province;
-            if (city !== undefined) user.city = city;
-            if (barangay !== undefined) user.barangay = barangay;
+        // Update customer location fields (for customers or non-suppliers)
+        if (role === 'customer' || !user.companyName) {
+            console.log('Updating customer location fields:', { province, city, barangay });
+            if (province !== undefined) {
+                user.province = province;
+                console.log('Set province to:', user.province);
+            }
+            if (city !== undefined) {
+                user.city = city;
+                console.log('Set city to:', user.city);
+            }
+            if (barangay !== undefined) {
+                user.barangay = barangay;
+                console.log('Set barangay to:', user.barangay);
+            }
         }
         
         // Update supplier-specific fields
-        if (role === 'supplier') {
+        if (role === 'supplier' || user.companyName) {
             if (req.body.companyName !== undefined) {
                 console.log('Updating companyName to:', req.body.companyName);
                 user.companyName = req.body.companyName;

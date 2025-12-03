@@ -6,6 +6,7 @@ import { users } from '../services/api';
 import { toast } from 'react-toastify';
 import MFASettings from '../Authentication/MFASettings';
 import PasswordConfirmationModal from './PasswordConfirmationModal';
+import LocationSelector from '../components/LocationSelector';
 
 import './personal-information.css';
 
@@ -142,6 +143,12 @@ const PersonalInformation = () => {
         updateData.branchContacts = user.branchContacts || [];
         console.log('Sending event types:', updateData.eventTypes);
         console.log('Sending branch contacts:', updateData.branchContacts);
+      } else {
+        // Add customer location fields if user is a customer (no companyName)
+        updateData.province = user.location?.province || '';
+        updateData.city = user.location?.city || '';
+        updateData.barangay = user.location?.barangay || '';
+        console.log('Sending customer location:', { province: updateData.province, city: updateData.city, barangay: updateData.barangay });
       }
       console.log('Update data being sent:', updateData);
       const response = await users.updateProfile(updateData);
@@ -405,6 +412,17 @@ const PersonalInformation = () => {
                     <label htmlFor="contact" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Contact:</label>
                     <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>{user.contact}</span>
                   </div>
+                  {/* Customer Location display */}
+                  {user.role === 'customer' && (
+                    <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                      <label className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Location:</label>
+                      <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
+                        {user.location && (user.location.province || user.location.city || user.location.barangay)
+                          ? `${user.location.barangay || 'N/A'}, ${user.location.city || 'N/A'}, ${user.location.province || 'N/A'}`
+                          : 'No location set'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -650,6 +668,19 @@ const PersonalInformation = () => {
                         </div>
                       </div>
                     </>
+                  )}
+                  {/* Customer Location edit */}
+                  {user.role === 'customer' && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
+                      <label className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180, paddingTop: '12px' }}>Location:</label>
+                      <div style={{ marginLeft: 12, flex: 1 }}>
+                        <LocationSelector
+                          value={user.location}
+                          onChange={(newLocation) => setUser(prev => ({ ...prev, location: newLocation }))}
+                          disabled={false}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
                 {/* Column 2 */}
