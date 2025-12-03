@@ -62,6 +62,12 @@ export default function ProductsAndServices() {
   const [showEventTypeModal, setShowEventTypeModal] = useState(false);
   const [newEventType, setNewEventType] = useState({ name: '', description: '' });
   const [editEventTypeIdx, setEditEventTypeIdx] = useState(null);
+  const BRANCHES = [
+    'Maddela, Quirino',
+    'La Trinidad, Benguet',
+    'Santa Fe, Nueva Vizcaya'
+  ];
+  const [productBranches, setProductBranches] = useState([]);
 
 
   // Fetch categories from API
@@ -122,7 +128,7 @@ export default function ProductsAndServices() {
       alert('Please enter a category title');
       return;
     }
-    const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents };
+        const newCat = { title: newTitle.trim(), image: newImage, fields: fields.map(f => ({ label: f.label })), events: newEvents, branches: productBranches };
     try {
       const res = await fetch(`${API_BASE}/categories`, {
         method: 'POST',
@@ -725,6 +731,7 @@ export default function ProductsAndServices() {
                     available: productAvailable,
                     additionals: showAdditionals ? additionals.filter(a => a.description && a.price) : [],
                     categoryTitle: selectedCategory.title,
+                    branches: productBranches,
                   };
                   try {
                     const res = await fetch(`${API_BASE}/products`, {
@@ -940,6 +947,28 @@ export default function ProductsAndServices() {
                       multiline
                       minRows={3}
                     />
+                    {/* Branch selection checkboxes */}
+                    <div style={{ margin: '16px 0' }}>
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>Available In Branches:</div>
+                      {BRANCHES.map(branch => (
+                        <label key={branch} style={{ marginRight: 16 }}>
+                          <input
+                            type="checkbox"
+                            value={branch}
+                            checked={productBranches.includes(branch)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setProductBranches([...productBranches, branch]);
+                              } else {
+                                setProductBranches(productBranches.filter(b => b !== branch));
+                              }
+                            }}
+                            style={{ marginRight: 4 }}
+                          />
+                          {branch}
+                        </label>
+                      ))}
+                    </div>
                     <Button
                       variant={showAdditionals ? "contained" : "outlined"}
                       color={showAdditionals ? "primary" : "secondary"}
@@ -1377,6 +1406,30 @@ export default function ProductsAndServices() {
                             multiline
                             minRows={3}
                           />
+                          {/* Branch selection checkboxes for edit */}
+                          <div style={{ margin: '16px 0' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 8 }}>Available In Branches:</div>
+                            {BRANCHES.map(branch => (
+                              <label key={branch} style={{ marginRight: 16 }}>
+                                <input
+                                  type="checkbox"
+                                  value={branch}
+                                  checked={editProductData.branches?.includes(branch)}
+                                  onChange={e => {
+                                    let updated;
+                                    if (e.target.checked) {
+                                      updated = [...(editProductData.branches || []), branch];
+                                    } else {
+                                      updated = (editProductData.branches || []).filter(b => b !== branch);
+                                    }
+                                    setEditProductData({ ...editProductData, branches: updated });
+                                  }}
+                                  style={{ marginRight: 4 }}
+                                />
+                                {branch}
+                              </label>
+                            ))}
+                          </div>
                           {/* Additionals Section */}
                           <div style={{ marginTop: 16, width: '100%' }}>
                             <div style={{ fontWeight: 600, marginBottom: 12, fontSize: '1.1rem' }}>Additionals</div>
