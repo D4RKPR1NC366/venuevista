@@ -46,7 +46,7 @@ const Home = () => {
       .catch(() => setUserReviews([]));
   }, []);
 
-  // Filter categories by event type
+  // Filter categories by event type and products by branch
   useEffect(() => {
     let filtered = categories;
     if (eventType !== 'all') {
@@ -58,7 +58,7 @@ const Home = () => {
         products: Array.isArray(cat.products)
           ? cat.products.filter(prod => Array.isArray(prod.branches) && prod.branches.includes(branchFilter))
           : []
-      })).filter(cat => cat.products && cat.products.length > 0);
+      }));
     }
     setFilteredCategories(filtered);
   }, [categories, eventType, branchFilter]);
