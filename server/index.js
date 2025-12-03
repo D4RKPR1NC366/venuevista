@@ -544,6 +544,7 @@ app.get('/api/bookings/most-availed', async (req, res) => {
   try {
     const filter = req.query.filter;
     const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+    const branch = req.query.branch || 'all';
     
     // Fetch all bookings
     const [pending, approved, finished] = await Promise.all([
@@ -570,6 +571,23 @@ app.get('/api/bookings/most-availed', async (req, res) => {
         if (!b.createdAt) return false;
         const bookingDate = new Date(b.createdAt);
         return bookingDate.getFullYear() === year;
+      });
+    }
+    
+    // Filter by branch
+    if (branch !== 'all') {
+      filteredBookings = filteredBookings.filter(b => {
+        const branchLocation = (b.branchLocation || '').toLowerCase();
+        if (branch === 'santafe') {
+          return branchLocation.includes('sta') && branchLocation.includes('fe') && branchLocation.includes('nueva vizcaya');
+        }
+        if (branch === 'latrinidad') {
+          return branchLocation.includes('la trinidad') && branchLocation.includes('benguet');
+        }
+        if (branch === 'maddela') {
+          return branchLocation.includes('maddela') && branchLocation.includes('quirino');
+        }
+        return false;
       });
     }
     
@@ -1042,6 +1060,11 @@ app.post('/api/admin/suppliers/:id/notify', async (req, res) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
+    // Get branch location from supplier's branchContacts (use first one if multiple)
+    const branchLocation = supplier.branchContacts && supplier.branchContacts.length > 0
+      ? supplier.branchContacts[0]
+      : null;
+
     // Create a schedule entry in the scheduleCalendar database
     const schedule = new Schedule({
       title: `${eventType}${supplier.companyName ? ' - ' + supplier.companyName : ''}`,
@@ -1053,6 +1076,7 @@ app.post('/api/admin/suppliers/:id/notify', async (req, res) => {
       supplierId: supplier.email,
       supplierName: `${supplier.firstName} ${supplier.lastName}`,
       eventType: eventType, // Store the actual event type separately
+      branchLocation: branchLocation,
       status: 'pending' // Initial status is pending
     });
 
@@ -1103,8 +1127,9 @@ app.get('/api/suppliers', async (req, res) => {
 // Get most active suppliers based on accepted schedules
 app.get('/api/suppliers/most-active', async (req, res) => {
   try {
-    const { filter, year } = req.query;
+    const { filter, year, branch } = req.query;
     const selectedYear = year ? parseInt(year) : new Date().getFullYear();
+    const branchFilter = branch || 'all';
     
     // Build date filter
     let dateFilter = {};
@@ -1130,7 +1155,24 @@ app.get('/api/suppliers/most-active', async (req, res) => {
     }
 
     // Aggregate accepted schedules by supplier
-    const acceptedSchedules = await SupplierAccepted.find(dateFilter);
+    let acceptedSchedules = await SupplierAccepted.find(dateFilter);
+    
+    // Filter by branch if specified
+    if (branchFilter !== 'all') {
+      acceptedSchedules = acceptedSchedules.filter(schedule => {
+        const branchLocation = (schedule.branchLocation || '').toLowerCase();
+        if (branchFilter === 'santafe') {
+          return branchLocation.includes('sta') && branchLocation.includes('fe') && branchLocation.includes('nueva vizcaya');
+        }
+        if (branchFilter === 'latrinidad') {
+          return branchLocation.includes('la trinidad') && branchLocation.includes('benguet');
+        }
+        if (branchFilter === 'maddela') {
+          return branchLocation.includes('maddela') && branchLocation.includes('quirino');
+        }
+        return false;
+      });
+    }
     
     // Count schedules per supplier
     const supplierCounts = {};
@@ -1152,7 +1194,7 @@ app.get('/api/suppliers/most-active', async (req, res) => {
       }
     });
 
-    // Fetch supplier details for phone numbers
+    // Fetch supplier details for phone numbers and branch contacts
     const supplierIds = Object.keys(supplierCounts);
     const suppliers = await Supplier.find({ email: { $in: supplierIds } });
     
@@ -1160,11 +1202,34 @@ app.get('/api/suppliers/most-active', async (req, res) => {
       if (supplierCounts[supplier.email]) {
         supplierCounts[supplier.email].supplierPhone = supplier.phone || '';
         supplierCounts[supplier.email].supplierName = supplier.companyName || supplierCounts[supplier.email].supplierName;
+        supplierCounts[supplier.email].branchContacts = supplier.branchContacts || [];
       }
     });
 
-    // Convert to array and sort by count
-    const result = Object.values(supplierCounts).sort((a, b) => b.count - a.count);
+    // Filter suppliers by their branchContacts if branch filter is specified
+    let filteredSupplierCounts = Object.values(supplierCounts);
+    if (branchFilter !== 'all') {
+      filteredSupplierCounts = filteredSupplierCounts.filter(supplierCount => {
+        const branchContacts = supplierCount.branchContacts || [];
+        // Check if any of the supplier's branchContacts matches the selected branch
+        return branchContacts.some(contact => {
+          const contactLower = (contact || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return contactLower.includes('sta') && contactLower.includes('fe');
+          }
+          if (branchFilter === 'latrinidad') {
+            return contactLower.includes('la trinidad');
+          }
+          if (branchFilter === 'maddela') {
+            return contactLower.includes('maddela');
+          }
+          return false;
+        });
+      });
+    }
+
+    // Sort by count
+    const result = filteredSupplierCounts.sort((a, b) => b.count - a.count);
     
     res.json(result);
   } catch (error) {
@@ -1367,6 +1432,7 @@ app.get('/api/revenue', async (req, res) => {
   try {
     const filter = req.query.filter || 'thisMonth';
     const year = req.query.year ? parseInt(req.query.year) : new Date().getFullYear();
+    const branch = req.query.branch || 'all';
     const now = new Date();
     let startDate;
     let endDate;
@@ -1407,23 +1473,38 @@ app.get('/api/revenue', async (req, res) => {
       }
     }
 
+    // Build query with optional branch filter
+    const dateQuery = { date: { $gte: startDate, $lte: endDate } };
+    
     // Get all relevant bookings for the selected year
     const [finishedBookings, approvedBookings] = await Promise.all([
-      FinishedBooking.find({
-        date: { $gte: startDate, $lte: endDate }
-      }),
-      ApprovedBooking.find({
-        date: { $gte: startDate, $lte: endDate }
-      })
+      FinishedBooking.find(dateQuery),
+      ApprovedBooking.find(dateQuery)
     ]);
 
     // Combine and process bookings
-    const allBookings = [...finishedBookings, ...approvedBookings];
+    let allBookings = [...finishedBookings, ...approvedBookings];
+    
+    // Filter by branch if specified
+    if (branch !== 'all') {
+      allBookings = allBookings.filter(booking => {
+        const branchLocation = (booking.branchLocation || '').toLowerCase();
+        if (branch === 'santafe') {
+          return branchLocation.includes('sta') && branchLocation.includes('fe') && branchLocation.includes('nueva vizcaya');
+        } else if (branch === 'latrinidad') {
+          return branchLocation.includes('la trinidad') && branchLocation.includes('benguet');
+        } else if (branch === 'maddela') {
+          return branchLocation.includes('maddela') && branchLocation.includes('quirino');
+        }
+        return false;
+      });
+    }
     
     console.log('Revenue calculation - Found bookings:', {
       finished: finishedBookings.length,
       approved: approvedBookings.length,
-      total: allBookings.length
+      total: allBookings.length,
+      branch: branch
     });
     
     // Initialize array for all months

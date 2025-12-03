@@ -23,6 +23,7 @@ export default function AdminAppointment() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("upcoming");
+  const [branchFilter, setBranchFilter] = useState("all");
 
   // Handle marking appointment as finished
   async function handleDone(id) {
@@ -57,12 +58,25 @@ export default function AdminAppointment() {
 
   // Split appointments
   const now = dayjs();
-  const upcoming = appointments.filter(
+  let upcoming = appointments.filter(
     a => a.status === 'upcoming' && dayjs(a.date).isAfter(now) || dayjs(a.date).isSame(now, 'day')
   );
-  const finished = appointments.filter(
+  let finished = appointments.filter(
     a => a.status === 'finished' || (dayjs(a.date).isBefore(now, 'day') && a.status !== 'upcoming')
   );
+
+  // Filter by branch
+  const branchMatch = (branch) => {
+    if (branchFilter === 'all') return true;
+    const b = (branch || '').toLowerCase();
+    if (branchFilter === 'maddela') return b.includes('maddela') && b.includes('quirino');
+    if (branchFilter === 'latrinidad') return b.includes('la trinidad') && b.includes('benguet');
+    if (branchFilter === 'stafe') return b.includes('sta') && b.includes('fe') && b.includes('nueva vizcaya');
+    return true;
+  };
+
+  upcoming = upcoming.filter(a => branchMatch(a.branchLocation));
+  finished = finished.filter(a => branchMatch(a.branchLocation));
 
   // NEW: determine which list to show
   const visibleAppointments = filter === "upcoming" ? upcoming : finished;
@@ -75,7 +89,7 @@ export default function AdminAppointment() {
           <h2 className="admin-appointment-title">Appointments</h2>
 
           {/* NEW FILTER BUTTONS */}
-          <div className="admin-appointment-filter">
+          <div className="admin-appointment-filter" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
             <button
               className={`filter-btn ${filter === "upcoming" ? "active" : ""}`}
               onClick={() => setFilter("upcoming")}
@@ -88,6 +102,19 @@ export default function AdminAppointment() {
             >
               Finished
             </button>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label style={{ fontWeight: 500 }}>Branch:</label>
+              <select
+                value={branchFilter}
+                onChange={e => setBranchFilter(e.target.value)}
+                style={{ padding: '6px 16px', borderRadius: 4, border: '1px solid #ccc', fontSize: '1rem', color: '#222', background: '#fff', outline: 'none', boxShadow: 'none' }}
+              >
+                <option value="all">All Branches</option>
+                <option value="stafe">Sta. Fe, Nueva Vizcaya</option>
+                <option value="latrinidad">La Trinidad, Benguet</option>
+                <option value="maddela">Maddela, Quirino</option>
+              </select>
+            </div>
           </div>
 
           {loading ? (
@@ -111,7 +138,8 @@ export default function AdminAppointment() {
                         <div><b>Name:</b> {a.clientName}</div>
                         <div><b>Email:</b> {a.clientEmail}</div>
                         <div><b>Date:</b> {formatDate(a.date)}</div>
-                        <div><b>Location:</b> {a.location}</div>
+                        <div><b>Meeting Location:</b> {a.location}</div>
+                        <div><b>Branch:</b> {a.branchLocation || 'N/A'}</div>
                         <div><b>Description:</b> {a.description}</div>
                         <div><b>Status:</b> {a.status}</div>
                         {filter === "upcoming" && a.status !== "finished" && (

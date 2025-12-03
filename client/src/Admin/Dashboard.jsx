@@ -143,30 +143,32 @@ export default function Dashboard() {
                 type: 'Booking',
                 person: b.name || b.contact || b.email || '',
                 date: dateStr,
-                location: b.eventVenue || '',
+                location: b.branchLocation || b.eventVenue || '',
                 description: b.specialRequest || b.details || '',
                 status: b.status || '',
               };
             });
-          const appointmentEvents = appointments.map(a => {
-            let dateStr = '';
-            if (typeof a.date === 'string') {
-              dateStr = a.date;
-            } else {
-              const d = new Date(a.date);
-              dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-            }
-            return {
-              _id: a._id,
-              title: 'Appointment',
-              type: 'Appointment',
-              person: a.clientName || a.clientEmail,
-              date: dateStr,
-              location: a.location || '',
-              description: a.description || '',
-              status: a.status || '',
-            };
-          });
+          const appointmentEvents = appointments
+            .filter(a => a.status === 'upcoming') // Only show upcoming appointments on calendar
+            .map(a => {
+              let dateStr = '';
+              if (typeof a.date === 'string') {
+                dateStr = a.date;
+              } else {
+                const d = new Date(a.date);
+                dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+              }
+              return {
+                _id: a._id,
+                title: 'Appointment',
+                type: 'Appointment',
+                person: a.clientName || a.clientEmail,
+                date: dateStr,
+                location: a.branchLocation || a.location || '', // Use branchLocation for color coding
+                description: a.description || '',
+                status: a.status || '',
+              };
+            });
           const allEvents = [
             ...(Array.isArray(schedules) ? schedules : []),
             ...(Array.isArray(acceptedSchedules) ? acceptedSchedules : []),
@@ -180,17 +182,17 @@ export default function Dashboard() {
       }
       fetchEventsAndBookings();
     }, []);
-    // Helper to get color based on location
+    // Helper to get color based on branch location
     function getLocationColor(location) {
       if (!location) return '#ffe082'; // default yellow
       const loc = location.toLowerCase();
       
       // Sta Fe, Nueva Vizcaya - Red
-      if ((loc.includes('santa fe') || loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe')) && loc.includes('nueva vizcaya')) {
+      if (loc.includes('sta') && loc.includes('fe') && loc.includes('nueva vizcaya')) {
         return 'rgba(255, 89, 89, 1)'; // light red
       }
       // La Trinidad, Benguet - Green
-      if ((loc.includes('la trinidad') || loc.includes('latrinidad')) && loc.includes('benguet')) {
+      if (loc.includes('la trinidad') && loc.includes('benguet')) {
         return 'rgba(57, 247, 126, 1)'; // light green
       }
       // Maddela, Quirino - Blue
@@ -313,18 +315,18 @@ export default function Dashboard() {
     return false;
   }
 
-  // Separate useEffect for revenue data - only refetch when year changes
+  // Separate useEffect for revenue data - refetch when year or branch changes
   useEffect(() => {
     // Fetch revenue data (all months for the selected year - chart shows annual data)
-    console.log('Fetching revenue data for year:', selectedYear);
-    fetch(`/api/revenue?filter=all&year=${selectedYear}`, {
+    console.log('Fetching revenue data for year:', selectedYear, 'branch:', branchFilter);
+    fetch(`/api/revenue?filter=all&year=${selectedYear}&branch=${branchFilter}`, {
       cache: 'no-store'
     })
       .then(res => res.json())
       .then(data => {
         // Ensure data is an array
         if (Array.isArray(data)) {
-          console.log('Revenue data received for year', selectedYear, ':', data);
+          console.log('Revenue data received for year', selectedYear, 'branch', branchFilter, ':', data);
           setRevenueData(data);
         } else {
           console.error('Revenue data is not an array:', data);
@@ -335,7 +337,7 @@ export default function Dashboard() {
         console.error('Error fetching revenue data:', error);
         setRevenueData([]);
       });
-  }, [selectedYear]); // Only depends on selectedYear, not filter
+  }, [selectedYear, branchFilter]); // Depends on selectedYear and branchFilter
 
   useEffect(() => {
             // Fetch reviews summary
@@ -351,11 +353,26 @@ export default function Dashboard() {
         fetch('/api/appointments')
           .then(res => res.json())
           .then(data => {
+            const matchesAppointmentBranch = (appointment) => {
+              if (branchFilter === 'all') return true;
+              const branch = (appointment.branchLocation || '').toLowerCase();
+              if (branchFilter === 'santafe') {
+                return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+              }
+              if (branchFilter === 'latrinidad') {
+                return branch.includes('la trinidad') && branch.includes('benguet');
+              }
+              if (branchFilter === 'maddela') {
+                return branch.includes('maddela') && branch.includes('quirino');
+              }
+              return true;
+            };
+            
             const upcoming = data.filter(a => {
-              return matchesFilter(a.date, filter, selectedYear) && a.status === 'upcoming';
+              return matchesFilter(a.date, filter, selectedYear) && a.status === 'upcoming' && matchesAppointmentBranch(a);
             }).length;
             const finished = data.filter(a => {
-              return matchesFilter(a.date, filter, selectedYear) && a.status === 'finished';
+              return matchesFilter(a.date, filter, selectedYear) && a.status === 'finished' && matchesAppointmentBranch(a);
             }).length;
             setUpcomingAppointments(upcoming);
             setFinishedAppointments(finished);
@@ -394,29 +411,96 @@ export default function Dashboard() {
           return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime() || d.getTime() === dayAfterTomorrow.getTime();
         };
         
+        // Helper to check branch for schedules
+        const matchesScheduleBranch = (schedule) => {
+          if (branchFilter === 'all') return true;
+          const branch = (schedule.branchLocation || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+          }
+          if (branchFilter === 'latrinidad') {
+            return branch.includes('la trinidad') && branch.includes('benguet');
+          }
+          if (branchFilter === 'maddela') {
+            return branch.includes('maddela') && branch.includes('quirino');
+          }
+          return true;
+        };
+        
+        // Helper to check branch for bookings
+        const matchesBookingBranch = (booking) => {
+          if (branchFilter === 'all') return true;
+          const branch = (booking.branchLocation || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+          }
+          if (branchFilter === 'latrinidad') {
+            return branch.includes('la trinidad') && branch.includes('benguet');
+          }
+          if (branchFilter === 'maddela') {
+            return branch.includes('maddela') && branch.includes('quirino');
+          }
+          return true;
+        };
+        
+        // Helper to check branch for appointments
+        const matchesAppointmentBranch = (appointment) => {
+          if (branchFilter === 'all') return true;
+          const branch = (appointment.branchLocation || '').toLowerCase();
+          if (branchFilter === 'santafe') {
+            return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+          }
+          if (branchFilter === 'latrinidad') {
+            return branch.includes('la trinidad') && branch.includes('benguet');
+          }
+          if (branchFilter === 'maddela') {
+            return branch.includes('maddela') && branch.includes('quirino');
+          }
+          return true;
+        };
+        
         // Count urgent schedules (both regular and accepted)
         [...schedules, ...acceptedSchedules].forEach(s => {
-          if (isUrgent(s.date)) count++;
+          if (isUrgent(s.date) && matchesScheduleBranch(s)) count++;
         });
         
         // Count urgent bookings (all statuses: pending, approved, finished)
         [...pendingBookings, ...approvedBookings, ...finishedBookings].forEach(b => {
-          if (isUrgent(b.date)) count++;
+          if (isUrgent(b.date) && matchesBookingBranch(b)) count++;
         });
         
         // Count urgent appointments
         appointments.forEach(a => {
-          if (isUrgent(a.date)) count++;
+          if (isUrgent(a.date) && matchesAppointmentBranch(a)) count++;
         });
         
         setUrgentReminders(count);
       })
       .catch(() => setUrgentReminders(0));
+    // Helper to match branch filter
+    const matchesBranchFilter = (booking) => {
+      if (branchFilter === 'all') return true;
+      const branch = (booking.branchLocation || '').toLowerCase();
+      if (branchFilter === 'santafe') {
+        return branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya');
+      }
+      if (branchFilter === 'latrinidad') {
+        return branch.includes('la trinidad') && branch.includes('benguet');
+      }
+      if (branchFilter === 'maddela') {
+        return branch.includes('maddela') && branch.includes('quirino');
+      }
+      return true;
+    };
+
     // Fetch pending events
     fetch('/api/bookings/pending')
       .then(res => res.json())
       .then(data => {
-        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
+        const count = data.filter(ev => 
+          matchesFilter(ev.date || ev.createdAt, filter, selectedYear) && 
+          matchesBranchFilter(ev)
+        ).length;
         setPendingEvents(count);
       })
       .catch(() => setPendingEvents(0));
@@ -425,7 +509,10 @@ export default function Dashboard() {
     fetch('/api/bookings/approved')
       .then(res => res.json())
       .then(data => {
-        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
+        const count = data.filter(ev => 
+          matchesFilter(ev.date || ev.createdAt, filter, selectedYear) && 
+          matchesBranchFilter(ev)
+        ).length;
         setApprovedBookings(count);
       })
       .catch(() => setApprovedBookings(0));
@@ -434,7 +521,10 @@ export default function Dashboard() {
     fetch('/api/bookings/finished')
       .then(res => res.json())
       .then(data => {
-        const count = data.filter(ev => matchesFilter(ev.date || ev.createdAt, filter, selectedYear)).length;
+        const count = data.filter(ev => 
+          matchesFilter(ev.date || ev.createdAt, filter, selectedYear) && 
+          matchesBranchFilter(ev)
+        ).length;
         setFinishedBookings(count);
       })
       .catch(() => setFinishedBookings(0));
@@ -449,11 +539,11 @@ export default function Dashboard() {
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
         
-        // Only include bookings created within the filter month (not event date)
+        // Only include bookings created within the filter month and matching branch
         const filteredBookings = allBookings.filter(b => {
           // Bookings have userId, name, email directly (not nested in customer object)
           if (!b.userId && !b.email) return false; // Need at least userId or email
-          return matchesFilter(b.createdAt, filter, selectedYear);
+          return matchesFilter(b.createdAt, filter, selectedYear) && matchesBranchFilter(b);
         });
         // Count bookings per customer
         const customerCounts = {};
@@ -484,7 +574,7 @@ export default function Dashboard() {
       });
 
     // Fetch most active suppliers based on accepted schedules
-    fetch(`/api/suppliers/most-active?filter=${filter}&year=${selectedYear}`)
+    fetch(`/api/suppliers/most-active?filter=${filter}&year=${selectedYear}&branch=${branchFilter}`)
       .then(res => res.json())
       .then(data => {
         setActiveSuppliers(data);
@@ -495,7 +585,7 @@ export default function Dashboard() {
         setActiveSuppliers([]);
       });
 
-    // Fetch bookings by location
+    // Fetch bookings by branch location (which branch they selected in the booking form)
     Promise.all([
       fetch('/api/bookings/pending'),
       fetch('/api/bookings/approved'),
@@ -505,33 +595,34 @@ export default function Dashboard() {
       .then(([pending, approved, finished]) => {
         const allBookings = [...pending, ...approved, ...finished];
         
-        const locationCounts = {
+        const branchCounts = {
           'sta fe nueva vizcaya': 0,
           'la trinidad benguet': 0,
           'maddela quirino': 0,
         };
 
         allBookings.forEach(booking => {
-          // Check if booking matches the selected year and month filter
+          // Check if booking matches the selected year and month filter AND branch filter
           if (!matchesFilter(booking.date || booking.createdAt, filter, selectedYear)) return;
+          if (!matchesBranchFilter(booking)) return;
           
-          const venue = (booking.eventVenue || '').toLowerCase().trim();
+          const branch = (booking.branchLocation || '').toLowerCase().trim();
           
-          // Match Santa Fe / Sta. Fe, Nueva Vizcaya (any barangay in Santa Fe, Nueva Vizcaya)
-          if ((venue.includes('santa fe') || venue.includes('sta. fe') || venue.includes('sta fe') || venue.includes('stafe')) && venue.includes('nueva vizcaya')) {
-            locationCounts['sta fe nueva vizcaya']++;
+          // Match Santa Fe / Sta. Fe, Nueva Vizcaya
+          if (branch.includes('sta') && branch.includes('fe') && branch.includes('nueva vizcaya')) {
+            branchCounts['sta fe nueva vizcaya']++;
           }
-          // Match La Trinidad (municipality), Benguet (province) - any barangay in La Trinidad, Benguet
-          else if ((venue.includes('la trinidad') || venue.includes('latrinidad')) && venue.includes('benguet')) {
-            locationCounts['la trinidad benguet']++;
+          // Match La Trinidad, Benguet
+          else if (branch.includes('la trinidad') && branch.includes('benguet')) {
+            branchCounts['la trinidad benguet']++;
           }
-          // Match Maddela (municipality), Quirino (province) - any barangay in Maddela, Quirino
-          else if (venue.includes('maddela') && venue.includes('quirino')) {
-            locationCounts['maddela quirino']++;
+          // Match Maddela, Quirino
+          else if (branch.includes('maddela') && branch.includes('quirino')) {
+            branchCounts['maddela quirino']++;
           }
         });
 
-        setBookingsByLocation(locationCounts);
+        setBookingsByLocation(branchCounts);
       })
       .catch(() => setBookingsByLocation({
         'sta fe nueva vizcaya': 0,
@@ -540,13 +631,13 @@ export default function Dashboard() {
       }));
 
     // Fetch most availed products/services
-    fetch(`/api/bookings/most-availed?filter=${filter}&year=${selectedYear}`)
+    fetch(`/api/bookings/most-availed?filter=${filter}&year=${selectedYear}&branch=${branchFilter}`)
       .then(res => res.json())
       .then(data => {
         setMostAvailedProducts(Array.isArray(data) ? data : []);
       })
       .catch(() => setMostAvailedProducts([]));
-  }, [filter, selectedYear]);
+  }, [filter, selectedYear, branchFilter]);
 
   return (
     <div className="admin-dashboard-layout">
@@ -632,6 +723,16 @@ export default function Dashboard() {
               />
             </label>
             <label style={{ fontWeight: 500 }}>Show:</label>
+            <select
+              value={branchFilter}
+              onChange={e => setBranchFilter(e.target.value)}
+              style={{ padding: '6px 16px', borderRadius: 4, border: '1px solid #ccc', fontSize: '1rem', color: '#222', background: '#fff', outline: 'none', boxShadow: 'none' }}
+            >
+              <option value="all">All Branches</option>
+              <option value="santafe">Sta. Fe, Nueva Vizcaya</option>
+              <option value="latrinidad">La Trinidad, Benguet</option>
+              <option value="maddela">Maddela, Quirino</option>
+            </select>
             <select
               value={selectedYear}
               onChange={e => setSelectedYear(Number(e.target.value))}
@@ -862,16 +963,6 @@ export default function Dashboard() {
         <div className="admin-dashboard-revenue-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div className="admin-dashboard-card-title">Annual Revenue Chart <span style={{ color: '#888', fontWeight: 400 }}>| {selectedYear}</span></div>
-            <select
-              value={branchFilter}
-              onChange={e => setBranchFilter(e.target.value)}
-              style={{ padding: '6px 16px', borderRadius: 4, border: '1px solid #ccc', fontSize: '1rem', color: '#222', background: '#fff', outline: 'none', boxShadow: 'none' }}
-            >
-              <option value="all">All Branches</option>
-              <option value="maddela">Maddela, Quirino</option>
-              <option value="santafe">Sta. Fe, Nueva Vizcaya</option>
-              <option value="latrinidad">La Trinidad, Benguet</option>
-            </select>
           </div>
           <div className="admin-dashboard-revenue-chart" style={{ width: '100%', height: '350px', minHeight: '250px' }}>
             {Array.isArray(revenueData) && revenueData.length > 0 ? (
