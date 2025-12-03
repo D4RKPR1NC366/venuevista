@@ -15,6 +15,11 @@ const bookingBaseSchema = new mongoose.Schema({
     eventType: String,
     date: Date,
     eventVenue: String,
+    province: String,
+    city: String,
+    barangay: String,
+    branchLocation: String,
+    theme: String,
     guestCount: Number,
     // Payment related fields
     paymentMode: String,
@@ -47,7 +52,14 @@ const bookingBaseSchema = new mongoose.Schema({
   contractPicture: { type: String }, // base64 image string
   suppliers: [{ type: mongoose.Schema.Types.ObjectId }],
   createdAt: { type: Date, default: Date.now }
-});// Initialize the booking models
+}, { strict: false });
+
+// Clear any existing models to force recompilation
+if (bookingConnection.models.PendingBooking) delete bookingConnection.models.PendingBooking;
+if (bookingConnection.models.ApprovedBooking) delete bookingConnection.models.ApprovedBooking;
+if (bookingConnection.models.FinishedBooking) delete bookingConnection.models.FinishedBooking;
+
+// Initialize the booking models
 const PendingBooking = bookingConnection.model('PendingBooking', bookingBaseSchema);
 const ApprovedBooking = bookingConnection.model('ApprovedBooking', bookingBaseSchema);
 const FinishedBooking = bookingConnection.model('FinishedBooking', bookingBaseSchema);

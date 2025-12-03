@@ -28,6 +28,8 @@ const Booking = () => {
     eventType: '',
     eventLocation: '',
     eventVenue: '',
+    branchLocation: '',
+    theme: '',
     specialRequest: '',
     products: [], // will hold selected products/services
     guestCount: '',
@@ -39,11 +41,27 @@ const Booking = () => {
     outsidePH: '',
   });
 
-  const [provinces, setProvinces] = useState([]);
   const [promos, setPromos] = useState([]);
   const [selectedPromoId, setSelectedPromoId] = useState('');
   const [bookingsPerDay, setBookingsPerDay] = useState({});
   const [eventTypes, setEventTypes] = useState([]);
+  
+  // Goldust Creation branch locations
+  const BRANCH_LOCATIONS = [
+    { value: 'Sta. Fe, Nueva Vizcaya', label: 'Sta. Fe, Nueva Vizcaya' },
+    { value: 'La Trinidad, Benguet', label: 'La Trinidad, Benguet' },
+    { value: 'Maddela, Quirino', label: 'Maddela, Quirino' }
+  ];
+  
+  // Limited provinces for Goldust branches
+  const [provinces] = useState([
+    { code: '025000000', name: 'Nueva Vizcaya' },
+    { code: '141100000', name: 'Benguet' },
+    { code: '025700000', name: 'Quirino' }
+  ]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loading, setLoading] = useState({ cities: false, barangays: false });
 
   // Fetch event types from API on mount
   useEffect(() => {
@@ -101,17 +119,7 @@ const Booking = () => {
     
     fetchBookings();
   }, []);
-  const [cities, setCities] = useState([]);
-  const [barangays, setBarangays] = useState([]);
-  const [loading, setLoading] = useState({ provinces: false, cities: false, barangays: false });
-  // Load provinces on mount
-  useEffect(() => {
-    setLoading(l => ({ ...l, provinces: true }));
-    fetch(`${PSGC_API}/provinces/`)
-      .then(res => res.json())
-      .then(data => setProvinces(data))
-      .finally(() => setLoading(l => ({ ...l, provinces: false })));
-  }, []);
+
 
   // Load cities/municipalities when province changes
   useEffect(() => {
@@ -192,6 +200,8 @@ const Booking = () => {
     return Math.round(sum);
   };
 
+
+
   // Get event venue as a string from selected location
   const getEventVenue = () => {
     // Find names from codes
@@ -209,14 +219,36 @@ const Booking = () => {
       form.province &&
       form.city &&
       form.barangay &&
+      form.branchLocation &&
       form.eventType &&
       form.guestCount
     );
   };
 
   const handleNext = () => {
+    console.log('Form validation check:', {
+      date: form.date,
+      province: form.province,
+      city: form.city,
+      barangay: form.barangay,
+      branchLocation: form.branchLocation,
+      eventType: form.eventType,
+      guestCount: form.guestCount,
+      isValid: isFormValid()
+    });
+    
     if (!isFormValid()) {
-      // Optionally show a message here
+      // Show which fields are missing
+      const missing = [];
+      if (!form.date) missing.push('Date');
+      if (!form.province) missing.push('Province');
+      if (!form.city) missing.push('City/Municipality');
+      if (!form.barangay) missing.push('Barangay');
+      if (!form.branchLocation) missing.push('Branch Location');
+      if (!form.eventType) missing.push('Event Type');
+      if (!form.guestCount) missing.push('Guest Count');
+      
+      alert(`Please fill in the following required fields:\n• ${missing.join('\n• ')}`);
       return;
     }
     
@@ -293,7 +325,6 @@ const Booking = () => {
                       label="Province"
                       onChange={e => setForm(f => ({ ...f, province: e.target.value }))}
                       MenuProps={{ disablePortal: false, style: { zIndex: 2000 } }}
-                      disabled={loading.provinces}
                     >
                       <MenuItem value="" style={{ fontWeight: 500, color: '#888', fontSize: 16 }}>Province</MenuItem>
                       {provinces.map(p => (
@@ -332,6 +363,24 @@ const Booking = () => {
                     </Select>
                   </FormControl>
                 </div>
+                <div className={`booking-label ${!form.branchLocation ? 'booking-label-highlight' : ''}`}>Branch Location</div>
+                <div className="booking-field">
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="branch-label">Select Goldust Branch</InputLabel>
+                    <Select
+                      labelId="branch-label"
+                      value={form.branchLocation}
+                      label="Select Goldust Branch"
+                      onChange={e => setForm(f => ({ ...f, branchLocation: e.target.value }))}
+                      MenuProps={{ disablePortal: false, style: { zIndex: 2000 } }}
+                    >
+                      <MenuItem value="" style={{ fontWeight: 500, color: '#888', fontSize: 16 }}>Select Branch</MenuItem>
+                      {BRANCH_LOCATIONS.map(branch => (
+                        <MenuItem key={branch.value} value={branch.value}>{branch.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </div>
               </div>
               <div className="booking-form-col">
                 <div className={`booking-label ${!form.eventType ? 'booking-label-highlight' : ''}`}>Event Type</div>
@@ -363,6 +412,16 @@ const Booking = () => {
                   value={form.guestCount}
                   onChange={e => setForm(f => ({ ...f, guestCount: e.target.value }))}
                   inputProps={{ min: 1 }}
+                />
+                <div className="booking-label" style={{ marginTop: 12 }}>Theme (Optional)</div>
+                <TextField
+                  fullWidth
+                  label="Enter Event Theme"
+                  variant="outlined"
+                  size="small"
+                  value={form.theme}
+                  onChange={e => setForm(f => ({ ...f, theme: e.target.value }))}
+                  placeholder="e.g., Rustic Garden, Modern Minimalist"
                 />
               </div>
             </div>

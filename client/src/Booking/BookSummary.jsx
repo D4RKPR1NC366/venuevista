@@ -66,6 +66,8 @@ const BookSummary = () => {
               })() : ""}</span></div>
               {/* Event Location removed as per request */}
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Venue :</span> <span style={{ color: '#111' }}>{booking?.eventVenue || ""}</span></div>
+              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Branch Location :</span> <span style={{ color: '#111' }}>{booking?.branchLocation || ""}</span></div>
+              {booking?.theme && <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Theme :</span> <span style={{ color: '#111' }}>{booking.theme}</span></div>}
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Appointment Method :</span> <span style={{ color: '#111' }}>{booking?.outsidePH === 'yes' ? 'Face to Face' : booking?.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
             </div>
             <div className="booking-summary-col">
@@ -196,6 +198,11 @@ const BookSummary = () => {
                         })()
                       : '',
                     eventVenue: booking.eventVenue || '',
+                    province: booking.province || '',
+                    city: booking.city || '',
+                    barangay: booking.barangay || '',
+                    branchLocation: booking.branchLocation || '',
+                    theme: booking.theme || '',
                     guestCount: booking.guestCount || 0,
                     subTotal: subtotal,
                     promoTitle: booking.promoTitle || '',
