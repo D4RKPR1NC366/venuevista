@@ -52,7 +52,7 @@ router.get('/profile', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
     try {
         const { id, role } = req.user;
-        const { firstName, middleName, lastName, email, phone, contact } = req.body;
+        const { firstName, middleName, lastName, email, phone, contact, province, city, barangay } = req.body;
         
         let user;
         if (role === 'customer') {
@@ -73,6 +73,13 @@ router.put('/profile', auth, async (req, res) => {
         if (phone) user.phone = phone;
         if (contact) user.contact = contact;
         
+        // Update customer location fields
+        if (role === 'customer') {
+            if (province !== undefined) user.province = province;
+            if (city !== undefined) user.city = city;
+            if (barangay !== undefined) user.barangay = barangay;
+        }
+        
         // Update supplier-specific fields
         if (role === 'supplier') {
             if (req.body.companyName !== undefined) {
@@ -83,6 +90,10 @@ router.put('/profile', auth, async (req, res) => {
                 console.log('Received eventTypes:', req.body.eventTypes, 'Type:', typeof req.body.eventTypes, 'IsArray:', Array.isArray(req.body.eventTypes));
                 user.eventTypes = Array.isArray(req.body.eventTypes) ? req.body.eventTypes : [];
                 console.log('Set user.eventTypes to:', user.eventTypes);
+            }
+            if (req.body.branchContacts !== undefined) {
+                console.log('Updating branchContacts to:', req.body.branchContacts);
+                user.branchContacts = Array.isArray(req.body.branchContacts) ? req.body.branchContacts : [];
             }
         }
 

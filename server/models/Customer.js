@@ -10,7 +10,10 @@ const customerSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, default: 'customer' },
     mfaEnabled: { type: Boolean, default: false },
-    mfaSecret: { type: String, default: null }
+    mfaSecret: { type: String, default: null },
+    province: { type: String },
+    city: { type: String },
+    barangay: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Customer', customerSchema);

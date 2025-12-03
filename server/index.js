@@ -444,6 +444,7 @@ const bookingBaseSchema = new mongoose.Schema({
   service: String,
   details: Object,
   outsidePH: String,
+  suppliers: [{ type: mongoose.Schema.Types.ObjectId }],
   createdAt: { type: Date, default: Date.now }
 });
 const PendingBooking = bookingConnection.model('PendingBooking', bookingBaseSchema);
@@ -577,8 +578,22 @@ app.delete('/api/bookings/pending/:id', async (req, res) => {
 
 
 app.get('/api/bookings/approved', async (req, res) => {
-  const bookings = await ApprovedBooking.find();
-  res.json(bookings);
+  try {
+    const bookings = await ApprovedBooking.find();
+    // Manually populate suppliers since they're in different DB
+    const bookingsWithSuppliers = await Promise.all(bookings.map(async (booking) => {
+      const bookingObj = booking.toObject();
+      if (bookingObj.suppliers && bookingObj.suppliers.length > 0) {
+        const suppliers = await Supplier.find({ _id: { $in: bookingObj.suppliers } }).select('-password');
+        bookingObj.suppliers = suppliers;
+      }
+      return bookingObj;
+    }));
+    res.json(bookingsWithSuppliers);
+  } catch (err) {
+    console.error('Error fetching approved bookings:', err);
+    res.status(500).json({ error: 'Failed to fetch approved bookings' });
+  }
 });
 app.post('/api/bookings/approved', async (req, res) => {
   const bookingData = { ...req.body };
@@ -1047,7 +1062,7 @@ app.post('/api/auth/register-supplier', async (req, res) => {
   try {
     console.log('Supplier registration request:', req.body);
     
-    const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes } = req.body;
+    const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes, branchContacts } = req.body;
     
     // Validate required fields
     if (!email || !password || !companyName || !firstName || !lastName || !phone) {
@@ -1081,7 +1096,8 @@ app.post('/api/auth/register-supplier', async (req, res) => {
       contact: phone,
       mfaEnabled: false,
       isApproved: false,  // New suppliers need admin approval
-      eventTypes: eventTypes || []  // Save selected event types
+      eventTypes: eventTypes || [],  // Save selected event types
+      branchContacts: branchContacts || []  // Save selected branch locations
     });
     
     console.log('Attempting to save supplier:', {
@@ -1135,7 +1151,7 @@ app.post('/api/auth/register-supplier', async (req, res) => {
 
 app.post('/api/auth/register-customer', async (req, res) => {
   try {
-    const { email, password, firstName, lastName, middleName, phone } = req.body;
+    const { email, password, firstName, lastName, middleName, phone, province, city, barangay } = req.body;
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -1145,7 +1161,18 @@ app.post('/api/auth/register-customer', async (req, res) => {
       return res.status(409).json({ error: 'Customer already exists' });
     }
    
-    const customer = new Customer({ email, password, firstName, lastName, middleName, phone, contact: phone });
+    const customer = new Customer({ 
+      email, 
+      password, 
+      firstName, 
+      lastName, 
+      middleName, 
+      phone, 
+      contact: phone,
+      province,
+      city,
+      barangay
+    });
     await customer.save();
     res.status(201).json({ message: 'Customer registered successfully', user: customer });
   } catch (err) {

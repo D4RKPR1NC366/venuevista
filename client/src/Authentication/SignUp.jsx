@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import "./auth.css";
+import LocationSelector from "../components/LocationSelector";
 
 import { useLocation } from "react-router-dom";
 
@@ -40,6 +41,8 @@ const SignUp = () => {
     companyName: "",
     agree: false,
     eventTypes: [],
+    location: { province: "", city: "", barangay: "" },
+    branchContacts: []
   });
   const [type, setType] = useState(accountType);
   const [availableEventTypes, setAvailableEventTypes] = useState([]);
@@ -74,6 +77,19 @@ const SignUp = () => {
   const handleChange = (e) => {
     const { name, value, type: inputType, checked } = e.target;
     setForm({ ...form, [name]: inputType === "checkbox" ? checked : value });
+  };
+
+  const handleLocationChange = (newLocation) => {
+    setForm({ ...form, location: newLocation });
+  };
+
+  const handleBranchContactChange = (branch) => {
+    const currentBranches = form.branchContacts || [];
+    if (currentBranches.includes(branch)) {
+      setForm({ ...form, branchContacts: currentBranches.filter(b => b !== branch) });
+    } else {
+      setForm({ ...form, branchContacts: [...currentBranches, branch] });
+    }
   };
 
   const [error, setError] = useState("");
@@ -179,8 +195,12 @@ const SignUp = () => {
       if (type === "supplier") {
         payload.companyName = form.companyName.trim();
         payload.eventTypes = form.eventTypes;
+        payload.branchContacts = form.branchContacts;
         endpoint = '/api/auth/register-supplier';
       } else {
+        payload.province = form.location.province;
+        payload.city = form.location.city;
+        payload.barangay = form.location.barangay;
         endpoint = '/api/auth/register-customer';
       }
 
@@ -305,8 +325,52 @@ const SignUp = () => {
                         ))}
                       </Select>
                     </FormControl>
+                    <Box sx={{ gridColumn: '1 / -1', mt: 1, mb: 1 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Supplier Branch Contact (Select branches you can service):
+                      </Typography>
+                      <FormGroup row>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={form.branchContacts.includes("Sta. Fe, Nueva Vizcaya")}
+                              onChange={() => handleBranchContactChange("Sta. Fe, Nueva Vizcaya")}
+                            />
+                          }
+                          label="Sta. Fe, Nueva Vizcaya"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={form.branchContacts.includes("La Trinidad, Benguet")}
+                              onChange={() => handleBranchContactChange("La Trinidad, Benguet")}
+                            />
+                          }
+                          label="La Trinidad, Benguet"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={form.branchContacts.includes("Maddela, Quirino")}
+                              onChange={() => handleBranchContactChange("Maddela, Quirino")}
+                            />
+                          }
+                          label="Maddela, Quirino"
+                        />
+                      </FormGroup>
+                    </Box>
                   </>
-                ) : null}
+                ) : (
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                      Customer Location:
+                    </Typography>
+                    <LocationSelector
+                      value={form.location}
+                      onChange={handleLocationChange}
+                    />
+                  </Box>
+                )}
                 {type === 'admin' ? (
                   <FormControl fullWidth margin="dense" className="auth-input">
                     <InputLabel>Role</InputLabel>

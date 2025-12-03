@@ -40,15 +40,14 @@ const bookingBaseSchema = new mongoose.Schema({
             additionals: { type: [Object], default: [] }
         }
     ],
-    specialRequest: String,
-    service: String,
-    details: Object,
-    outsidePH: String,
-    contractPicture: { type: String }, // base64 image string
-    createdAt: { type: Date, default: Date.now }
-});
-
-// Initialize the booking models
+  specialRequest: String,
+  service: String,
+  details: Object,
+  outsidePH: String,
+  contractPicture: { type: String }, // base64 image string
+  suppliers: [{ type: mongoose.Schema.Types.ObjectId }],
+  createdAt: { type: Date, default: Date.now }
+});// Initialize the booking models
 const PendingBooking = bookingConnection.model('PendingBooking', bookingBaseSchema);
 const ApprovedBooking = bookingConnection.model('ApprovedBooking', bookingBaseSchema);
 const FinishedBooking = bookingConnection.model('FinishedBooking', bookingBaseSchema);

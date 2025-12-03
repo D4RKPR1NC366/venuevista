@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import dayjs from 'dayjs';
+import { formatPHTime, parsePHTime } from '../utils/date';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 // Simple modal for approve action
@@ -8,14 +9,37 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
   const [date, setDate] = useState(null);
   const [desc, setDesc] = useState('');
   const [location, setLocation] = useState('');
+  const [suppliers, setSuppliers] = useState([]);
+  const [selectedSuppliers, setSelectedSuppliers] = useState([]);
+  
   React.useEffect(() => {
     if (open) {
       setDate(null); // Always blank for admin to pick
       setDesc('');
       setLocation('');
+      setSelectedSuppliers([]);
+      // Fetch approved suppliers
+      fetch('/api/users/suppliers/approved')
+        .then(res => res.json())
+        .then(data => setSuppliers(data))
+        .catch(err => console.error('Failed to fetch suppliers:', err));
     }
   }, [open]);
+  
   if (!open) return null;
+  
+  // Filter suppliers by branch contact matching the location
+  const filteredSuppliers = suppliers.filter(supplier => {
+    // Check if supplier's branchContacts array includes the location
+    if (supplier.branchContacts && supplier.branchContacts.length > 0) {
+      return supplier.branchContacts.some(branch => 
+        location && location.toLowerCase().includes(branch.toLowerCase().split(',')[0])
+      );
+    }
+    // Fallback to old contact field if branchContacts not available
+    return supplier.contact && location && 
+           supplier.contact.toLowerCase().includes(location.toLowerCase());
+  });
   return (
     <div className="approve-modal-overlay">
       <div className="approve-modal-content">
@@ -58,9 +82,39 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
           <label className="approve-modal-label">Description</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} className="approve-modal-textarea" />
         </div>
+        <div className="approve-modal-section">
+          <label className="approve-modal-label">Assign Suppliers</label>
+          <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+            Hold Ctrl (Windows) or Cmd (Mac) to select multiple suppliers
+          </p>
+          <select
+            multiple
+            value={selectedSuppliers}
+            onChange={e => setSelectedSuppliers(Array.from(e.target.selectedOptions, option => option.value))}
+            style={{
+              width: '100%',
+              minHeight: '120px',
+              padding: '8px',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              background: '#fff'
+            }}
+          >
+            {filteredSuppliers.length > 0 ? (
+              filteredSuppliers.map(supplier => (
+                <option key={supplier._id} value={supplier._id}>
+                  {supplier.companyName} - {supplier.email}
+                </option>
+              ))
+            ) : (
+              <option disabled>No suppliers available for this location</option>
+            )}
+          </select>
+        </div>
         <div className="approve-modal-actions">
           <button type="button" onClick={onClose} className="approve-modal-cancel">Cancel</button>
-          <button type="button" onClick={() => onApprove(date, desc, location)} className="approve-modal-approve" disabled={!date || !location}>Approve</button>
+          <button type="button" onClick={() => onApprove(date, desc, location, selectedSuppliers)} className="approve-modal-approve" disabled={!date || !location}>Approve</button>
         </div>
       </div>
     </div>
@@ -150,11 +204,11 @@ export default function AdminBooking() {
   const [approveModal, setApproveModal] = useState({ open: false, booking: null });
   const openApproveModal = (booking) => setApproveModal({ open: true, booking });
   const closeApproveModal = () => setApproveModal({ open: false, booking: null });
-  const handleApprove = async (date, desc, location) => {
+  const handleApprove = async (date, desc, location, supplierIds) => {
     // Move booking to approved in backend
     const booking = approveModal.booking;
     try {
-      // 1. Add to approved bookings in backend
+      // 1. Add to approved bookings in backend with suppliers
       await fetch('/api/bookings/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,7 +216,8 @@ export default function AdminBooking() {
           ...booking,
           status: 'approved',
           approvedDate: date,
-          approvedDesc: desc
+          approvedDesc: desc,
+          suppliers: supplierIds
         })
       });
       // 2. Remove from pending bookings in backend
@@ -177,7 +232,7 @@ export default function AdminBooking() {
           bookingId: booking._id,
           clientEmail: booking.email,
           clientName: booking.name,
-          date: typeof date === 'string' ? date : dayjs(date).format('YYYY-MM-DD'),
+          date: typeof date === 'string' ? date : formatPHTime(date, 'YYYY-MM-DD'),
           description: desc,
           location: location // Meeting location from admin input
         })
@@ -188,7 +243,7 @@ export default function AdminBooking() {
       console.log('Appointment created for client:', booking.email, 'at location:', location);
       // 4. Update frontend state
       setBookings(prev => prev.map(b =>
-        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc } : b
+        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc, suppliers: supplierIds } : b
       ));
     } catch (err) {
       alert('Failed to approve booking. Please try again.');
@@ -325,7 +380,7 @@ export default function AdminBooking() {
                     <div className="booking-card-info" onClick={() => handleOpenModal(booking)}>
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
-                      <div className="booking-card-date">Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
+                      <div className="booking-card-date">Date: {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : ''}</div>
                       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ 
                           fontSize: 14, 
@@ -408,7 +463,7 @@ export default function AdminBooking() {
                     <div className="booking-card-info" onClick={() => handleOpenModal(booking)}>
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
-                      <div className="booking-card-date">Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
+                      <div className="booking-card-date">Date: {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : ''}</div>
                       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ 
                           fontSize: 14, 
@@ -488,7 +543,7 @@ export default function AdminBooking() {
                     >
                       <div style={{ fontWeight: 500, fontSize: 18 }}>{booking.eventType || booking.title}</div>
                       <div style={{ fontSize: 15, marginTop: 2, color: '#444' }}>Booker: {booking.name || 'N/A'}</div>
-                      <div style={{ fontSize: 14, marginTop: 4 }}>Date: {booking.date ? (typeof booking.date === 'string' ? new Date(booking.date).toLocaleDateString() : new Date(booking.date).toLocaleDateString()) : ''}</div>
+                      <div style={{ fontSize: 14, marginTop: 4 }}>Date: {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : ''}</div>
                       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ 
                           fontSize: 14, 

@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TopBar from '../Home/TopBar';
 import dayjs from 'dayjs';
+import { formatPHTime } from '../utils/date';
 import "./booking.css";
 
 const BookSummary = () => {
@@ -57,8 +58,8 @@ const BookSummary = () => {
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Event Date :</span> <span style={{ color: '#111' }}>{booking?.date ? (() => {
                 try {
                   if (typeof booking.date === 'string') return booking.date;
-                  if (booking.date?.$d) return dayjs(booking.date.$d).format('MM/DD/YYYY');
-                  return dayjs(booking.date).format('MM/DD/YYYY');
+                  if (booking.date?.$d) return formatPHTime(booking.date.$d, 'MM/DD/YYYY');
+                  return formatPHTime(booking.date, 'MM/DD/YYYY');
                 } catch (e) {
                   return booking.date.toString();
                 }
@@ -187,8 +188,8 @@ const BookSummary = () => {
                       ? (() => {
                           try {
                             if (typeof booking.date === 'string') return booking.date;
-                            if (booking.date?.$d) return dayjs(booking.date.$d).format('YYYY-MM-DD');
-                            return dayjs(booking.date).format('YYYY-MM-DD');
+                            if (booking.date?.$d) return formatPHTime(booking.date.$d, 'YYYY-MM-DD');
+                            return formatPHTime(booking.date, 'YYYY-MM-DD');
                           } catch (e) {
                             return '';
                           }

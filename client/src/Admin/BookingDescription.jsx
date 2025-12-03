@@ -67,6 +67,14 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
   const [eventTypes, setEventTypes] = React.useState([]);
   const paymentModes = ['Cash', 'Bank Transfer', 'GCash'];
   const paymentStatuses = ['Pending', 'Partially Paid', 'Fully Paid', 'Refunded'];
+  
+  // Product search and management
+  const [showProductSearch, setShowProductSearch] = React.useState(false);
+  const [availableProducts, setAvailableProducts] = React.useState([]);
+  const [productSearchTerm, setProductSearchTerm] = React.useState('');
+  const [selectedProductDetail, setSelectedProductDetail] = React.useState(null);
+  const [selectedCategory, setSelectedCategory] = React.useState(null);
+  const [categories, setCategories] = React.useState([]);
 
   // PSGC API endpoints
   const PSGC_API = 'https://psgc.gitlab.io/api';
@@ -100,6 +108,30 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       })
       .catch(() => setEventTypes([]));
   }, []);
+
+  // Load categories and products for search
+  React.useEffect(() => {
+    if (showProductSearch) {
+      // Load categories
+      api.get('/categories')
+        .then(res => {
+          setCategories(res.data || []);
+          setSelectedCategory(null);
+        })
+        .catch(err => {
+          console.error('Failed to fetch categories:', err);
+          setCategories([]);
+        });
+
+      // Load all products
+      api.get('/products')
+        .then(res => setAvailableProducts(res.data || []))
+        .catch(err => {
+          console.error('Failed to fetch products:', err);
+          setAvailableProducts([]);
+        });
+    }
+  }, [showProductSearch]);
 
   // Handle booking data updates - reset everything when booking changes
   React.useEffect(() => {
@@ -472,6 +504,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         eventType: editData.eventType || '',
         guestCount: editData.guestCount || 0,
         products: editData.products || [],
+        suppliers: editData.suppliers || [],
         specialRequest: editData.specialRequest || '',
         outsidePH: editData.outsidePH || '',
         contractPicture: editData.contractPicture || '' // Always include contractPicture
@@ -712,6 +745,22 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Discount Amount:</span> <span style={{ color: '#e53935' }}>- PHP {editData.discount}</span></div>
                   )}
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Total Price:</span> <span style={{ color: '#222', fontWeight: 'bold' }}>PHP {editData.totalPrice || ''}</span></div>
+                  
+                  {editData.suppliers && editData.suppliers.length > 0 && (
+                    <div style={{ marginTop: 20, borderTop: '2px solid #e6b800', paddingTop: 15 }}>
+                      <div style={{ marginBottom: 10, fontSize: 16, fontWeight: 700, color: '#e6b800' }}>Assigned Suppliers:</div>
+                      {editData.suppliers.map((supplier, idx) => (
+                        <div key={supplier._id || idx} style={{ marginBottom: 8, fontSize: 14, paddingLeft: 10 }}>
+                          <div style={{ color: '#222' }}>
+                            <span style={{ fontWeight: 600 }}>{supplier.companyName || 'N/A'}</span>
+                          </div>
+                          <div style={{ color: '#666', fontSize: 13 }}>
+                            Email: {supplier.email || 'N/A'} | Phone: {supplier.phone || 'N/A'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -832,9 +881,54 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
               )}
             </div>
           </div>
+          {/* Assigned Suppliers Section */}
+          {editData.suppliers && editData.suppliers.length > 0 && (
+            <div style={{ marginBottom: 40, background: '#fff3cd', borderRadius: 12, padding: 20, border: '2px solid #F3C13A' }}>
+              <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14, color: '#222' }}>
+                Assigned Suppliers
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                {editData.suppliers.map((supplier, idx) => (
+                  <div key={supplier._id || idx} style={{
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid #e0e0e0',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: '#222' }}>
+                      {supplier.companyName || 'N/A'}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#666', marginBottom: 3 }}>
+                      📧 {supplier.email || 'N/A'}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#666' }}>
+                      📞 {supplier.phone || 'N/A'}
+                    </div>
+                    {supplier.branchContacts && supplier.branchContacts.length > 0 && (
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+                        📍 {supplier.branchContacts.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Services and Products Availed */}
           <div style={{ marginBottom: 40 }}>
-            <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14, color: '#222' }}>Services and Products Availed</div>
+            <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14, color: '#222', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Services and Products Availed
+              {isEditing && (
+                <button
+                  onClick={() => setShowProductSearch(true)}
+                  style={{ background: '#F3C13A', color: '#222', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                >
+                  + Add Product/Service
+                </button>
+              )}
+            </div>
             {(editData.products && editData.products.length > 0) ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 {editData.products.map((item, idx) => (
@@ -846,8 +940,11 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 18,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                  }}>
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setSelectedProductDetail(item)}
+                  >
                     {item.image && (
                       <img src={item.image} alt={item.title} style={{ width: 60, height: 45, objectFit: 'cover', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} />
                     )}
@@ -857,7 +954,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     </div>
                     {isEditing && (
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           const updated = editData.products.filter((_, i) => i !== idx);
                           setEditData({ ...editData, products: updated });
                         }}
@@ -1567,6 +1665,186 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
           </div>
         </div>
       </DialogContent>
+
+      {/* Product Search Modal */}
+      <Dialog open={showProductSearch} onClose={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} maxWidth="md" fullWidth>
+        <DialogTitle style={{ background: '#F3C13A', color: '#222', fontWeight: 700 }}>
+          {selectedCategory ? 'Select Product/Service' : 'Select Category'}
+          <IconButton onClick={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} style={{ position: 'absolute', right: 8, top: 8 }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent style={{ padding: 20, background: '#fafafa' }}>
+          {!selectedCategory ? (
+            /* Category Selection */
+            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+              {categories.map((category) => (
+                <div
+                  key={category._id}
+                  onClick={() => setSelectedCategory(category)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 15,
+                    padding: '16px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    cursor: 'pointer',
+                    border: '2px solid #e0e0e0',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#F3C13A';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(243,193,58,0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e0e0e0';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                  }}
+                >
+                  {category.image && (
+                    <img src={category.image} alt={category.name} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 18, color: '#222' }}>{category.name}</div>
+                    {category.description && (
+                      <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>{category.description}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Product Selection */
+            <>
+              <button
+                onClick={() => { setSelectedCategory(null); setProductSearchTerm(''); }}
+                style={{
+                  background: '#666',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '8px 16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  marginBottom: 16
+                }}
+              >
+                ← Back to Categories
+              </button>
+              <input
+                type="text"
+                placeholder="Search products/services..."
+                value={productSearchTerm}
+                onChange={(e) => setProductSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '16px',
+                  border: '2px solid #ddd',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  background: 'white'
+                }}
+              />
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {availableProducts
+                  .filter(p => p.category === selectedCategory._id && p.title?.toLowerCase().includes(productSearchTerm.toLowerCase()))
+                  .map((product) => (
+                    <div
+                      key={product._id}
+                      onClick={() => {
+                        const newProduct = {
+                          image: product.image,
+                          title: product.title,
+                          price: product.price,
+                          description: product.description,
+                          additionals: []
+                        };
+                        setEditData(prev => ({
+                          ...prev,
+                          products: [...(prev.products || []), newProduct]
+                        }));
+                        setShowProductSearch(false);
+                        setSelectedCategory(null);
+                        setProductSearchTerm('');
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 15,
+                        padding: '12px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        marginBottom: '10px',
+                        cursor: 'pointer',
+                        border: '2px solid #e0e0e0',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#F3C13A';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(243,193,58,0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e0e0e0';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      {product.image && (
+                        <img src={product.image} alt={product.title} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, color: '#222' }}>{product.title}</div>
+                        <div style={{ color: '#F3C13A', fontSize: 15, fontWeight: 600 }}>PHP {product.price}</div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Detail Modal */}
+      <Dialog open={!!selectedProductDetail} onClose={() => setSelectedProductDetail(null)} maxWidth="sm" fullWidth>
+        <DialogTitle style={{ background: '#F3C13A', color: '#222', fontWeight: 700 }}>
+          Product/Service Details
+          <IconButton onClick={() => setSelectedProductDetail(null)} style={{ position: 'absolute', right: 8, top: 8 }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent style={{ padding: 20, background: 'white' }}>
+          {selectedProductDetail && (
+            <>
+              {selectedProductDetail.image && (
+                <img src={selectedProductDetail.image} alt={selectedProductDetail.title} style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />
+              )}
+              <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 8, color: '#222' }}>{selectedProductDetail.title}</div>
+              <div style={{ fontSize: 18, color: '#F3C13A', fontWeight: 600, marginBottom: 16 }}>PHP {selectedProductDetail.price}</div>
+              {selectedProductDetail.description && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8, color: '#222' }}>Description:</div>
+                  <div style={{ color: '#666', fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedProductDetail.description}</div>
+                </div>
+              )}
+              {selectedProductDetail.additionals && selectedProductDetail.additionals.length > 0 && (
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8, color: '#222' }}>Additional Options:</div>
+                  {selectedProductDetail.additionals.map((add, idx) => (
+                    <div key={idx} style={{ padding: '8px', background: '#f5f5f5', borderRadius: 6, marginBottom: 6 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>{add.title}</div>
+                      <div style={{ fontSize: 14, color: '#F3C13A', fontWeight: 600 }}>PHP {add.price}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

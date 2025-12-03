@@ -24,7 +24,8 @@ const PersonalInformation = () => {
     role: '',
     isAvailable: true,
     companyName: '',
-    eventTypes: []
+    eventTypes: [],
+    branchContacts: []
   });
   const [availableEventTypes, setAvailableEventTypes] = React.useState([]);
 
@@ -58,7 +59,8 @@ const PersonalInformation = () => {
           role: userRole,
           isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
           companyName: userData.companyName || '',
-          eventTypes: userData.eventTypes || []
+          eventTypes: userData.eventTypes || [],
+          branchContacts: userData.branchContacts || []
         };
         
         console.log('Setting user state to:', newUserState);
@@ -130,18 +132,17 @@ const PersonalInformation = () => {
         phone: user.phone,
         contact: user.contact
       };
-      
-      // Add supplier-specific fields
-      if (user.role === 'supplier') {
+      // Add supplier-specific fields if user has companyName (is a supplier)
+      if (user.companyName) {
         updateData.companyName = user.companyName;
-        // Extract just the IDs from eventTypes (they might be objects or strings)
-        updateData.eventTypes = user.eventTypes.map(et => {
+        updateData.eventTypes = (user.eventTypes || []).map(et => {
           const id = typeof et === 'string' ? et : (et._id ? String(et._id) : et);
           return String(id);
         });
+        updateData.branchContacts = user.branchContacts || [];
         console.log('Sending event types:', updateData.eventTypes);
+        console.log('Sending branch contacts:', updateData.branchContacts);
       }
-      
       console.log('Update data being sent:', updateData);
       const response = await users.updateProfile(updateData);
       console.log('Update response:', response);
@@ -163,7 +164,8 @@ const PersonalInformation = () => {
           role: userRole,
           isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
           companyName: userData.companyName || '',
-          eventTypes: userData.eventTypes || []
+          eventTypes: userData.eventTypes || [],
+          branchContacts: userData.branchContacts || []
         };
         
         console.log('New user state after save:', newUserState);
@@ -365,6 +367,25 @@ const PersonalInformation = () => {
                               );
                             })
                           ) : 'No event types selected'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                        <label className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Branch Contacts:</label>
+                        <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
+                          {user.branchContacts && user.branchContacts.length > 0 ? (
+                            user.branchContacts.map((branch) => (
+                              <span key={branch} style={{
+                                display: 'inline-block',
+                                background: '#F3C13A',
+                                color: '#000',
+                                padding: '4px 12px',
+                                borderRadius: 4,
+                                fontSize: '0.9rem',
+                                marginRight: 6,
+                                marginBottom: 4
+                              }}>{branch}</span>
+                            ))
+                          ) : 'No branches selected'}
                         </span>
                       </div>
                     </>
@@ -593,6 +614,37 @@ const PersonalInformation = () => {
                                 style={{ marginRight: 6, cursor: 'pointer', width: '18px', height: '18px' }}
                               />
                               {eventType.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
+                        <label className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180, paddingTop: '12px' }}>Branch Contacts:</label>
+                        <div style={{ marginLeft: 12, flex: 1 }}>
+                          {["Sta. Fe, Nueva Vizcaya", "La Trinidad, Benguet", "Maddela, Quirino"].map(branch => (
+                            <label key={branch} style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              marginRight: 16,
+                              marginBottom: 8,
+                              cursor: 'pointer',
+                              fontSize: '1rem'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={user.branchContacts?.includes(branch)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setUser(prev => ({
+                                    ...prev,
+                                    branchContacts: checked
+                                      ? [...(prev.branchContacts || []), branch]
+                                      : (prev.branchContacts || []).filter(b => b !== branch)
+                                  }));
+                                }}
+                                style={{ marginRight: 6, cursor: 'pointer', width: '18px', height: '18px' }}
+                              />
+                              {branch}
                             </label>
                           ))}
                         </div>
