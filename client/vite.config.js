@@ -8,8 +8,25 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:5051',
-      '/uploads': 'http://localhost:5051'
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:5051',
+        changeOrigin: true,
+        secure: false
+      },
+      '/uploads': {
+        target: process.env.VITE_API_URL || 'http://localhost:5051',
+        changeOrigin: true,
+        secure: false
+      },
+      '/gallery': {
+        target: process.env.VITE_API_URL || 'http://localhost:5051',
+        changeOrigin: true,
+        secure: false
+      }
     }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false
   }
 })

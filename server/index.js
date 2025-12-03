@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '.env.production' });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -8,7 +9,15 @@ const { sendOTP } = require('./services/emailService');
 const otpStore = {};
 
 const app = express();
-app.use(cors());
+
+// Configure CORS for production
+const corsOptions = {
+  origin: process.env.CLIENT_URL || '*',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -44,7 +53,7 @@ app.use('/gallery', express.static(path.join(__dirname, 'public/gallery')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Create a separate connection for promos database
-const promoConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/promosDatabase', {
+const promoConnection = mongoose.createConnection(`${process.env.MONGODB_URI}/promosDatabase`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -63,7 +72,7 @@ const promosRouter = require('./routes/promos');
 app.use('/api/promos', promosRouter);
 
 // Create a separate connection for schedules/calendar
-const scheduleConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/scheduleCalendar', {
+const scheduleConnection = mongoose.createConnection(`${process.env.MONGODB_URI}/scheduleCalendar`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -251,12 +260,8 @@ app.delete('/api/background-images/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete image' });
   }
 });
-const PORT = 5051;
 
-
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+const PORT = process.env.PORT || 5051;
 
 
 app.post('/api/auth/login-supplier', async (req, res) => {
@@ -358,13 +363,13 @@ app.post('/api/auth/login-customer', async (req, res) => {
 
 
 
-const MONGO_URI = 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/ProductsAndServices';
+const MONGO_URI = `${process.env.MONGODB_URI}/ProductsAndServices`;
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB ProductsAndServices connected!'))
   .catch(err => console.error('MongoDB ProductsAndServices connection error:', err));
 
 
-const bgImageConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/backgroundImages', {
+const bgImageConnection = mongoose.createConnection(`${process.env.MONGODB_URI}/backgroundImages`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -372,7 +377,7 @@ bgImageConnection.on('connected', () => console.log('MongoDB backgroundImages co
 bgImageConnection.on('error', err => console.error('MongoDB backgroundImages connection error:', err));
 
 
-const bookingConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/booking', {
+const bookingConnection = mongoose.createConnection(`${process.env.MONGODB_URI}/booking`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -1270,7 +1275,7 @@ app.get('/api/revenue', async (req, res) => {
 
 // Centralize MongoDB connections
 Promise.all([
-  mongoose.connect('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/ProductsAndServices', { useNewUrlParser: true, useUnifiedTopology: true }),
+  mongoose.connect(`${process.env.MONGODB_URI}/ProductsAndServices`, { useNewUrlParser: true, useUnifiedTopology: true }),
   authConnection.asPromise(),
   scheduleConnection.asPromise(),
   bgImageConnection.asPromise(),
