@@ -933,31 +933,19 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
 
             {isEditing ? (
               <>
-                {/* Add Supplier Section in Edit Mode */}
+                {/* Add Supplier Section in Edit Mode - Mobile Friendly Checkboxes */}
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontWeight: 600, fontSize: 15, color: '#222', display: 'block', marginBottom: 8 }}>
-                    Add Suppliers (Hold Ctrl/Cmd to select multiple)
+                  <label style={{ fontWeight: 600, fontSize: 15, color: '#222', display: 'block', marginBottom: 12 }}>
+                    Select Suppliers to Add
                   </label>
-                  <select
-                    multiple
-                    value={selectedSupplierIds}
-                    onChange={(e) => {
-                      const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
-                      setSelectedSupplierIds(selectedIds);
-                      // Update editData.suppliers with full supplier objects
-                      const selectedSuppliers = allSuppliers.filter(s => selectedIds.includes(s._id));
-                      setEditData(prev => ({ ...prev, suppliers: selectedSuppliers }));
-                    }}
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '8px',
-                      border: '2px solid #F3C13A',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: 'white'
-                    }}
-                  >
+                  <div style={{
+                    border: '2px solid #F3C13A',
+                    borderRadius: '8px',
+                    background: 'white',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    padding: '8px'
+                  }}>
                     {allSuppliers
                       .filter(supplier => {
                         // Filter by branch location
@@ -968,11 +956,68 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                         );
                       })
                       .map(supplier => (
-                        <option key={supplier._id} value={supplier._id}>
-                          {supplier.companyName} - {supplier.email}
-                        </option>
+                        <label 
+                          key={supplier._id} 
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '10px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            marginBottom: '4px',
+                            transition: 'background 0.2s',
+                            background: selectedSupplierIds.includes(supplier._id) ? '#fff3cd' : 'transparent'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!selectedSupplierIds.includes(supplier._id)) {
+                              e.currentTarget.style.background = '#f5f5f5';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!selectedSupplierIds.includes(supplier._id)) {
+                              e.currentTarget.style.background = 'transparent';
+                            }
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSupplierIds.includes(supplier._id)}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              let newSelectedIds;
+                              
+                              if (isChecked) {
+                                // Add supplier
+                                newSelectedIds = [...selectedSupplierIds, supplier._id];
+                              } else {
+                                // Remove supplier
+                                newSelectedIds = selectedSupplierIds.filter(id => id !== supplier._id);
+                              }
+                              
+                              setSelectedSupplierIds(newSelectedIds);
+                              // Update editData.suppliers with full supplier objects
+                              const selectedSuppliers = allSuppliers.filter(s => newSelectedIds.includes(s._id));
+                              setEditData(prev => ({ ...prev, suppliers: selectedSuppliers }));
+                            }}
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              marginRight: '10px',
+                              cursor: 'pointer',
+                              accentColor: '#F3C13A'
+                            }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>
+                              {supplier.companyName}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#666' }}>
+                              {supplier.email}
+                            </div>
+                          </div>
+                        </label>
                       ))}
-                  </select>
+                  </div>
                   {allSuppliers.filter(supplier => {
                     if (!editData.branchLocation) return true;
                     if (!supplier.branchContacts || supplier.branchContacts.length === 0) return false;
