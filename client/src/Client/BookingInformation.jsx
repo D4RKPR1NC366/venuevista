@@ -348,6 +348,48 @@ const BookingInformation = () => {
             }}>
               <button onClick={handleCloseModal} style={{position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 28, cursor: 'pointer'}}>&times;</button>
               <h2 style={{fontWeight: 800, fontSize: '1.8rem', marginBottom: 24}}>Booking Details</h2>
+              
+              {/* Reference Number Banner */}
+              {selectedBooking.referenceNumber && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  borderRadius: 12,
+                  padding: 20,
+                  marginBottom: 24,
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                  border: '2px solid #60a5fa'
+                }}>
+                  <div style={{
+                    color: '#fff',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    marginBottom: 6,
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px'
+                  }}>
+                    📋 Booking Reference Number
+                  </div>
+                  <div style={{
+                    color: '#fff',
+                    fontSize: '1.5rem',
+                    fontWeight: 800,
+                    fontFamily: 'monospace',
+                    letterSpacing: '2px',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}>
+                    {selectedBooking.referenceNumber}
+                  </div>
+                  <div style={{
+                    color: '#dbeafe',
+                    fontSize: '0.8rem',
+                    marginTop: 8,
+                    fontStyle: 'italic'
+                  }}>
+                    Use this reference number for all communications regarding your booking
+                  </div>
+                </div>
+              )}
+              
               <div style={{background: '#ffe066', borderRadius: 12, padding: 20, marginBottom: 24}}>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
                   <div>

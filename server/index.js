@@ -546,9 +546,11 @@ const bookingBaseSchema = new mongoose.Schema({
   service: String,
   details: Object,
   outsidePH: String,
+  contractPicture: String, // base64 image string
   suppliers: [{ type: mongoose.Schema.Types.ObjectId }],
+  referenceNumber: String, // Reference number for approved bookings (e.g., GC-20251206-2YYKB)
   createdAt: { type: Date, default: Date.now }
-});
+}, { strict: false });
 const PendingBooking = bookingConnection.model('PendingBooking', bookingBaseSchema);
 const ApprovedBooking = bookingConnection.model('ApprovedBooking', bookingBaseSchema);
 const FinishedBooking = bookingConnection.model('FinishedBooking', bookingBaseSchema);
@@ -716,15 +718,27 @@ app.get('/api/bookings/approved', async (req, res) => {
   }
 });
 app.post('/api/bookings/approved', async (req, res) => {
-  const bookingData = { ...req.body };
-  // Normalize field names: handle both 'subtotal' and 'subTotal'
-  if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
-    bookingData.subTotal = bookingData.subtotal;
-    delete bookingData.subtotal;
+  try {
+    const bookingData = { ...req.body };
+    console.log('📝 Approved booking POST - Full request body keys:', Object.keys(bookingData));
+    console.log('📝 Reference number received:', bookingData.referenceNumber);
+    console.log('📝 Status received:', bookingData.status);
+    
+    // Normalize field names: handle both 'subtotal' and 'subTotal'
+    if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
+      bookingData.subTotal = bookingData.subtotal;
+      delete bookingData.subtotal;
+    }
+    
+    const booking = new ApprovedBooking(bookingData);
+    const savedBooking = await booking.save();
+    console.log('✅ Approved booking saved - Reference number in DB:', savedBooking.referenceNumber);
+    console.log('✅ Saved booking ID:', savedBooking._id);
+    res.status(201).json(savedBooking);
+  } catch (error) {
+    console.error('❌ Error saving approved booking:', error);
+    res.status(500).json({ error: 'Failed to save approved booking' });
   }
-  const booking = new ApprovedBooking(bookingData);
-  await booking.save();
-  res.status(201).json(booking);
 });
 app.delete('/api/bookings/approved/:id', async (req, res) => {
   await ApprovedBooking.findByIdAndDelete(req.params.id);
@@ -738,6 +752,7 @@ app.get('/api/bookings/finished', async (req, res) => {
 });
 app.post('/api/bookings/finished', async (req, res) => {
   const bookingData = { ...req.body };
+  console.log('🏁 Finished booking POST - Reference number received:', bookingData.referenceNumber);
   // Normalize field names: handle both 'subtotal' and 'subTotal'
   if (bookingData.subtotal !== undefined && bookingData.subTotal === undefined) {
     bookingData.subTotal = bookingData.subtotal;
@@ -745,6 +760,7 @@ app.post('/api/bookings/finished', async (req, res) => {
   }
   const booking = new FinishedBooking(bookingData);
   await booking.save();
+  console.log('✅ Finished booking saved - Reference number in DB:', booking.referenceNumber);
   res.status(201).json(booking);
 });
 app.delete('/api/bookings/finished/:id', async (req, res) => {

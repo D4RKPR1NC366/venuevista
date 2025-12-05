@@ -174,23 +174,40 @@ export default function AdminBooking() {
       };
       
       const referenceNumber = generateReferenceNumber();
+      console.log('Generated reference number:', referenceNumber);
       
       // 1. Add to approved bookings in backend with reference number
+      // Remove _id so MongoDB generates a new one for approved collection
+      const { _id, ...bookingWithoutId } = booking;
       const approvalPayload = {
-        ...booking,
+        ...bookingWithoutId,
         status: 'approved',
         approvedDate: date,
         approvedDesc: desc,
         referenceNumber: referenceNumber
       };
+      console.log('📦 Approval payload keys:', Object.keys(approvalPayload));
+      console.log('📦 Reference number in payload:', approvalPayload.referenceNumber);
+      console.log('📦 Full payload:', JSON.stringify(approvalPayload, null, 2));
+      
       const response = await fetch('/api/bookings/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(approvalPayload)
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Server error:', errorText);
+        throw new Error('Failed to approve booking');
+      }
+      
       const savedBooking = await response.json();
+      console.log('✅ Response from server:', savedBooking);
+      console.log('✅ Reference number in response:', savedBooking.referenceNumber);
+      console.log('✅ New booking ID:', savedBooking._id);
       // 2. Remove from pending bookings in backend
-      await fetch(`/api/bookings/pending/${booking._id}`, {
+      await fetch(`/api/bookings/pending/${_id}`, {
         method: 'DELETE'
       });
       // 3. Save appointment to calendar DB with meeting location and branch
@@ -198,7 +215,7 @@ export default function AdminBooking() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookingId: booking._id,
+          bookingId: savedBooking._id, // Use the new approved booking ID, not the old pending ID
           clientEmail: booking.email,
           clientName: booking.name,
           date: typeof date === 'string' ? date : formatPHTime(date, 'YYYY-MM-DD'),
@@ -211,9 +228,9 @@ export default function AdminBooking() {
         throw new Error('Failed to create appointment');
       }
       console.log('Appointment created for client:', booking.email, 'at location:', location);
-      // 4. Update frontend state with reference number
+      // 4. Update frontend state with the saved booking from server (includes new _id and reference number)
       setBookings(prev => prev.map(b =>
-        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc, referenceNumber: referenceNumber } : b
+        b._id === _id ? { ...savedBooking, status: 'approved' } : b
       ));
     } catch (err) {
       alert('Failed to approve booking. Please try again.');
@@ -289,19 +306,30 @@ export default function AdminBooking() {
   // Handler to mark an approved booking as finished
   const handleDoneBooking = async (booking) => {
     try {
+      console.log('Moving to finished - original booking:', booking);
+      console.log('Reference number being preserved:', booking.referenceNumber);
+      const currentId = booking._id;
+      
+      // Remove _id so MongoDB generates a new one for finished collection
+      const { _id, ...bookingWithoutId } = booking;
+      
       // 1. Add to finished bookings in backend
-      await fetch('/api/bookings/finished', {
+      const finishedRes = await fetch('/api/bookings/finished', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...booking, status: 'finished' })
+        body: JSON.stringify({ ...bookingWithoutId, status: 'finished' })
       });
+      const savedFinished = await finishedRes.json();
+      console.log('✅ Finished booking saved with reference:', savedFinished.referenceNumber);
+      
       // 2. Remove from approved bookings in backend
-      await fetch(`/api/bookings/approved/${booking._id}`, {
+      await fetch(`/api/bookings/approved/${currentId}`, {
         method: 'DELETE'
       });
-      // 3. Update frontend state
+      
+      // 3. Update frontend state with saved booking from server
       setBookings(prev => prev.map(b =>
-        b._id === booking._id ? { ...b, status: 'finished' } : b
+        b._id === currentId ? { ...savedFinished, status: 'finished' } : b
       ));
     } catch (err) {
       alert('Failed to mark as finished. Please try again.');
