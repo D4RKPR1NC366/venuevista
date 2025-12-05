@@ -2083,7 +2083,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       {/* Product Search Modal */}
       <Dialog open={showProductSearch} onClose={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} maxWidth="lg" fullWidth>
         <DialogTitle style={{ background: '#F3C13A', color: '#222', fontWeight: 700 }}>
-          {selectedCategory ? `${selectedCategory.name || 'Products'} - Products & Services` : 'Select Category'}
+          {selectedCategory ? `${selectedCategory.title || 'Products'} - Products & Services` : 'Select Category'}
           <IconButton onClick={() => { setShowProductSearch(false); setSelectedCategory(null); setProductSearchTerm(''); }} style={{ position: 'absolute', right: 8, top: 8 }}>
             <CloseIcon />
           </IconButton>
@@ -2126,10 +2126,10 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   }}
                 >
                   {category.image && (
-                    <img src={category.image} alt={category.name} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
+                    <img src={category.image} alt={category.title} style={{ width: '100%', height: 180, objectFit: 'cover' }} />
                   )}
                   <div style={{ padding: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 18, color: '#222', marginBottom: 8 }}>{category.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 18, color: '#222', marginBottom: 8 }}>{category.title}</div>
                     {category.description && (
                       <div style={{ color: '#666', fontSize: 14, lineHeight: 1.4 }}>{category.description}</div>
                     )}
