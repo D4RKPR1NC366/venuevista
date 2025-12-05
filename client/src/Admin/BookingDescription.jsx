@@ -767,6 +767,33 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       </DialogTitle>
       <DialogContent dividers>
   <div style={{ padding: 32, background: 'linear-gradient(135deg, #ffffffff 0%, #ffffffff 100%)', borderRadius: 24, minWidth: 900 }}>
+          {/* Reference Number Display (if exists) */}
+          {booking?.referenceNumber && (
+            <div style={{ 
+              background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)', 
+              color: '#fff', 
+              padding: '12px 24px', 
+              borderRadius: 12, 
+              marginBottom: 24, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 12,
+              boxShadow: '0 4px 12px rgba(59,130,246,0.3)'
+            }}>
+              <span style={{ fontSize: 18, fontWeight: 700 }}>📋 Reference Number:</span>
+              <span style={{ 
+                fontSize: 20, 
+                fontWeight: 800, 
+                fontFamily: 'monospace', 
+                letterSpacing: '1.5px',
+                background: 'rgba(255,255,255,0.2)',
+                padding: '4px 12px',
+                borderRadius: 6
+              }}>
+                {booking.referenceNumber}
+              </span>
+            </div>
+          )}
           {/* Booker & Event Info */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 48, marginBottom: 40, background: '#fedb71', borderRadius: 18, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: 32, minWidth: 800 }}>
             <div style={{ minWidth: 320, flex: 2 }}>

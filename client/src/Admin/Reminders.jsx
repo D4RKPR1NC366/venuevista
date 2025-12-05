@@ -70,13 +70,15 @@ export default function Reminders() {
           });
 
         // Create warning reminders for approved bookings without suppliers (within 2 weeks)
+        // These warnings will automatically disappear once suppliers are assigned
         const now = new Date();
         const twoWeeksFromNow = new Date();
         twoWeeksFromNow.setDate(now.getDate() + 14);
         
         const missingSupplierReminders = approved
           .filter(b => {
-            // Check if booking has no suppliers or empty suppliers array
+            // CRITICAL: Only show warning if booking CURRENTLY has no suppliers
+            // This check happens on every fetch, so warnings disappear when suppliers are assigned
             const hasNoSuppliers = !b.suppliers || b.suppliers.length === 0;
             if (!hasNoSuppliers || !b.date) return false;
             
@@ -150,6 +152,10 @@ export default function Reminders() {
       }
     }
     fetchReminders();
+    
+    // Auto-refresh reminders every 30 seconds to update supplier warnings
+    const intervalId = setInterval(fetchReminders, 30000);
+    return () => clearInterval(intervalId);
   }, []);
   // Filter reminders based on selected time range and type
   const getFilteredReminders = () => {

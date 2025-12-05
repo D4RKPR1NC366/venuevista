@@ -52,6 +52,7 @@ const bookingBaseSchema = new mongoose.Schema({
   outsidePH: String,
   contractPicture: { type: String }, // base64 image string
   suppliers: [{ type: mongoose.Schema.Types.ObjectId }],
+  referenceNumber: { type: String }, // Reference number for approved bookings (e.g., GC-20251205-A3F9K)
   createdAt: { type: Date, default: Date.now }
 }, { strict: false });
 

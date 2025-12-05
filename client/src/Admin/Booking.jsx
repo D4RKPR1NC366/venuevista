@@ -159,12 +159,29 @@ export default function AdminBooking() {
     // Move booking to approved in backend
     const booking = approveModal.booking;
     try {
-      // 1. Add to approved bookings in backend
+      // Generate reference number: GC-YYYYMMDD-XXXXX (e.g., GC-20251205-A3F9K)
+      const generateReferenceNumber = () => {
+        const now = new Date();
+        const dateStr = now.getFullYear().toString() + 
+                       (now.getMonth() + 1).toString().padStart(2, '0') + 
+                       now.getDate().toString().padStart(2, '0');
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let randomStr = '';
+        for (let i = 0; i < 5; i++) {
+          randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `GC-${dateStr}-${randomStr}`;
+      };
+      
+      const referenceNumber = generateReferenceNumber();
+      
+      // 1. Add to approved bookings in backend with reference number
       const approvalPayload = {
         ...booking,
         status: 'approved',
         approvedDate: date,
-        approvedDesc: desc
+        approvedDesc: desc,
+        referenceNumber: referenceNumber
       };
       const response = await fetch('/api/bookings/approved', {
         method: 'POST',
@@ -194,9 +211,9 @@ export default function AdminBooking() {
         throw new Error('Failed to create appointment');
       }
       console.log('Appointment created for client:', booking.email, 'at location:', location);
-      // 4. Update frontend state
+      // 4. Update frontend state with reference number
       setBookings(prev => prev.map(b =>
-        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc } : b
+        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc, referenceNumber: referenceNumber } : b
       ));
     } catch (err) {
       alert('Failed to approve booking. Please try again.');
@@ -207,6 +224,7 @@ export default function AdminBooking() {
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'approved'
     const [branchFilter, setBranchFilter] = useState('all'); // 'all', 'maddela', 'latrinidad', 'stafe'
   const [search, setSearch] = useState('');
+  const [refSearch, setRefSearch] = useState('');
 
   const handleOpenModal = (booking) => {
     setSelectedBooking(booking);
@@ -242,6 +260,19 @@ export default function AdminBooking() {
   filteredPending = filteredPending.filter(b => branchMatch(b.branchLocation, branchFilter));
   filteredApproved = filteredApproved.filter(b => branchMatch(b.branchLocation, branchFilter));
   filteredFinished = filteredFinished.filter(b => branchMatch(b.branchLocation, branchFilter));
+  
+  // Filter by reference number search (exact or partial match)
+  const refSearchTrimmed = refSearch.trim().toUpperCase();
+  if (refSearchTrimmed) {
+    const matchesRef = b => {
+      const ref = (b.referenceNumber || '').toUpperCase();
+      return ref.includes(refSearchTrimmed);
+    };
+    filteredPending = filteredPending.filter(matchesRef);
+    filteredApproved = filteredApproved.filter(matchesRef);
+    filteredFinished = filteredFinished.filter(matchesRef);
+  }
+  
   // Further filter by search (booking type or booker name)
   const searchLower = search.trim().toLowerCase();
   if (searchLower) {
@@ -288,10 +319,20 @@ export default function AdminBooking() {
             <div className="admin-booking-header-controls">
               <input
                 type="text"
-                placeholder="Search bookings..."
+                placeholder="Search by name, event type..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="admin-booking-search"
+                style={{ width: '200px' }}
+              />
+              <input
+                type="text"
+                placeholder="Ref # (GC-20251205-A3F9K)"
+                value={refSearch}
+                onChange={e => setRefSearch(e.target.value)}
+                className="admin-booking-search"
+                style={{ width: '200px', background: '#f0f9ff', border: '2px solid #3b82f6' }}
+                title="Search by reference number"
               />
               <label htmlFor="booking-filter" className="admin-booking-filter-label">Show:</label>
               <select
@@ -415,6 +456,11 @@ export default function AdminBooking() {
                   >
                     <div className="booking-card-info" onClick={() => handleOpenModal(booking)}>
                       <div className="booking-card-title">{booking.eventType || booking.title}</div>
+                      {booking.referenceNumber && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginBottom: 4, fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                          📋 Ref: {booking.referenceNumber}
+                        </div>
+                      )}
                       <div className="booking-card-booker">Booker: {booking.name || 'N/A'}</div>
                       <div className="booking-card-date">Date: {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : ''}</div>
                       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -495,6 +541,11 @@ export default function AdminBooking() {
                       onClick={() => handleOpenModal(booking)}
                     >
                       <div style={{ fontWeight: 500, fontSize: 18 }}>{booking.eventType || booking.title}</div>
+                      {booking.referenceNumber && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginTop: 4, fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                          📋 Ref: {booking.referenceNumber}
+                        </div>
+                      )}
                       <div style={{ fontSize: 15, marginTop: 2, color: '#444' }}>Booker: {booking.name || 'N/A'}</div>
                       <div style={{ fontSize: 14, marginTop: 4 }}>Date: {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : ''}</div>
                       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
