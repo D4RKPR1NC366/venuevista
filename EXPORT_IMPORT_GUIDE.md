@@ -13,7 +13,8 @@ This guide will help you export all data from MongoDB Atlas and import it into M
 This will download ALL data from all your MongoDB Atlas databases to your local computer.
 
 ```powershell
-# Run the export script
+# Run the export script from server directory (where mongoose is installed)
+cd server
 node export-all-data.js
 ```
 
@@ -56,7 +57,8 @@ node export-all-data.js
 Once you have local MongoDB running and your data exported:
 
 ```powershell
-# Run the import script
+# Run the import script from server directory
+cd server
 node import-to-local.js
 ```
 

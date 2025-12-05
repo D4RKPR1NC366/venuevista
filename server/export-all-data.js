@@ -1,9 +1,8 @@
-require('dotenv').config({ path: './server/.env.production' });
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 
-// MongoDB connection strings from your server
+// MongoDB connection strings from your server (hardcoded to avoid dotenv dependency)
 const connections = {
   authentication: 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/authentication',
   booking: 'mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/booking',
@@ -25,9 +24,12 @@ async function exportDatabase(dbName, connectionString) {
   console.log(`\n🔄 Exporting database: ${dbName}`);
   
   try {
-    const conn = await mongoose.createConnection(connectionString, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
+    const conn = mongoose.createConnection(connectionString);
+    
+    // Wait for connection to open
+    await new Promise((resolve, reject) => {
+      conn.once('open', resolve);
+      conn.once('error', reject);
     });
 
     console.log(`✅ Connected to ${dbName}`);
