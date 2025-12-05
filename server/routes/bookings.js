@@ -30,6 +30,7 @@ const bookingBaseSchema = new mongoose.Schema({
     totalPrice: Number,
     // Payment details object
     paymentDetails: {
+        paymentMode: String,
         paymentStatus: String,
         amountPaid: Number,
         paymentDate: String,
@@ -102,6 +103,7 @@ router.put('/:id', async (req, res) => {
         // Handle payment details object
         if (updateData.paymentDetails) {
             updateData.paymentDetails = {
+                paymentMode: updateData.paymentDetails.paymentMode || '',
                 paymentStatus: updateData.paymentDetails.paymentStatus || '',
                 amountPaid: Number(updateData.paymentDetails.amountPaid) || 0,
                 paymentDate: updateData.paymentDetails.paymentDate || '',

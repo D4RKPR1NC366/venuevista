@@ -103,13 +103,14 @@ export default function Calendars() {
   useEffect(() => {
     async function fetchEventsAndBookings() {
       try {
-        const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+        const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
           fetch('/api/schedules'),
           fetch('/api/schedules/status/accepted'),
           fetch('/api/bookings/pending'),
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
           fetch('/api/appointments'),
+          fetch('/api/notifications'),
         ]);
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
         const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
@@ -117,6 +118,7 @@ export default function Calendars() {
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
         const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
+        const notifications = notificationsRes.ok ? await notificationsRes.json() : [];
         setBookings([...pending, ...approved, ...finished]);
 
         // Map bookings to calendar event format
@@ -178,12 +180,20 @@ export default function Calendars() {
           location: s.branchLocation || s.location || ''
         }));
 
-        // Merge all events: schedules, accepted schedules, booking events, and appointment events
+        // Map notifications to ensure location field is present and mark with type
+        const notificationEvents = (Array.isArray(notifications) ? notifications : []).map(n => ({
+          ...n,
+          type: 'Notification',
+          location: n.location || ''
+        }));
+
+        // Merge all events: schedules, accepted schedules, booking events, appointment events, and notifications
         const allEvents = [
           ...scheduleEvents,
           ...acceptedScheduleEvents,
           ...bookingEvents,
-          ...appointmentEvents
+          ...appointmentEvents,
+          ...notificationEvents
         ];
         setEvents(allEvents);
       } catch (err) {
@@ -195,23 +205,23 @@ export default function Calendars() {
 
   // Optionally, remove localStorage saving logic
 
-  // Add event handler (update to POST to backend)
+  // Add notification handler (update to POST to notifications endpoint)
   const handleAddEvent = async (e) => {
     e.preventDefault();
     const newEvent = { ...form };
     try {
-      const res = await fetch('/api/schedules', {
+      const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEvent)
       });
-      if (!res.ok) throw new Error('Failed to add event');
+      if (!res.ok) throw new Error('Failed to add notification');
       const savedEvent = await res.json();
       setEvents(evts => [...evts, savedEvent]);
       setModalOpen(false);
       setForm({ title: '', type: 'Supplier', person: '', date: dayjs().format('YYYY-MM-DD'), location: '', description: '' });
     } catch (err) {
-      console.error('Error adding event:', err);
+      console.error('Error adding notification:', err);
       // Optionally show error to user
     }
   };
@@ -250,10 +260,12 @@ export default function Calendars() {
       return '#ffe082'; // default yellow
     }
 
-    // Delete event handler
-    const handleDeleteEvent = async (eventId) => {
+    // Delete event handler - handles both notifications and schedules
+    const handleDeleteEvent = async (eventId, eventType) => {
       try {
-        const res = await fetch(`/api/schedules/${eventId}`, {
+        // Determine which endpoint to use based on event type
+        const endpoint = eventType === 'Notification' ? `/api/notifications/${eventId}` : `/api/schedules/${eventId}`;
+        const res = await fetch(endpoint, {
           method: 'DELETE',
         });
         if (!res.ok) throw new Error('Failed to delete event');
@@ -327,7 +339,7 @@ export default function Calendars() {
               }}
               onClick={() => setModalOpen(true)}
             >
-              Add Event/ Schedule/ Reminder
+              Add Notification/ Reminder
             </button>
           </div>
           <div
@@ -359,7 +371,7 @@ export default function Calendars() {
           </div>
           {/* Modal for adding event */}
           <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
-            <h4 style={{ marginTop: 0 }}>Add Event/ Schedule/ Reminder</h4>
+            <h4 style={{ marginTop: 0 }}>Add Notification/ Reminder</h4>
             <form onSubmit={handleAddEvent} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <label style={{ width: '100%', marginBottom: 0 }}>
                 Title:
@@ -451,10 +463,10 @@ export default function Calendars() {
               </label>
               <label style={{ width: '100%', marginBottom: 0 }}>
                 Location:
-                <input type="text" required value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 2, marginBottom: 2, background: '#fff', color: '#111', border: '1px solid #ccc', borderRadius: 4, boxSizing: 'border-box' }} />
+                <input type="text" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 2, marginBottom: 2, background: '#fff', color: '#111', border: '1px solid #ccc', borderRadius: 4, boxSizing: 'border-box' }} />
               </label>
               <label style={{ width: '100%', marginBottom: 0 }}>
-                Date:
+                Due Date:
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DatePicker
                     value={dayjs(form.date)}
@@ -464,6 +476,7 @@ export default function Calendars() {
                       textField: {
                         fullWidth: true,
                         size: 'small',
+                        required: true,
                         sx: {
                           marginTop: '2px',
                           marginBottom: '2px',
@@ -479,7 +492,7 @@ export default function Calendars() {
                 Description:
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 2, marginBottom: 2, background: '#fff', color: '#111', border: '1px solid #ccc', borderRadius: 4, boxSizing: 'border-box' }} />
               </label>
-              <button type="submit" style={{ background: 'linear-gradient(90deg, #e6b800 0%, #ffbe2e 100%)', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 700, fontSize: '1rem', padding: '0.45rem 1.2rem', cursor: 'pointer', marginTop: 8 }}>Set Schedule</button>
+              <button type="submit" style={{ background: 'linear-gradient(90deg, #e6b800 0%, #ffbe2e 100%)', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 700, fontSize: '1rem', padding: '0.45rem 1.2rem', cursor: 'pointer', marginTop: 8 }}>Set Notification/ Reminder</button>
             </form>
           </Modal>
           {/* Modal for viewing events on a day */}
@@ -534,9 +547,12 @@ export default function Calendars() {
                           </div>
                           <div style={{ color: '#000', fontSize: 12 }}>{ev.location}</div>
                         </div>
-                        <IconButton aria-label="delete" size="small" onClick={() => handleDeleteEvent(ev._id)} style={{ marginLeft: 4 }}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        {/* Only show delete button for Notification type */}
+                        {ev.type === 'Notification' && (
+                          <IconButton aria-label="delete" size="small" onClick={() => handleDeleteEvent(ev._id, 'Notification')} style={{ marginLeft: 4 }}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
                       </div>
                     );
                   })

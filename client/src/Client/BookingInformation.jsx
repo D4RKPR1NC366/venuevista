@@ -20,6 +20,19 @@ const BookingInformation = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userReviews, setUserReviews] = useState([]);
+  
+  // Payment modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    paymentMode: '',
+    paymentStatus: '',
+    amountPaid: '',
+    paymentDate: '',
+    transactionReference: '',
+    paymentProof: '',
+    paymentNotes: ''
+  });
+  const [paymentProofPreview, setPaymentProofPreview] = useState('');
 
   // Get user info (match Login.jsx logic)
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -165,6 +178,90 @@ const BookingInformation = () => {
     setSelectedBooking(null);
   };
 
+  // Payment modal handlers
+  const handlePaymentProofUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target.result;
+        setPaymentProofPreview(base64);
+        setPaymentForm(prev => ({ ...prev, paymentProof: base64 }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePaymentProof = () => {
+    setPaymentProofPreview('');
+    setPaymentForm(prev => ({ ...prev, paymentProof: '' }));
+  };
+
+  const handleSubmitPayment = async () => {
+    if (!paymentForm.paymentMode || !paymentForm.amountPaid || !paymentForm.paymentDate) {
+      alert('Please fill in all required fields (Mode of Payment, Amount Paid, Payment Date)');
+      return;
+    }
+
+    // Auto-calculate payment status before submitting
+    const amountPaid = parseFloat(paymentForm.amountPaid) || 0;
+    const totalPrice = selectedBooking?.totalPrice || 0;
+    let finalStatus = 'Pending';
+    
+    if (amountPaid === 0) {
+      finalStatus = 'Pending';
+    } else if (amountPaid >= totalPrice) {
+      finalStatus = 'Fully Paid';
+    } else if (amountPaid > 0 && amountPaid < totalPrice) {
+      finalStatus = 'Partially Paid';
+    }
+
+    try {
+      const response = await api.put(`/bookings/${selectedBooking._id}`, {
+        paymentDetails: {
+          ...paymentForm,
+          paymentStatus: finalStatus
+        }
+      });
+      
+      if (response.status === 200) {
+        alert('Payment details saved successfully!');
+        setShowPaymentModal(false);
+        // Reset form
+        setPaymentForm({
+          paymentMode: '',
+          paymentStatus: '',
+          amountPaid: '',
+          paymentDate: '',
+          transactionReference: '',
+          paymentProof: '',
+          paymentNotes: ''
+        });
+        setPaymentProofPreview('');
+        // Refresh bookings to get updated data
+        await fetchBookings();
+        // Update selected booking with the new payment details immediately
+        const updatedBookings = await Promise.all([
+          api.get('/bookings/pending'),
+          api.get('/bookings/approved'),
+          api.get('/bookings/finished')
+        ]);
+        const allBookings = [
+          ...updatedBookings[0].data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Pending' })),
+          ...updatedBookings[1].data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Approved' })),
+          ...updatedBookings[2].data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Finished' }))
+        ];
+        const updatedBooking = allBookings.find(b => b._id === selectedBooking._id);
+        if (updatedBooking) {
+          setSelectedBooking(updatedBooking);
+        }
+      }
+    } catch (err) {
+      console.error('Error submitting payment:', err);
+      alert('Failed to save payment details. Please try again.');
+    }
+  };
+
   return (
     <div className="booking-page">
   <ClientSidebar userType={JSON.parse(localStorage.getItem('user') || '{}').role === 'supplier' ? 'supplier' : 'client'} />
@@ -257,7 +354,6 @@ const BookingInformation = () => {
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Name:</strong> {selectedBooking.name}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Contact Number:</strong> {selectedBooking.contact}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Email Address:</strong> {selectedBooking.email}</div>
-                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Payment Mode:</strong> {selectedBooking.paymentMode || 'Not set'}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Sub Total:</strong> PHP {selectedBooking.subTotal || selectedBooking.totalPrice || 0}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Promo:</strong> {selectedBooking.promoTitle || selectedBooking.promo || ''}</div>
                     {selectedBooking.discount > 0 && (
@@ -369,10 +465,83 @@ const BookingInformation = () => {
                 {selectedBooking.specialRequest || 'None'}
               </div>
 
-              {/* Payment Details Display */}
-              {selectedBooking.paymentDetails && (
+              {/* Payment Section */}
+              <div style={{marginBottom: 24}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16}}>
+                  <h3 style={{fontWeight: 700, fontSize: '1.2rem', margin: 0}}>Payment</h3>
+                  {!selectedBooking.paymentDetails && (selectedBooking.status === 'Approved' || selectedBooking.status === 'approved') && (
+                    <button
+                      onClick={() => {
+                        setShowPaymentModal(true);
+                      }}
+                      style={{
+                        background: 'linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '10px 24px',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(76, 175, 80, 0.3)';
+                      }}
+                    >
+                      💳 Add Payment
+                    </button>
+                  )}
+                </div>
+                {selectedBooking.paymentDetails ? (
                 <>
-                  <h3 style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 16}}>Payment Details</h3>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16}}>
+                    <h3 style={{fontWeight: 700, fontSize: '1.2rem', margin: 0}}>Payment Details</h3>
+                    <button
+                      onClick={() => {
+                        // Pre-populate form with existing payment data
+                        setPaymentForm({
+                          paymentMode: selectedBooking.paymentDetails.paymentMode || '',
+                          paymentStatus: selectedBooking.paymentDetails.paymentStatus || '',
+                          amountPaid: selectedBooking.paymentDetails.amountPaid || '',
+                          paymentDate: selectedBooking.paymentDetails.paymentDate || '',
+                          transactionReference: selectedBooking.paymentDetails.transactionReference || '',
+                          paymentProof: selectedBooking.paymentDetails.paymentProof || '',
+                          paymentNotes: selectedBooking.paymentDetails.paymentNotes || ''
+                        });
+                        setPaymentProofPreview(selectedBooking.paymentDetails.paymentProof || '');
+                        setShowPaymentModal(true);
+                      }}
+                      style={{
+                        background: 'linear-gradient(90deg, #FF9800 0%, #FFB74D 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '8px 20px',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(255, 152, 0, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(255, 152, 0, 0.3)';
+                      }}
+                    >
+                      ✏️ Edit Payment
+                    </button>
+                  </div>
                   <div style={{ 
                     background: '#e8f5e9', 
                     borderRadius: 12, 
@@ -392,6 +561,10 @@ const BookingInformation = () => {
                         }}>
                           {selectedBooking.paymentDetails.paymentStatus}
                         </div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Mode of Payment</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#222' }}>{selectedBooking.paymentDetails.paymentMode || 'Not specified'}</div>
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Amount Paid</div>
@@ -432,21 +605,39 @@ const BookingInformation = () => {
                     )}
                     {selectedBooking.totalPrice && selectedBooking.paymentDetails.amountPaid && (
                       <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #c8e6c9' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555' }}>Total Booking Amount:</div>
-                          <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#222' }}>PHP {selectedBooking.totalPrice}</div>
-                        </div>
-                        {selectedBooking.paymentDetails.amountPaid < selectedBooking.totalPrice && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#e53935' }}>Remaining Balance:</div>
-                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#e53935' }}>PHP {selectedBooking.totalPrice - selectedBooking.paymentDetails.amountPaid}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Total Amount</div>
+                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#222' }}>PHP {selectedBooking.totalPrice}</div>
                           </div>
-                        )}
+                          {Number(selectedBooking.paymentDetails.amountPaid) < Number(selectedBooking.totalPrice) && (
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Remaining Balance</div>
+                              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#e53935' }}>PHP {Number(selectedBooking.totalPrice) - Number(selectedBooking.paymentDetails.amountPaid)}</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 </>
-              )}
+                ) : (
+                  <div style={{ 
+                    background: '#f5f5f5', 
+                    borderRadius: 12, 
+                    padding: 20,
+                    border: '2px dashed #ccc',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>💳</div>
+                    <div style={{ fontSize: '0.95rem', color: '#666', fontWeight: 600 }}>
+                      {selectedBooking.status === 'pending' || selectedBooking.status === 'Pending'
+                        ? 'Payment can be added after booking approval' 
+                        : 'No payment details submitted yet'}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -652,6 +843,304 @@ const BookingInformation = () => {
                 }}
               >
                 Submit Review
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Modal */}
+        {showPaymentModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 2147483648,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 32,
+              maxWidth: 600,
+              width: '90%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setPaymentForm({
+                    paymentMode: '',
+                    paymentStatus: '',
+                    amountPaid: '',
+                    paymentDate: '',
+                    transactionReference: '',
+                    paymentProof: '',
+                    paymentNotes: ''
+                  });
+                  setPaymentProofPreview('');
+                }}
+                style={{
+                  position: 'absolute', 
+                  top: 16, 
+                  right: 16, 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: 28, 
+                  cursor: 'pointer',
+                  color: '#999'
+                }}
+              >
+                ×
+              </button>
+              
+              <h2 style={{fontWeight: 800, fontSize: '1.5rem', marginBottom: 20, color: '#333'}}>Payment Details</h2>
+              
+              {/* Mode of Payment */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Mode of Payment <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <select
+                  value={paymentForm.paymentMode}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentMode: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                >
+                  <option value="">Select Payment Mode</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="GCash">GCash</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Debit Card">Debit Card</option>
+                </select>
+              </div>
+
+              {/* Payment Status - Auto-calculated */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Payment Status (Auto-calculated)
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.paymentStatus || 'Pending'}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#f5f5f5',
+                    color: '#333',
+                    cursor: 'not-allowed'
+                  }}
+                />
+                <div style={{fontSize: '12px', color: '#666', marginTop: 4, fontStyle: 'italic'}}>
+                  Status is automatically set based on amount paid
+                </div>
+              </div>
+
+              {/* Amount Paid */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Amount Paid (PHP) <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <input
+                  type="number"
+                  value={paymentForm.amountPaid}
+                  onChange={(e) => {
+                    const amountPaid = parseFloat(e.target.value) || 0;
+                    const totalPrice = selectedBooking?.totalPrice || 0;
+                    let autoStatus = '';
+                    
+                    if (amountPaid === 0) {
+                      autoStatus = 'Pending';
+                    } else if (amountPaid >= totalPrice) {
+                      autoStatus = 'Fully Paid';
+                    } else if (amountPaid > 0 && amountPaid < totalPrice) {
+                      autoStatus = 'Partially Paid';
+                    }
+                    
+                    setPaymentForm(prev => ({ 
+                      ...prev, 
+                      amountPaid: e.target.value,
+                      paymentStatus: autoStatus
+                    }));
+                  }}
+                  placeholder="0.00"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+                {selectedBooking && (
+                  <div style={{fontSize: '13px', color: '#666', marginTop: 4}}>
+                    Total booking amount: PHP {selectedBooking.totalPrice}
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Date */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Payment Date <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <input
+                  type="date"
+                  value={paymentForm.paymentDate}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentDate: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              {/* Transaction Reference */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Transaction Reference Number
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.transactionReference}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, transactionReference: e.target.value }))}
+                  placeholder="e.g., TXN123456789, GCash Ref#, Bank Transfer#"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              {/* Payment Proof */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Payment Proof (Receipt/Screenshot)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePaymentProofUpload}
+                  style={{display: 'none'}}
+                  id="payment-proof-upload"
+                />
+                <label
+                  htmlFor="payment-proof-upload"
+                  style={{
+                    display: 'inline-block',
+                    padding: '10px 20px',
+                    background: '#f5f5f5',
+                    border: '2px dashed #ccc',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#666',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  ⚡ Upload Payment Proof
+                </label>
+                {paymentProofPreview && (
+                  <div style={{marginTop: 12, position: 'relative', display: 'inline-block'}}>
+                    <img src={paymentProofPreview} alt="Payment Proof Preview" style={{maxWidth: '200px', maxHeight: '150px', borderRadius: 8, border: '2px solid #ddd'}} />
+                    <button
+                      onClick={handleRemovePaymentProof}
+                      style={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        background: '#ff4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 24,
+                        height: 24,
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        lineHeight: '24px',
+                        padding: 0
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Notes */}
+              <div style={{marginBottom: 24}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Additional Notes
+                </label>
+                <textarea
+                  value={paymentForm.paymentNotes}
+                  onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentNotes: e.target.value }))}
+                  placeholder="Any additional payment information..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              <button
+                style={{
+                  background: paymentForm.paymentMode && paymentForm.paymentStatus && paymentForm.amountPaid && paymentForm.paymentDate 
+                    ? 'linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%)' 
+                    : '#e0e0e0',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '12px 32px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: paymentForm.paymentMode && paymentForm.paymentStatus && paymentForm.amountPaid && paymentForm.paymentDate ? 'pointer' : 'not-allowed',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  color: '#fff'
+                }}
+                disabled={!paymentForm.paymentMode || !paymentForm.paymentStatus || !paymentForm.amountPaid || !paymentForm.paymentDate}
+                onClick={handleSubmitPayment}
+              >
+                Submit Payment Details
               </button>
             </div>
           </div>

@@ -315,19 +315,21 @@ export default function Dashboard() {
     useEffect(() => {
       async function fetchEventsAndBookings() {
         try {
-          const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+          const [schedulesRes, acceptedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
             fetch('/api/schedules'),
             fetch('/api/schedules/status/accepted'),
             fetch('/api/bookings/pending'),
             fetch('/api/bookings/approved'),
             fetch('/api/bookings/finished'),
             fetch('/api/appointments'),
+            fetch('/api/notifications'),
           ]);
           const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
           const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
           const pending = pendingRes.ok ? await pendingRes.json() : [];
           const approved = approvedRes.ok ? await approvedRes.json() : [];
           const finished = finishedRes.ok ? await finishedRes.json() : [];
+          const notifications = notificationsRes.ok ? await notificationsRes.json() : [];
           const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
           // Map bookings to calendar event format
           const bookingEvents = [...pending, ...approved, ...finished]
@@ -372,11 +374,31 @@ export default function Dashboard() {
                 status: a.status || '',
               };
             });
+          
+          // Map accepted schedules to ensure branchLocation is used for location field (for color coding)
+          const acceptedScheduleEvents = (Array.isArray(acceptedSchedules) ? acceptedSchedules : []).map(s => ({
+            ...s,
+            location: s.branchLocation || s.location || ''
+          }));
+
+          // Map regular schedules to ensure branchLocation is used for location field (for color coding)
+          const scheduleEvents = (Array.isArray(schedules) ? schedules : []).map(s => ({
+            ...s,
+            location: s.branchLocation || s.location || ''
+          }));
+
+          // Map notifications to ensure location field is present
+          const notificationEvents = (Array.isArray(notifications) ? notifications : []).map(n => ({
+            ...n,
+            location: n.location || ''
+          }));
+          
           const allEvents = [
-            ...(Array.isArray(schedules) ? schedules : []),
-            ...(Array.isArray(acceptedSchedules) ? acceptedSchedules : []),
+            ...scheduleEvents,
+            ...acceptedScheduleEvents,
             ...bookingEvents,
-            ...appointmentEvents
+            ...appointmentEvents,
+            ...notificationEvents
           ];
           setCalendarEvents(allEvents);
         } catch (err) {

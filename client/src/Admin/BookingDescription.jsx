@@ -785,29 +785,6 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     <input style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.email || ''} onChange={handleChange('email')} />
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
-                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Payment Mode:</span>
-                    <select
-                      style={{ 
-                        marginLeft: 8, 
-                        color: '#222', 
-                        fontSize: 15, 
-                        borderRadius: 4, 
-                        border: '1px solid #ccc', 
-                        padding: '2px 8px', 
-                        background: '#fff'
-                      }}
-                      value={editData.paymentMode || ''}
-                      onChange={(e) => {
-                        setEditData(prev => ({ ...prev, paymentMode: e.target.value }));
-                      }}
-                    >
-                      <option value="">Select Payment Mode</option>
-                      {paymentModes.map(mode => (
-                        <option key={mode} value={mode}>{mode}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Promo:</span>
                     <select
                       style={{
@@ -888,7 +865,6 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Name:</span> <span style={{ color: '#222' }}>{editData.name || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Contact Number:</span> <span style={{ color: '#222' }}>{editData.contact || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Email Address:</span> <span style={{ color: '#222' }}>{editData.email || ''}</span></div>
-                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Payment Mode:</span> <span style={{ color: '#222' }}>{editData.paymentMode || 'Not set'}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Sub Total:</span> <span style={{ color: '#222' }}>PHP {editData.subTotal || editData.totalPrice || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Promo:</span>
@@ -1376,10 +1352,12 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
             )}
           </div>
 
-          {/* Payment Details Display */}
-          {editData.paymentDetails && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 12, color: '#222' }}>Payment Details</div>
+          {/* Payment Information Section (Read-Only for Admin) */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 16, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
+              💳 Payment Information
+            </div>
+            {editData.paymentDetails ? (
               <div style={{ 
                 background: '#e8f5e9', 
                 borderRadius: 12, 
@@ -1399,6 +1377,10 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     }}>
                       {editData.paymentDetails.paymentStatus}
                     </div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Mode of Payment</div>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: '#222' }}>{editData.paymentDetails.paymentMode || 'Not specified'}</div>
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Amount Paid</div>
@@ -1437,9 +1419,37 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     <div style={{ fontSize: 15, color: '#222', fontStyle: 'italic' }}>{editData.paymentDetails.paymentNotes}</div>
                   </div>
                 )}
+                {editData.totalPrice && editData.paymentDetails.amountPaid && (
+                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #a5d6a7' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Total Amount</div>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: '#222' }}>PHP {editData.totalPrice}</div>
+                      </div>
+                      {Number(editData.paymentDetails.amountPaid) < Number(editData.totalPrice) && (
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Remaining Balance</div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: '#e53935' }}>PHP {Number(editData.totalPrice) - Number(editData.paymentDetails.amountPaid)}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            ) : (
+              <div style={{ 
+                fontSize: 15, 
+                color: '#666', 
+                fontStyle: 'italic', 
+                padding: 16, 
+                background: '#fff', 
+                borderRadius: 8, 
+                border: '1px dashed #ccc' 
+              }}>
+                No payment details submitted yet. Customer can add payment information from their booking page.
+              </div>
+            )}
+          </div>
 
           {/* Contract Picture Upload (optional) */}
           <div style={{ marginBottom: 24 }}>
@@ -1519,27 +1529,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
             )}
           </div>
 
-          {/* Edit/Save/Cancel/Payment Buttons */}
+          {/* Edit/Save/Cancel Buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, gap: 12, alignItems: 'center' }}>
-            {isEditing && (
-              <button 
-                onClick={() => setShowPaymentDetailsModal(true)} 
-                style={{ 
-                  background: '#4CAF50', 
-                  color: '#fff', 
-                  fontWeight: 700, 
-                  fontSize: 16, 
-                  border: 'none', 
-                  borderRadius: 8, 
-                  padding: '10px 32px', 
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  marginRight: 'auto'
-                }}
-              >
-                Add Payment Details
-              </button>
-            )}
             {isEditing ? (
               <>
                 <button 

@@ -63,6 +63,9 @@ const Notification = () => {
     }
 
     return items.filter(item => {
+      // Skip time filter for pending supplier schedules
+      if (item.ignoreTimeFilter) return true;
+      
       const itemDate = new Date(item.date);
       itemDate.setHours(0, 0, 0, 0);
       return itemDate >= today && itemDate <= endDate;
@@ -80,8 +83,8 @@ const Notification = () => {
         // Get user's name
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
         
-        // Fetch all types of events: schedules, accepted schedules, bookings, and appointments
-        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes] = await Promise.all([
+        // Fetch all types of events: schedules, accepted schedules, bookings, appointments, and notifications
+        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
           fetch('/api/schedules'),
           fetch('/api/schedules/status/accepted'),
           userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
@@ -89,6 +92,7 @@ const Notification = () => {
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
           fetch('/api/appointments/user/' + encodeURIComponent(userEmail)),
+          fetch('/api/notifications'),
         ]);
 
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
@@ -98,8 +102,27 @@ const Notification = () => {
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
         const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
+        const notificationsData = notificationsRes.ok ? await notificationsRes.json() : [];
 
-        console.log('Fetched data:', { schedules, acceptedSchedules, pending, approved, finished, appointments });
+        console.log('Fetched data:', { schedules, acceptedSchedules, pending, approved, finished, appointments, notificationsData });
+
+        // Filter notifications for this user (customer or supplier)
+        const userNotifications = notificationsData.filter(notif => {
+          if (userRole === 'supplier') {
+            return notif.type === 'Supplier' && 
+                   (notif.person === userEmail || notif.person === userName);
+          } else {
+            return notif.type === 'Customer' && 
+                   (notif.person === userEmail || notif.person === userName);
+          }
+        }).map(notif => ({
+          ...notif,
+          type: 'Notification',
+          title: notif.title,
+          description: notif.description || '',
+          date: notif.date,
+          location: notif.location || ''
+        }));
 
         let filtered = [];
         
@@ -109,7 +132,10 @@ const Notification = () => {
             rem.type === 'Supplier' && 
             (rem.person === userEmail || rem.person === userName || rem.supplierId === userEmail) &&
             (!rem.status || rem.status === 'pending')
-          );
+          ).map(rem => ({
+            ...rem,
+            ignoreTimeFilter: true // Mark to bypass time filter
+          }));
           
           console.log('Pending schedules for supplier:', pendingSchedules);
           
@@ -166,8 +192,8 @@ const Notification = () => {
             status: a.status || ''
           }));
           
-          // Combine all events for suppliers - show ALL pending and accepted schedules
-          filtered = [...pendingSchedules, ...acceptedSchedulesForNotif, ...bookingEvents, ...appointmentEvents];
+          // Combine all events for suppliers - show ALL pending and accepted schedules + notifications
+          filtered = [...pendingSchedules, ...acceptedSchedulesForNotif, ...bookingEvents, ...appointmentEvents, ...userNotifications];
           
           console.log('Combined filtered notifications:', filtered);
           
@@ -228,7 +254,7 @@ const Notification = () => {
             status: a.status || ''
           }));
           
-          filtered = [...userSchedules, ...acceptedWithin1Week, ...bookingEvents, ...appointmentEvents];
+          filtered = [...userSchedules, ...acceptedWithin1Week, ...bookingEvents, ...appointmentEvents, ...userNotifications];
         }
 
         console.log('Filtered notifications:', filtered);
@@ -479,6 +505,7 @@ const Notification = () => {
                 borderLeft: `4px solid ${
                   notif.type === 'Booking' ? '#2196F3' : 
                   notif.type === 'Appointment' ? '#9C27B0' : 
+                  notif.type === 'Notification' ? '#FF9800' : 
                   notif.status === 'accepted' ? '#4CAF50' : '#FFD700'
                 }`
               }}>
@@ -490,9 +517,11 @@ const Notification = () => {
                       padding: '2px 8px',
                       borderRadius: '12px',
                       background: notif.type === 'Booking' ? '#E3F2FD' : 
-                                notif.type === 'Appointment' ? '#F3E5F5' : '#FFF9C4',
+                                notif.type === 'Appointment' ? '#F3E5F5' : 
+                                notif.type === 'Notification' ? '#FFF3E0' : '#FFF9C4',
                       color: notif.type === 'Booking' ? '#1976D2' : 
-                            notif.type === 'Appointment' ? '#7B1FA2' : '#F57F17'
+                            notif.type === 'Appointment' ? '#7B1FA2' : 
+                            notif.type === 'Notification' ? '#E65100' : '#F57F17'
                     }}>
                       {notif.type}
                     </span>

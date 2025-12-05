@@ -84,6 +84,18 @@ const scheduleSchema = require('./models/Schedule').schema;
 const Schedule = scheduleConnection.model('Schedule', scheduleSchema);
 const { SupplierAcceptedSchedule, SupplierDeclinedSchedule } = require('./models/SupplierSchedule');
 
+// Create a separate connection for notifications
+const notificationConnection = mongoose.createConnection(`${process.env.MONGODB_URI}/notification`, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+notificationConnection.on('connected', () => console.log('MongoDB notification database connected!'));
+notificationConnection.on('error', err => console.error('MongoDB notification connection error:', err));
+
+// Load Notification model using the notification connection
+const notificationSchema = require('./models/Notification').schema;
+const Notification = notificationConnection.model('Notification', notificationSchema);
+
 // Load Appointment model using scheduleConnection
 const appointmentSchema = require('./models/Appointment').schema;
 const Appointment = scheduleConnection.model('Appointment', appointmentSchema);
@@ -214,6 +226,41 @@ app.get('/api/schedules/status/declined', async (req, res) => {
   } catch (err) {
     console.error('Error fetching declined schedules:', err);
     res.status(500).json({ error: 'Failed to fetch declined schedules' });
+  }
+});
+
+// Notifications API endpoints
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const notifications = await Notification.find().sort({ createdAt: -1 });
+    res.json(notifications);
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const notification = new Notification(req.body);
+    await notification.save();
+    res.status(201).json(notification);
+  } catch (err) {
+    console.error('Error creating notification:', err);
+    res.status(500).json({ error: 'Failed to create notification' });
+  }
+});
+
+app.delete('/api/notifications/:id', async (req, res) => {
+  try {
+    const deleted = await Notification.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+    res.json({ message: 'Notification deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting notification:', err);
+    res.status(500).json({ error: 'Failed to delete notification' });
   }
 });
 
