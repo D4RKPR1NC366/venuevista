@@ -9,8 +9,6 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
   const [date, setDate] = useState(null);
   const [desc, setDesc] = useState('');
   const [location, setLocation] = useState('');
-  const [suppliers, setSuppliers] = useState([]);
-  const [selectedSuppliers, setSelectedSuppliers] = useState([]);
   
   React.useEffect(() => {
     if (open && booking) {
@@ -18,50 +16,11 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
       setDesc('');
       // Pre-populate location with booking's branch location
       setLocation(booking.branchLocation || '');
-      setSelectedSuppliers([]);
-      // Fetch approved suppliers
-      fetch('/api/admin/suppliers/approved')
-        .then(res => res.json())
-        .then(data => {
-          console.log('=== FETCHED SUPPLIERS ===');
-          console.log('Total suppliers:', data.length);
-          data.forEach(s => {
-            console.log('Supplier:', s.companyName);
-            console.log('  _id:', s._id);
-            console.log('  branchContacts:', s.branchContacts);
-          });
-          setSuppliers(data);
-        })
-        .catch(err => console.error('Failed to fetch suppliers:', err));
     }
   }, [open, booking]);
   
   if (!open) return null;
   
-  // Filter suppliers by branch contact matching the booking's branch location
-  const bookingBranch = booking?.branchLocation || location;
-  console.log('=== FILTERING SUPPLIERS ===');
-  console.log('Booking branch location:', bookingBranch);
-  console.log('Total suppliers to filter:', suppliers.length);
-  
-  const filteredSuppliers = suppliers.filter(supplier => {
-    // Check if supplier's branchContacts array includes the branch location
-    if (supplier.branchContacts && supplier.branchContacts.length > 0) {
-      const matches = supplier.branchContacts.some(branch => {
-        // Match branch location (e.g., "Sta. Fe, Nueva Vizcaya" matches "Sta. Fe, Nueva Vizcaya")
-        if (!bookingBranch) return false;
-        const branchMatch = branch.toLowerCase().trim() === bookingBranch.toLowerCase().trim();
-        console.log(`  Comparing "${branch}" with "${bookingBranch}": ${branchMatch}`);
-        return branchMatch;
-      });
-      console.log(`Supplier ${supplier.companyName}: ${matches ? 'MATCHES' : 'NO MATCH'}`);
-      return matches;
-    }
-    console.log(`Supplier ${supplier.companyName}: NO branchContacts`);
-    return false;
-  });
-  
-  console.log('Filtered suppliers count:', filteredSuppliers.length);
   return (
     <div className="approve-modal-overlay">
       <div className="approve-modal-content">
@@ -104,39 +63,9 @@ function ApproveModal({ open, onClose, onApprove, booking }) {
           <label className="approve-modal-label">Description</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} className="approve-modal-textarea" />
         </div>
-        <div className="approve-modal-section">
-          <label className="approve-modal-label">Assign Suppliers</label>
-          <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
-            Hold Ctrl (Windows) or Cmd (Mac) to select multiple suppliers
-          </p>
-          <select
-            multiple
-            value={selectedSuppliers}
-            onChange={e => setSelectedSuppliers(Array.from(e.target.selectedOptions, option => option.value))}
-            style={{
-              width: '100%',
-              minHeight: '120px',
-              padding: '8px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '1rem',
-              background: '#fff'
-            }}
-          >
-            {filteredSuppliers.length > 0 ? (
-              filteredSuppliers.map(supplier => (
-                <option key={supplier._id} value={supplier._id}>
-                  {supplier.companyName} - {supplier.email}
-                </option>
-              ))
-            ) : (
-              <option disabled>No suppliers available for this location</option>
-            )}
-          </select>
-        </div>
         <div className="approve-modal-actions">
           <button type="button" onClick={onClose} className="approve-modal-cancel">Cancel</button>
-          <button type="button" onClick={() => onApprove(date, desc, location, selectedSuppliers)} className="approve-modal-approve" disabled={!date || !location}>Approve</button>
+          <button type="button" onClick={() => onApprove(date, desc, location)} className="approve-modal-approve" disabled={!date || !location}>Approve</button>
         </div>
       </div>
     </div>
@@ -226,30 +155,23 @@ export default function AdminBooking() {
   const [approveModal, setApproveModal] = useState({ open: false, booking: null });
   const openApproveModal = (booking) => setApproveModal({ open: true, booking });
   const closeApproveModal = () => setApproveModal({ open: false, booking: null });
-  const handleApprove = async (date, desc, location, supplierIds) => {
+  const handleApprove = async (date, desc, location) => {
     // Move booking to approved in backend
     const booking = approveModal.booking;
-    console.log('=== APPROVAL PROCESS ===');
-    console.log('Supplier IDs being sent:', supplierIds);
-    console.log('Supplier IDs type:', typeof supplierIds, Array.isArray(supplierIds));
     try {
-      // 1. Add to approved bookings in backend with suppliers
+      // 1. Add to approved bookings in backend
       const approvalPayload = {
         ...booking,
         status: 'approved',
         approvedDate: date,
-        approvedDesc: desc,
-        suppliers: supplierIds
+        approvedDesc: desc
       };
-      console.log('Full approval payload suppliers:', approvalPayload.suppliers);
       const response = await fetch('/api/bookings/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(approvalPayload)
       });
       const savedBooking = await response.json();
-      console.log('Saved booking returned from server:', savedBooking);
-      console.log('Saved booking suppliers:', savedBooking.suppliers);
       // 2. Remove from pending bookings in backend
       await fetch(`/api/bookings/pending/${booking._id}`, {
         method: 'DELETE'
@@ -274,7 +196,7 @@ export default function AdminBooking() {
       console.log('Appointment created for client:', booking.email, 'at location:', location);
       // 4. Update frontend state
       setBookings(prev => prev.map(b =>
-        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc, suppliers: supplierIds } : b
+        b._id === booking._id ? { ...b, status: 'approved', approvedDate: date, approvedDesc: desc } : b
       ));
     } catch (err) {
       alert('Failed to approve booking. Please try again.');

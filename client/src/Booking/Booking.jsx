@@ -298,12 +298,18 @@ const Booking = () => {
                 slotProps={{
                   textField: { fullWidth: true, size: 'small' },
                   calendarHeader: { sx: { '& .MuiPickersCalendarHeader-label': { color: '#111' }, '& .MuiPickersArrowSwitcher-button': { color: '#111' } } },
-                  year: {
+                  day: {
                     sx: {
-                      color: '#111 !important',
-                      '&.Mui-selected': { color: '#111 !important', backgroundColor: '#eee' },
-                      '&.Mui-disabled': { color: '#111 !important', opacity: 0.4 },
-                      '&:hover': { backgroundColor: '#000000ff' },
+                      '&.Mui-disabled': {
+                        color: '#999 !important',
+                        backgroundColor: '#f0f0f0 !important',
+                        textDecoration: 'line-through',
+                        opacity: 0.6,
+                        cursor: 'not-allowed !important',
+                        '&:hover': {
+                          backgroundColor: '#f0f0f0 !important',
+                        }
+                      }
                     }
                   },
                   actionBar: { actions: [] }
