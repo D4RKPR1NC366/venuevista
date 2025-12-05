@@ -5,7 +5,7 @@ import { Calendar as RsuiteCalendar } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
 import { useNavigate } from 'react-router-dom';
 import './dashboard.css';
-
+import * as XLSX from 'xlsx';
 
 export default function Dashboard() {
   // Branch filter for revenue chart (UI only)
@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Backup function - exports all databases as JSON
   const handleBackup = async () => {
@@ -108,6 +109,208 @@ export default function Dashboard() {
       event.target.value = '';
     }
   };
+
+  // Export function - generates Excel file with all dashboard data
+  const handleExport = async () => {
+    setExportLoading(true);
+    setBackupMessage('');
+    
+    try {
+      // Fetch all booking data
+      const [pendingRes, approvedRes, finishedRes] = await Promise.all([
+        fetch('/api/bookings/pending'),
+        fetch('/api/bookings/approved'),
+        fetch('/api/bookings/finished')
+      ]);
+      
+      const [pendingBookingsData, approvedBookingsData, finishedBookingsData] = await Promise.all([
+        pendingRes.json(),
+        approvedRes.json(),
+        finishedRes.json()
+      ]);
+      
+      const allBookings = [...pendingBookingsData, ...approvedBookingsData, ...finishedBookingsData];
+      
+      // Filter bookings by current filter
+      const filteredBookings = allBookings.filter(booking => matchesFilter(booking.date, filter, selectedYear));
+      
+      // Count filtered bookings by status
+      const pendingCount = filteredBookings.filter(b => b.status === 'pending').length;
+      const approvedCount = filteredBookings.filter(b => b.status === 'approved').length;
+      const finishedCount = filteredBookings.filter(b => b.status === 'finished').length;
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Sheet 1: Overview Summary
+      const overviewData = [
+        ['GOLDUST CREATIONS - DASHBOARD OVERVIEW'],
+        ['Generated:', new Date().toLocaleString()],
+        ['Filter:', filter === 'all' ? `All Months ${selectedYear}` : `${months[filter]} ${selectedYear}`],
+        ['Branch:', branchFilter === 'all' ? 'All Branches' : branchFilter],
+        [],
+        ['BOOKINGS SUMMARY'],
+        ['Pending Bookings', pendingCount],
+        ['Approved Bookings', approvedCount],
+        ['Finished Bookings', finishedCount],
+        [],
+        ['APPOINTMENTS'],
+        ['Upcoming Appointments', upcomingAppointments !== null ? upcomingAppointments : 0],
+        ['Finished Appointments', finishedAppointments !== null ? finishedAppointments : 0],
+        [],
+        ['CUSTOMERS & SUPPLIERS'],
+        ['Total Customers', totalCustomers !== null ? totalCustomers : 0],
+        ['Total Suppliers', totalSuppliers !== null ? totalSuppliers : 0],
+        [],
+        ['BOOKINGS BY LOCATION'],
+        ['Sta. Fe, Nueva Vizcaya', bookingsByLocation['sta fe nueva vizcaya'] || 0],
+        ['La Trinidad, Benguet', bookingsByLocation['la trinidad benguet'] || 0],
+        ['Maddela, Quirino', bookingsByLocation['maddela quirino'] || 0],
+        [],
+        ['REVIEWS'],
+        ['Average Rating', reviewSummary.avg.toFixed(1)],
+        ['Total Reviews', reviewSummary.total],
+        [],
+        ['URGENT REMINDERS'],
+        ['Due within 3 days', urgentReminders]
+      ];
+      
+      const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+      XLSX.utils.book_append_sheet(wb, ws1, 'Overview');
+      
+      // Sheet 2: Revenue Data
+      const revenueSheetData = [
+        ['MONTHLY REVENUE - ' + selectedYear],
+        ['Branch Filter:', branchFilter === 'all' ? 'All Branches' : branchFilter],
+        [],
+        ['Month', 'Revenue (PHP)']
+      ];
+      
+      if (revenueData && revenueData.length > 0) {
+        revenueData.forEach(item => {
+          revenueSheetData.push([months[item.month] || item.month, item.value || 0]);
+        });
+        
+        // Add total
+        const totalRevenue = revenueData.reduce((sum, item) => sum + (item.value || 0), 0);
+        revenueSheetData.push(['', '']);
+        revenueSheetData.push(['TOTAL REVENUE', totalRevenue]);
+      } else {
+        revenueSheetData.push(['No revenue data available', '']);
+      }
+      
+      const ws2 = XLSX.utils.aoa_to_sheet(revenueSheetData);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Revenue');
+      
+      // Sheet 3: Detailed Bookings (Filtered by selected month/year)
+      const bookingDetails = [
+        ['BOOKING DETAILS - ' + (filter === 'all' ? 'All Months' : months[filter]) + ' ' + selectedYear],
+        ['Total Bookings:', filteredBookings.length],
+        [],
+        ['Booking ID', 'Status', 'Client Name', 'Email', 'Contact', 'Event Type', 'Event Venue', 'Branch Location', 'Date', 'Guest Count', 'Theme', 'Total Price (PHP)', 'Special Request']
+      ];
+      
+      if (filteredBookings.length > 0) {
+        filteredBookings.forEach(booking => {
+          bookingDetails.push([
+            booking._id || 'N/A',
+            (booking.status || 'unknown').toUpperCase(),
+            booking.name || 'N/A',
+            booking.email || 'N/A',
+            booking.contact || 'N/A',
+            booking.eventType || 'N/A',
+            booking.eventVenue || 'N/A',
+            booking.branchLocation || 'N/A',
+            booking.date ? new Date(booking.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) : 'N/A',
+            booking.guestCount || 'N/A',
+            booking.theme || 'N/A',
+            booking.totalPrice || 0,
+            booking.specialRequest || 'None'
+          ]);
+        });
+        
+        // Add summary at the bottom
+        bookingDetails.push([]);
+        bookingDetails.push(['SUMMARY']);
+        bookingDetails.push(['Total Revenue (PHP):', filteredBookings.reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0)]);
+        bookingDetails.push(['Average Guest Count:', Math.round(filteredBookings.reduce((sum, b) => sum + (Number(b.guestCount) || 0), 0) / filteredBookings.length)]);
+      } else {
+        bookingDetails.push(['No bookings found for the selected filter', '', '', '', '', '', '', '', '', '', '', '', '']);
+      }
+      
+      const ws3 = XLSX.utils.aoa_to_sheet(bookingDetails);
+      XLSX.utils.book_append_sheet(wb, ws3, 'Bookings');
+      
+      // Sheet 4: Active Customers
+      const customerData = [
+        ['CUSTOMERS WHO BOOKED'],
+        ['Name', 'Email', 'Times Booked']
+      ];
+      
+      activeCustomers.forEach(customer => {
+        customerData.push([
+          customer.customerName,
+          customer.customerEmail,
+          customer.count
+        ]);
+      });
+      
+      const ws4 = XLSX.utils.aoa_to_sheet(customerData);
+      XLSX.utils.book_append_sheet(wb, ws4, 'Customers');
+      
+      // Sheet 5: Active Suppliers
+      const supplierData = [
+        ['MOST ACTIVE SUPPLIERS'],
+        ['Company Name', 'Phone', 'Email', 'Times Booked']
+      ];
+      
+      activeSuppliers.forEach(supplier => {
+        supplierData.push([
+          supplier.supplierName,
+          supplier.supplierPhone || '',
+          supplier.supplierEmail,
+          supplier.count
+        ]);
+      });
+      
+      const ws5 = XLSX.utils.aoa_to_sheet(supplierData);
+      XLSX.utils.book_append_sheet(wb, ws5, 'Suppliers');
+      
+      // Sheet 6: Most Availed Products/Services
+      const productsData = [
+        ['MOST AVAILED PRODUCTS/SERVICES'],
+        ['Product/Service Name', 'Times Availed']
+      ];
+      
+      mostAvailedProducts.forEach(product => {
+        productsData.push([
+          product.productName,
+          product.count
+        ]);
+      });
+      
+      const ws6 = XLSX.utils.aoa_to_sheet(productsData);
+      XLSX.utils.book_append_sheet(wb, ws6, 'Products & Services');
+      
+      // Generate filename with date and filter
+      const filterText = filter === 'all' ? 'All_Months' : months[filter];
+      const branchText = branchFilter === 'all' ? 'All_Branches' : branchFilter;
+      const filename = `Goldust_Dashboard_${filterText}_${selectedYear}_${branchText}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Write file
+      XLSX.writeFile(wb, filename);
+      
+      setBackupMessage('✓ Dashboard exported successfully!');
+      setTimeout(() => setBackupMessage(''), 3000);
+    } catch (error) {
+      console.error('Export error:', error);
+      setBackupMessage('✗ Export failed: ' + error.message);
+      setTimeout(() => setBackupMessage(''), 5000);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
     // Fetch calendar events (same logic as Calendars.jsx)
     useEffect(() => {
       async function fetchEventsAndBookings() {
@@ -657,10 +860,40 @@ export default function Dashboard() {
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Export to Excel button */}
+            <button
+              onClick={handleExport}
+              disabled={exportLoading || backupLoading || restoreLoading}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 6,
+                border: 'none',
+                background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                color: '#fff',
+                fontWeight: 600,
+                cursor: exportLoading || backupLoading || restoreLoading ? 'not-allowed' : 'pointer',
+                opacity: exportLoading || backupLoading || restoreLoading ? 0.6 : 1,
+                fontSize: '0.9rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!exportLoading && !backupLoading && !restoreLoading) {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+              }}
+            >
+              {exportLoading ? '⏳ Exporting...' : '📊 Export to Excel'}
+            </button>
             {/* Backup/Restore buttons */}
             <button
               onClick={handleBackup}
-              disabled={backupLoading || restoreLoading}
+              disabled={backupLoading || restoreLoading || exportLoading}
               style={{
                 padding: '8px 16px',
                 borderRadius: 6,
@@ -675,7 +908,7 @@ export default function Dashboard() {
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                if (!backupLoading && !restoreLoading) {
+                if (!backupLoading && !restoreLoading && !exportLoading) {
                   e.target.style.transform = 'translateY(-1px)';
                   e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
                 }
@@ -695,15 +928,15 @@ export default function Dashboard() {
                 background: 'linear-gradient(90deg, #f59e42 0%, #f43f5e 100%)',
                 color: '#fff',
                 fontWeight: 600,
-                cursor: backupLoading || restoreLoading ? 'not-allowed' : 'pointer',
-                opacity: backupLoading || restoreLoading ? 0.6 : 1,
+                cursor: backupLoading || restoreLoading || exportLoading ? 'not-allowed' : 'pointer',
+                opacity: backupLoading || restoreLoading || exportLoading ? 0.6 : 1,
                 fontSize: '0.9rem',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 transition: 'all 0.2s',
                 display: 'inline-block'
               }}
               onMouseEnter={(e) => {
-                if (!backupLoading && !restoreLoading) {
+                if (!backupLoading && !restoreLoading && !exportLoading) {
                   e.target.style.transform = 'translateY(-1px)';
                   e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
                 }
@@ -718,7 +951,7 @@ export default function Dashboard() {
                 type="file"
                 accept=".json"
                 onChange={handleRestore}
-                disabled={backupLoading || restoreLoading}
+                disabled={backupLoading || restoreLoading || exportLoading}
                 style={{ display: 'none' }}
               />
             </label>

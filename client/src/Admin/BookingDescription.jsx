@@ -37,6 +37,102 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       setEditData(prev => ({ ...prev, contractPicture: '' }));
       if (contractInputRef.current) contractInputRef.current.value = '';
     };
+
+    // Print contract picture
+    const handlePrintContract = () => {
+      if (!contractPreview) return;
+      
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow pop-ups to print the contract.');
+        return;
+      }
+      
+      // Write HTML content with the contract image
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print Contract - ${booking?.name || 'Booking'}</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+              }
+              .header {
+                text-align: center;
+                margin-bottom: 20px;
+              }
+              .header h1 {
+                font-size: 24px;
+                font-weight: bold;
+                color: #222;
+                margin-bottom: 8px;
+              }
+              .header p {
+                font-size: 14px;
+                color: #666;
+              }
+              .contract-container {
+                max-width: 100%;
+                text-align: center;
+              }
+              .contract-image {
+                max-width: 100%;
+                height: auto;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              }
+              @media print {
+                body {
+                  padding: 0;
+                }
+                .header {
+                  margin-bottom: 15px;
+                }
+                .contract-image {
+                  max-width: 100%;
+                  page-break-inside: avoid;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Goldust Creations - Contract Document</h1>
+              <p><strong>Client:</strong> ${booking?.name || 'N/A'} | <strong>Event:</strong> ${booking?.eventType || 'N/A'}</p>
+              <p><strong>Date:</strong> ${booking?.date ? new Date(booking.date).toLocaleDateString() : 'N/A'}</p>
+            </div>
+            <div class="contract-container">
+              <img src="${contractPreview}" alt="Contract Document" class="contract-image" />
+            </div>
+          </body>
+        </html>
+      `);
+      
+      // Wait for image to load before printing
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      };
+    };
+
   const [promos, setPromos] = React.useState([]);
   const [editData, setEditData] = React.useState(booking || {});
   const [isEditing, setIsEditing] = React.useState(false);
@@ -1347,7 +1443,40 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
 
           {/* Contract Picture Upload (optional) */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 12, color: '#222' }}>Contract Picture (optional)</div>
+            <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 12, color: '#222', display: 'flex', alignItems: 'center', gap: 12 }}>
+              Contract Picture (optional)
+              {contractPreview && (
+                <button
+                  onClick={handlePrintContract}
+                  title="Print contract document"
+                  style={{ 
+                    padding: '6px 16px', 
+                    borderRadius: 6, 
+                    border: 'none', 
+                    background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)', 
+                    color: '#fff', 
+                    cursor: 'pointer', 
+                    fontSize: 14, 
+                    fontWeight: 600, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 6,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                  }}
+                >
+                  🖨️ Print Contract
+                </button>
+              )}
+            </div>
             {isEditing ? (
               <>
                 <input
