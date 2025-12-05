@@ -147,11 +147,6 @@ export default function AdminAppointment() {
                             Done
                           </button>
                         )}
-                        {filter === "finished" && (
-                          <button className="admin-appointment-done-btn" style={{background:'#d9534f'}} onClick={() => handleDelete(a._id)}>
-                            Delete
-                          </button>
-                        )}
                       </li>
                     ))}
                   </ul>

@@ -79,6 +79,8 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
   // Supplier management
   const [allSuppliers, setAllSuppliers] = React.useState([]);
   const [selectedSupplierIds, setSelectedSupplierIds] = React.useState([]);
+  const [availableCategories, setAvailableCategories] = React.useState([]);
+  const [supplierCategoryFilter, setSupplierCategoryFilter] = React.useState('all');
 
   // PSGC API endpoints
   const PSGC_API = 'https://psgc.gitlab.io/api';
@@ -237,8 +239,9 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
     }
   }, [booking, promos]);
 
-  // Fetch all suppliers when component mounts
+  // Fetch all suppliers and categories when component mounts
   React.useEffect(() => {
+    // Fetch suppliers
     fetch('/api/admin/suppliers/approved')
       .then(res => res.json())
       .then(data => {
@@ -246,6 +249,15 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
         setAllSuppliers(data);
       })
       .catch(err => console.error('Failed to fetch suppliers:', err));
+    
+    // Fetch categories
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Fetched categories:', data);
+        setAvailableCategories(data);
+      })
+      .catch(err => console.error('Failed to fetch categories:', err));
   }, []);
 
   // Handle payment proof file upload
@@ -935,9 +947,32 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
               <>
                 {/* Add Supplier Section in Edit Mode - Mobile Friendly Checkboxes */}
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontWeight: 600, fontSize: 15, color: '#222', display: 'block', marginBottom: 12 }}>
-                    Select Suppliers to Add
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, fontSize: 15, color: '#222' }}>
+                      Select Suppliers to Add
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <label style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>Filter by Category:</label>
+                      <select
+                        value={supplierCategoryFilter}
+                        onChange={(e) => setSupplierCategoryFilter(e.target.value)}
+                        style={{
+                          padding: '6px 12px',
+                          border: '1px solid #ddd',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          background: 'white',
+                          cursor: 'pointer',
+                          fontWeight: 500
+                        }}
+                      >
+                        <option value="all">All Categories</option>
+                        {availableCategories.map(cat => (
+                          <option key={cat._id} value={cat._id}>{cat.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <div style={{
                     border: '2px solid #F3C13A',
                     borderRadius: '8px',
@@ -951,9 +986,18 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                         // Filter by branch location
                         if (!editData.branchLocation) return true;
                         if (!supplier.branchContacts || supplier.branchContacts.length === 0) return false;
-                        return supplier.branchContacts.some(branch => 
+                        const branchMatch = supplier.branchContacts.some(branch => 
                           branch.toLowerCase().trim() === editData.branchLocation.toLowerCase().trim()
                         );
+                        if (!branchMatch) return false;
+                        
+                        // Filter by category
+                        if (supplierCategoryFilter === 'all') return true;
+                        if (!supplier.categories || supplier.categories.length === 0) return false;
+                        return supplier.categories.some(cat => {
+                          const categoryId = typeof cat === 'string' ? cat : (cat._id || cat);
+                          return String(categoryId) === String(supplierCategoryFilter);
+                        });
                       })
                       .map(supplier => (
                         <label 
@@ -1021,12 +1065,24 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   {allSuppliers.filter(supplier => {
                     if (!editData.branchLocation) return true;
                     if (!supplier.branchContacts || supplier.branchContacts.length === 0) return false;
-                    return supplier.branchContacts.some(branch => 
+                    const branchMatch = supplier.branchContacts.some(branch => 
                       branch.toLowerCase().trim() === editData.branchLocation.toLowerCase().trim()
                     );
+                    if (!branchMatch) return false;
+                    
+                    // Filter by category
+                    if (supplierCategoryFilter === 'all') return true;
+                    if (!supplier.categories || supplier.categories.length === 0) return false;
+                    return supplier.categories.some(cat => {
+                      const categoryId = typeof cat === 'string' ? cat : (cat._id || cat);
+                      return String(categoryId) === String(supplierCategoryFilter);
+                    });
                   }).length === 0 && (
                     <div style={{ color: '#e53935', fontSize: 14, marginTop: 8 }}>
-                      No suppliers available for {editData.branchLocation}
+                      {supplierCategoryFilter === 'all' 
+                        ? `No suppliers available for ${editData.branchLocation}`
+                        : `No suppliers available for ${editData.branchLocation} in the selected category`
+                      }
                     </div>
                   )}
                 </div>

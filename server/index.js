@@ -822,7 +822,7 @@ app.get('/api/admin/suppliers/pending', async (req, res) => {
       eventTypes: s.eventTypes 
     })));
     
-    // Manually populate eventTypes to handle older records without this field
+    // Manually populate eventTypes and categories to handle older records without these fields
     for (let supplier of pendingSuppliers) {
       if (supplier.eventTypes && supplier.eventTypes.length > 0) {
         const EventType = require('./models/EventType');
@@ -831,6 +831,12 @@ app.get('/api/admin/suppliers/pending', async (req, res) => {
         supplier.eventTypes = populated;
       } else {
         supplier.eventTypes = [];
+      }
+      if (supplier.categories && supplier.categories.length > 0) {
+        const Category = require('./models/Category');
+        supplier.categories = await Category.find({ _id: { $in: supplier.categories } }).select('title');
+      } else {
+        supplier.categories = [];
       }
     }
     
@@ -853,13 +859,19 @@ app.get('/api/admin/suppliers/approved', async (req, res) => {
       isAvailable: s.isAvailable 
     })));
     
-    // Manually populate eventTypes to handle older records without this field
+    // Manually populate eventTypes and categories to handle older records without these fields
     for (let supplier of approvedSuppliers) {
       if (supplier.eventTypes && supplier.eventTypes.length > 0) {
         const EventType = require('./models/EventType');
         supplier.eventTypes = await EventType.find({ _id: { $in: supplier.eventTypes } }).select('name');
       } else {
         supplier.eventTypes = [];
+      }
+      if (supplier.categories && supplier.categories.length > 0) {
+        const Category = require('./models/Category');
+        supplier.categories = await Category.find({ _id: { $in: supplier.categories } }).select('title');
+      } else {
+        supplier.categories = [];
       }
     }
     
@@ -952,7 +964,7 @@ app.delete('/api/admin/suppliers/:id/reject', async (req, res) => {
 app.put('/api/admin/suppliers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, middleName, email, phone, companyName, eventTypes, branchContacts } = req.body;
+    const { firstName, lastName, middleName, email, phone, companyName, eventTypes, categories, branchContacts } = req.body;
     
     const supplier = await Supplier.findById(id);
     if (!supplier) {
@@ -968,6 +980,7 @@ app.put('/api/admin/suppliers/:id', async (req, res) => {
     supplier.contact = phone;
     supplier.companyName = companyName;
     supplier.eventTypes = eventTypes;
+    supplier.categories = categories || [];
     supplier.branchContacts = branchContacts;
 
     await supplier.save();
@@ -1276,7 +1289,7 @@ app.post('/api/auth/register-supplier', async (req, res) => {
     console.log('Supplier registration request:', req.body);
     console.log('branchContacts received:', req.body.branchContacts);
     
-    const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes, branchContacts } = req.body;
+    const { email, password, companyName, firstName, lastName, middleName, phone, eventTypes, categories, branchContacts } = req.body;
     
     // Validate required fields
     if (!email || !password || !companyName || !firstName || !lastName || !phone) {
@@ -1311,6 +1324,7 @@ app.post('/api/auth/register-supplier', async (req, res) => {
       mfaEnabled: false,
       isApproved: false,  // New suppliers need admin approval
       eventTypes: eventTypes || [],  // Save selected event types
+      categories: categories || [],  // Save selected categories
       branchContacts: branchContacts || []  // Save selected branch locations
     });
     

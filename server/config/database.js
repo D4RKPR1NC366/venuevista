@@ -42,6 +42,7 @@ const supplierSchema = new mongoose.Schema({
     approvedAt: Date,
     approvedBy: String,
     eventTypes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EventType' }],
+    categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
     branchContacts: [{ type: String }],
     isAvailable: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }

@@ -25,6 +25,7 @@ export default function Suppliers() {
     phone: '',
     companyName: '',
     eventTypes: [],
+    categories: [],
     branchContacts: []
   });
   
@@ -102,7 +103,9 @@ export default function Suppliers() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState(0);
   const [availableEventTypes, setAvailableEventTypes] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
   const [selectedEventType, setSelectedEventType] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('');
 
   const fetchSuppliers = async () => {
@@ -134,6 +137,11 @@ export default function Suppliers() {
       .then(res => res.json())
       .then(data => setAvailableEventTypes(data))
       .catch(err => console.error('Failed to fetch event types:', err));
+    // Fetch available categories
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => setAvailableCategories(data))
+      .catch(err => console.error('Failed to fetch categories:', err));
   }, []);
 
   const handleApprove = async (id) => {
@@ -180,7 +188,8 @@ export default function Suppliers() {
       email: supplier.email || '',
       phone: supplier.phone || '',
       companyName: supplier.companyName || '',
-      eventTypes: supplier.eventTypes ? supplier.eventTypes.map(et => typeof et === 'object' ? et._id : et) : [],
+      eventTypes: (supplier.eventTypes || []).map(et => typeof et === 'string' ? et : et._id),
+      categories: (supplier.categories || []).map(cat => typeof cat === 'string' ? cat : cat._id),
       branchContacts: supplier.branchContacts || []
     });
     setEditOpen(true);
@@ -197,6 +206,7 @@ export default function Suppliers() {
       phone: '',
       companyName: '',
       eventTypes: [],
+      categories: [],
       branchContacts: []
     });
   };
@@ -246,7 +256,7 @@ export default function Suppliers() {
     }
   };
 
-  // Filter suppliers by search, event type, and branch
+  // Filter suppliers by search, event type, category, and branch
   const currentSuppliers = activeTab === 0 ? pendingSuppliers : approvedSuppliers;
   const filteredSuppliers = currentSuppliers.filter(supplier => {
     const q = search.trim().toLowerCase();
@@ -263,10 +273,15 @@ export default function Suppliers() {
         (typeof et === 'string' ? et : et._id) === selectedEventType
       ));
     
+    const matchesCategory = !selectedCategory ||
+      (supplier.categories && supplier.categories.some(cat =>
+        (typeof cat === 'string' ? cat : cat._id) === selectedCategory
+      ));
+    
     const matchesBranch = !selectedBranch ||
       (supplier.branchContacts && supplier.branchContacts.includes(selectedBranch));
     
-    return matchesSearch && matchesEventType && matchesBranch;
+    return matchesSearch && matchesEventType && matchesCategory && matchesBranch;
   });
 
   return (
@@ -288,6 +303,21 @@ export default function Suppliers() {
                   {availableEventTypes.map((eventType) => (
                     <MenuItem key={eventType._id} value={eventType._id}>
                       {eventType.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 200, background: '#fff' }}>
+                <InputLabel>Filter by Category</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  label="Filter by Category"
+                >
+                  <MenuItem value="">All Categories</MenuItem>
+                  {availableCategories.map((category) => (
+                    <MenuItem key={category._id} value={category._id}>
+                      {category.title}
                     </MenuItem>
                   ))}
                 </Select>
@@ -344,6 +374,7 @@ export default function Suppliers() {
                     <TableCell>Phone</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Event Types</TableCell>
+                    <TableCell>Categories</TableCell>
                     <TableCell>Supplier Branch</TableCell>
                     <TableCell>Password</TableCell>
                     {activeTab === 1 && <TableCell>Availability</TableCell>}
@@ -382,6 +413,28 @@ export default function Suppliers() {
                                   marginBottom: 4
                                 }}>
                                   {eventTypeName}
+                                </span>
+                              );
+                            })
+                          ) : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {supplier.categories && supplier.categories.length > 0 ? (
+                            supplier.categories.map((cat, idx) => {
+                              const categoryTitle = typeof cat === 'object' && cat.title ? cat.title : 
+                                availableCategories.find(ac => ac._id === cat)?.title || 'Unknown';
+                              return (
+                                <span key={idx} style={{ 
+                                  display: 'inline-block', 
+                                  background: '#4caf50', 
+                                  color: '#fff', 
+                                  padding: '2px 8px', 
+                                  borderRadius: 4, 
+                                  fontSize: '0.85rem',
+                                  marginRight: 4,
+                                  marginBottom: 4
+                                }}>
+                                  {categoryTitle}
                                 </span>
                               );
                             })
@@ -576,6 +629,33 @@ export default function Suppliers() {
                                             {eventType.name}
                                           </MenuItem>
                                         ))}
+                                      </Select>
+                                    </FormControl>
+                                    <FormControl fullWidth margin="normal">
+                                      <InputLabel>Categories</InputLabel>
+                                      <Select
+                                        multiple
+                                        value={editForm.categories}
+                                        onChange={e => setEditForm(f => ({ ...f, categories: e.target.value }))}
+                                        label="Categories"
+                                        renderValue={(selected) => (
+                                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {selected.map((value) => {
+                                              const category = availableCategories.find(cat => cat._id === value);
+                                              return <Chip key={value} label={category?.title || 'Loading...'} size="small" />;
+                                            })}
+                                          </Box>
+                                        )}
+                                      >
+                                        {availableCategories.length === 0 ? (
+                                          <MenuItem disabled>Loading categories...</MenuItem>
+                                        ) : (
+                                          availableCategories.map((category) => (
+                                            <MenuItem key={category._id} value={category._id}>
+                                              {category.title}
+                                            </MenuItem>
+                                          ))
+                                        )}
                                       </Select>
                                     </FormControl>
                                     <Box sx={{ mt: 2 }}>

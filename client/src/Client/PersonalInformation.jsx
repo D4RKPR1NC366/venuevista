@@ -30,10 +30,12 @@ const PersonalInformation = () => {
     isAvailable: true,
     companyName: '',
     eventTypes: [],
+    categories: [],
     branchContacts: [],
     location: { province: '', city: '', barangay: '' }
   });
   const [availableEventTypes, setAvailableEventTypes] = React.useState([]);
+  const [availableCategories, setAvailableCategories] = React.useState([]);
 
   // Generic handler for all fields
   const handleChange = (field) => (event) => {
@@ -65,6 +67,7 @@ const PersonalInformation = () => {
           role: userRole,
           isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
           companyName: userData.companyName || '',
+          categories: userData.categories || [],
           eventTypes: userData.eventTypes || [],
           branchContacts: userData.branchContacts || [],
           location: {
@@ -146,11 +149,16 @@ const PersonalInformation = () => {
       // Add supplier-specific fields if user has companyName (is a supplier)
       if (user.companyName) {
         updateData.companyName = user.companyName;
+        updateData.categories = (user.categories || []).map(cat => {
+          const id = typeof cat === 'string' ? cat : (cat._id ? String(cat._id) : cat);
+          return String(id);
+        });
         updateData.eventTypes = (user.eventTypes || []).map(et => {
           const id = typeof et === 'string' ? et : (et._id ? String(et._id) : et);
           return String(id);
         });
         updateData.branchContacts = user.branchContacts || [];
+        console.log('Sending categories:', updateData.categories);
         console.log('Sending event types:', updateData.eventTypes);
         console.log('Sending branch contacts:', updateData.branchContacts);
       } else {
@@ -181,6 +189,7 @@ const PersonalInformation = () => {
           role: userRole,
           isAvailable: userData.isAvailable !== undefined ? userData.isAvailable : true,
           companyName: userData.companyName || '',
+          categories: userData.categories || [],
           eventTypes: userData.eventTypes || [],
           branchContacts: userData.branchContacts || [],
           location: {
@@ -247,17 +256,20 @@ const PersonalInformation = () => {
   };
 
   React.useEffect(() => {
-    // Fetch available event types first, then fetch user profile
-    fetch('/api/event-types')
-      .then(res => res.json())
-      .then(data => {
-        setAvailableEventTypes(data);
-        // Fetch profile after event types are loaded
+    // Fetch available event types and categories, then fetch user profile
+    Promise.all([
+      fetch('/api/event-types').then(res => res.json()),
+      fetch('/api/categories').then(res => res.json())
+    ])
+      .then(([eventTypes, categories]) => {
+        setAvailableEventTypes(eventTypes);
+        setAvailableCategories(categories);
+        // Fetch profile after data is loaded
         fetchUserProfile();
       })
       .catch(err => {
-        console.error('Failed to fetch event types:', err);
-        // Still fetch profile even if event types fail
+        console.error('Failed to fetch event types or categories:', err);
+        // Still fetch profile even if fetch fails
         fetchUserProfile();
       });
   }, []);
@@ -437,6 +449,33 @@ const PersonalInformation = () => {
                   </div>
                   {user.role === 'supplier' && (
                     <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
+                        <label className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Categories:</label>
+                        <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
+                          {user.categories && user.categories.length > 0 ? (
+                            user.categories.map((cat, idx) => {
+                              const categoryId = typeof cat === 'string' ? cat : (cat._id || cat);
+                              const categoryObj = availableCategories.find(ac => ac._id === categoryId);
+                              const categoryTitle = categoryObj?.title || (typeof cat === 'object' && cat.title) || 'Unknown';
+                              
+                              return (
+                                <span key={idx} style={{ 
+                                  display: 'inline-block', 
+                                  background: '#4CAF50', 
+                                  color: '#fff', 
+                                  padding: '4px 12px', 
+                                  borderRadius: 4, 
+                                  fontSize: '0.9rem',
+                                  marginRight: 6,
+                                  marginBottom: 4
+                                }}>
+                                  {categoryTitle}
+                                </span>
+                              );
+                            })
+                          ) : 'No categories selected'}
+                        </span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 24 }}>
                         <label htmlFor="eventTypes" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180 }}>Event Types:</label>
                         <span className="personal-info-value" style={{ fontWeight: 'normal', fontSize: '1.125rem', textAlign: 'left', marginLeft: 12 }}>
@@ -673,6 +712,43 @@ const PersonalInformation = () => {
                             },
                           }}
                         />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
+                        <label className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180, paddingTop: '12px' }}>Categories:</label>
+                        <div style={{ marginLeft: 12, flex: 1 }}>
+                          {availableCategories.map((category) => (
+                            <label key={category._id} style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              marginRight: 16,
+                              marginBottom: 8,
+                              cursor: 'pointer',
+                              fontSize: '1rem'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={user.categories.some(cat => {
+                                  const catId = typeof cat === 'string' ? cat : (cat._id ? String(cat._id) : cat);
+                                  return catId === String(category._id);
+                                })}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setUser(prev => ({
+                                    ...prev,
+                                    categories: checked
+                                      ? [...prev.categories, category._id]
+                                      : prev.categories.filter(cat => {
+                                          const catId = typeof cat === 'string' ? cat : (cat._id ? String(cat._id) : cat);
+                                          return catId !== String(category._id);
+                                        })
+                                  }));
+                                }}
+                                style={{ marginRight: 6, cursor: 'pointer', width: '18px', height: '18px' }}
+                              />
+                              {category.title}
+                            </label>
+                          ))}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
                         <label htmlFor="eventTypes" className="personal-info-label" style={{ fontWeight: 'bold', fontSize: '1.125rem', textAlign: 'left', minWidth: 180, paddingTop: '12px' }}>Event Types:</label>

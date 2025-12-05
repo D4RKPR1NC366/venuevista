@@ -41,11 +41,13 @@ const SignUp = () => {
     companyName: "",
     agree: false,
     eventTypes: [],
+    categories: [],
     location: { province: "", city: "", barangay: "" },
     branchContacts: []
   });
   const [type, setType] = useState(accountType);
   const [availableEventTypes, setAvailableEventTypes] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const navigate = useNavigate();
@@ -59,6 +61,14 @@ const SignUp = () => {
         .then(res => res.json())
         .then(data => setAvailableEventTypes(data))
         .catch(err => console.error('Failed to fetch event types:', err));
+      // Fetch available categories
+      fetch('/api/categories')
+        .then(res => res.json())
+        .then(data => {
+          console.log('Categories fetched:', data);
+          setAvailableCategories(data);
+        })
+        .catch(err => console.error('Failed to fetch categories:', err));
     } else {
       setForm((prev) => ({ ...prev, role: accountType, companyName: undefined }));
     }
@@ -89,6 +99,15 @@ const SignUp = () => {
       setForm({ ...form, branchContacts: currentBranches.filter(b => b !== branch) });
     } else {
       setForm({ ...form, branchContacts: [...currentBranches, branch] });
+    }
+  };
+
+  const handleCategoryChange = (categoryId) => {
+    const currentCategories = form.categories || [];
+    if (currentCategories.includes(categoryId)) {
+      setForm({ ...form, categories: currentCategories.filter(c => c !== categoryId) });
+    } else {
+      setForm({ ...form, categories: [...currentCategories, categoryId] });
     }
   };
 
@@ -197,6 +216,7 @@ const SignUp = () => {
       if (type === "supplier") {
         payload.companyName = form.companyName.trim();
         payload.eventTypes = form.eventTypes;
+        payload.categories = form.categories;
         payload.branchContacts = form.branchContacts;
         endpoint = '/api/auth/register-supplier';
       } else {
@@ -327,6 +347,31 @@ const SignUp = () => {
                         ))}
                       </Select>
                     </FormControl>
+                    <Box sx={{ gridColumn: '1 / -1', mt: 1, mb: 1 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Catered Service/Product Categories:
+                      </Typography>
+                      {availableCategories.length === 0 ? (
+                        <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic', mt: 1 }}>
+                          Loading categories... If this takes too long, please check your internet connection or try again later.
+                        </Typography>
+                      ) : (
+                        <FormGroup row>
+                          {availableCategories.map((category) => (
+                            <FormControlLabel
+                              key={category._id}
+                              control={
+                                <Checkbox
+                                  checked={form.categories.includes(category._id)}
+                                  onChange={() => handleCategoryChange(category._id)}
+                                />
+                              }
+                              label={category.title}
+                            />
+                          ))}
+                        </FormGroup>
+                      )}
+                    </Box>
                     <Box sx={{ gridColumn: '1 / -1', mt: 1, mb: 1 }}>
                       <Typography variant="subtitle2" gutterBottom>
                         Supplier Branch Contact (Select branches you can service):
