@@ -279,6 +279,28 @@ app.get('/api/schedules/all/upcoming', async (req, res) => {
   }
 });
 
+// Get all accepted schedules (for notification system)
+app.get('/api/schedules/all/accepted', async (req, res) => {
+  try {
+    const schedules = await SupplierAccepted.find();
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching all accepted schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch accepted schedules' });
+  }
+});
+
+// Get all declined schedules (for notification system)
+app.get('/api/schedules/all/declined', async (req, res) => {
+  try {
+    const schedules = await SupplierDeclined.find();
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching all declined schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch declined schedules' });
+  }
+});
+
 // Create upcoming schedules for suppliers (sent from admin dashboard)
 app.post('/api/schedules/upcoming/notify', async (req, res) => {
   try {
@@ -345,6 +367,7 @@ app.put('/api/schedules/upcoming/:id/accept', async (req, res) => {
     
     // Create accepted schedule
     const acceptedScheduleData = {
+      bookingId: upcomingSchedule.bookingId,
       title: `${upcomingSchedule.eventType} - ${supplierName}`,
       type: 'Supplier',
       person: supplierId,
@@ -387,6 +410,7 @@ app.put('/api/schedules/upcoming/:id/decline', async (req, res) => {
     
     // Create declined schedule
     const declinedScheduleData = {
+      bookingId: upcomingSchedule.bookingId,
       title: `${upcomingSchedule.eventType} - ${supplierName}`,
       type: 'Supplier',
       person: supplierId,

@@ -585,9 +585,19 @@ export default function Dashboard() {
       const upcomingSchedulesRes = await fetch('/api/schedules/all/upcoming');
       const allUpcomingSchedules = await upcomingSchedulesRes.json();
 
+      // Fetch accepted schedules to check responses
+      const acceptedSchedulesRes = await fetch('/api/schedules/all/accepted');
+      const allAcceptedSchedules = await acceptedSchedulesRes.json();
+
+      // Fetch declined schedules to check who declined
+      const declinedSchedulesRes = await fetch('/api/schedules/all/declined');
+      const allDeclinedSchedules = await declinedSchedulesRes.json();
+
       console.log('Total approved bookings:', approved.length);
       console.log('Current suppliers:', currentSuppliers.length);
       console.log('Upcoming schedules:', allUpcomingSchedules.length);
+      console.log('Accepted schedules:', allAcceptedSchedules.length);
+      console.log('Declined schedules:', allDeclinedSchedules.length);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -611,59 +621,192 @@ export default function Dashboard() {
           if (daysUntil > 0 && daysUntil <= 7) {
             // Get suppliers from various possible field names
             const suppliersData = booking.selectedProducts || booking.suppliers || booking.products || [];
+            console.log('Booking', booking._id, '- Suppliers data:', suppliersData);
             
-            // Check if ALL suppliers for this booking still have pending upcoming schedules
+            // Check schedules for this booking
             const bookingUpcomingSchedules = allUpcomingSchedules.filter(schedule => 
               schedule.bookingId === booking._id || schedule.bookingId === booking._id.toString()
             );
             
-            // Only skip if ALL suppliers still have upcoming schedules (none have responded)
-            // If any supplier has accepted/declined, the notification should reappear
-            const allSuppliersStillPending = suppliersData.length > 0 && 
-              bookingUpcomingSchedules.length === suppliersData.length;
+            const bookingAcceptedSchedules = allAcceptedSchedules.filter(schedule => 
+              schedule.bookingId === booking._id || schedule.bookingId === booking._id.toString()
+            );
+            
+            const bookingDeclinedSchedules = allDeclinedSchedules.filter(schedule => 
+              schedule.bookingId === booking._id || schedule.bookingId === booking._id.toString()
+            );
+            
+            console.log('Booking', booking._id, 'Schedule matching:', {
+              upcomingSchedules: bookingUpcomingSchedules,
+              acceptedSchedules: bookingAcceptedSchedules,
+              declinedSchedules: bookingDeclinedSchedules
+            });
 
-            if (allSuppliersStillPending) {
-              console.log('Skipping booking', booking._id, '- all suppliers still pending (', bookingUpcomingSchedules.length, 'of', suppliersData.length, ')');
+            // Check if booking was rescheduled (but only relevant if suppliers haven't reset schedules yet)
+            const wasRescheduled = booking.rescheduleRequest && 
+              booking.rescheduleRequest.status === 'approved' &&
+              booking.rescheduleRequest.originalDate;
+
+            // Determine notification status flags
+            const noSuppliersAssigned = !suppliersData || suppliersData.length === 0;
+            
+            // IMPORTANT: For rescheduled bookings, check if schedules match CURRENT date
+            // Old schedules with old dates shouldn't count as "already sent"
+            const bookingDateStr = new Date(booking.date).toISOString().split('T')[0];
+            const schedulesMatchCurrentDate = 
+              bookingUpcomingSchedules.some(s => {
+                if (!s.eventDate) return false;
+                try {
+                  return new Date(s.eventDate).toISOString().split('T')[0] === bookingDateStr;
+                } catch (e) {
+                  return false;
+                }
+              }) ||
+              bookingAcceptedSchedules.some(s => {
+                if (!s.eventDate) return false;
+                try {
+                  return new Date(s.eventDate).toISOString().split('T')[0] === bookingDateStr;
+                } catch (e) {
+                  return false;
+                }
+              });
+            
+            // If rescheduled, only count schedules that match the NEW date
+            // Otherwise, any existing schedules count
+            const schedulesAlreadySent = wasRescheduled 
+              ? schedulesMatchCurrentDate 
+              : (bookingUpcomingSchedules.length > 0 || bookingAcceptedSchedules.length > 0);
+            
+            // Declined suppliers only matter if no new schedules have been sent yet
+            // If admin resent schedules after decline, hide notification (they handled it)
+            const hasUnhandledDeclines = bookingDeclinedSchedules.length > 0 && !schedulesAlreadySent;
+            
+            // Need to send schedules: suppliers assigned but no schedules sent yet
+            const needToSendSchedules = suppliersData.length > 0 && !schedulesAlreadySent;
+            
+            // If rescheduled but schedules already resent, hide notification (they handled it)
+            const needsRescheduleAction = wasRescheduled && !schedulesAlreadySent;
+            
+            console.log('Booking', booking._id, 'Status:', {
+              noSuppliersAssigned,
+              needToSendSchedules,
+              hasUnhandledDeclines,
+              wasRescheduled,
+              needsRescheduleAction,
+              schedulesAlreadySent,
+              upcomingCount: bookingUpcomingSchedules.length,
+              acceptedCount: bookingAcceptedSchedules.length,
+              declinedCount: bookingDeclinedSchedules.length,
+              supplierCount: suppliersData.length
+            });
+            
+            // SIMPLE NOTIFICATION LOGIC:
+            // Show if: 
+            // 1. No suppliers assigned yet (need to assign)
+            // 2. Suppliers assigned but "Send" not clicked yet (need to send schedules)
+            // 3. Supplier declined/cancelled AND no new schedules sent yet (need to resend)
+            // 4. Booker rescheduled AND no new schedules sent yet (need to resend)
+            // Hide if: "Send" button clicked (schedules sent) - admin handled the decline/reschedule
+            const shouldShowNotification = noSuppliersAssigned || needToSendSchedules || hasUnhandledDeclines || needsRescheduleAction;
+
+            console.log('Booking', booking._id, 'shouldShowNotification:', shouldShowNotification);
+
+            if (!shouldShowNotification) {
+              console.log('Skipping booking', booking._id, '- all suppliers have accepted schedules and no issues');
               return;
             }
+
+            // Build notification notes based on status
+            const notificationNotes = [];
             
-            if (bookingUpcomingSchedules.length > 0 && bookingUpcomingSchedules.length < suppliersData.length) {
-              console.log('Showing booking', booking._id, '- some suppliers responded (', bookingUpcomingSchedules.length, 'pending,', suppliersData.length - bookingUpcomingSchedules.length, 'responded)');
+            // Priority 1: Rescheduled by customer (most urgent) - only show if suppliers haven't reset schedules
+            if (needsRescheduleAction) {
+              const originalDate = new Date(booking.rescheduleRequest.originalDate);
+              const newDate = new Date(booking.date);
+              notificationNotes.push(
+                `⚠️ RESCHEDULED by booker from ${originalDate.toLocaleDateString()} to ${newDate.toLocaleDateString()}`
+              );
             }
+
+            // Priority 2: Supplier declined/cancelled (needs reassignment) - only if not handled yet
+            if (hasUnhandledDeclines) {
+              const declinedSupplierNames = bookingDeclinedSchedules.map(s => s.supplierName).join(', ');
+              notificationNotes.push(
+                `❌ Declined/Cancelled by: ${declinedSupplierNames}`
+              );
+            }
+
+            // Priority 3: No suppliers assigned yet
+            if (noSuppliersAssigned) {
+              notificationNotes.push(
+                `📋 No suppliers assigned yet - Assign suppliers to this booking`
+              );
+            }
+            // Priority 4: Suppliers assigned but "Send" not clicked yet
+            else if (needToSendSchedules) {
+              notificationNotes.push(
+                `⏰ Set schedules and click Send to notify suppliers`
+              );
+            }
+
             const suppliersList = Array.isArray(suppliersData) && suppliersData.length > 0
               ? suppliersData.map(p => p.supplierName || p.supplier || p.name || 'Unknown Supplier').join(', ')
               : 'No suppliers assigned';
 
             let timeText = '';
-            if (daysUntil === 7) timeText = '1 week before';
+            if (daysUntil === 7) timeText = '7 days before';
+            else if (daysUntil === 6) timeText = '6 days before';
+            else if (daysUntil === 5) timeText = '5 days before';
+            else if (daysUntil === 4) timeText = '4 days before';
             else if (daysUntil === 3) timeText = '3 days before';
+            else if (daysUntil === 2) timeText = '2 days before';
             else if (daysUntil === 1) timeText = '1 day before';
-            else timeText = `${daysUntil} days before`;
 
             console.log('Booking suppliers:', booking._id, suppliersData); // Debug log
 
-            // Update supplier data with current availability
+            // Update supplier data with current availability and schedule status
             const suppliersWithAvailability = Array.isArray(suppliersData) ? suppliersData.map(supplier => {
               const currentSupplier = currentSuppliers.find(s => 
                 s._id === supplier._id || 
                 s.email === supplier.email || 
                 s.email === supplier.supplierEmail
               );
+              
+              // Check if this supplier has accepted, declined, or still pending
+              const supplierName = supplier.supplierName || supplier.supplier || supplier.name;
+              const hasAccepted = bookingAcceptedSchedules.some(s => s.supplierName === supplierName);
+              const hasDeclined = bookingDeclinedSchedules.some(s => s.supplierName === supplierName);
+              const isPending = bookingUpcomingSchedules.some(s => s.supplierName === supplierName);
+              
+              let scheduleStatus = 'unknown';
+              if (hasAccepted) scheduleStatus = 'accepted';
+              else if (hasDeclined) scheduleStatus = 'declined';
+              else if (isPending) scheduleStatus = 'pending';
+
               return {
                 ...supplier,
-                availability: currentSupplier ? (currentSupplier.isAvailable ? 'available' : 'unavailable') : supplier.availability
+                availability: currentSupplier ? (currentSupplier.isAvailable ? 'available' : 'unavailable') : supplier.availability,
+                scheduleStatus: scheduleStatus
               };
             }) : [];
+
+            const notificationMessage = notificationNotes.length > 0
+              ? `${notificationNotes.join(' | ')}`
+              : `Update your suppliers for this event`;
 
             notifications.push({
               id: `${booking._id}-${daysUntil}`,
               bookingId: booking._id,
               title: `Upcoming ${booking.eventType || 'Booking'} - ${timeText}`,
-              message: `Booker: ${booking.name || 'Unknown'} | Branch: ${booking.branchLocation || 'Not specified'} | Suppliers: ${suppliersList}`,
+              message: notificationMessage,
               time: `${daysUntil} day${daysUntil > 1 ? 's' : ''} until event`,
               read: false,
               bookingDate: booking.date,
               daysUntil: daysUntil,
+              wasRescheduled: needsRescheduleAction,
+              hasDeclinedSuppliers: hasUnhandledDeclines,
+              needToSendSchedules: needToSendSchedules,
+              noSuppliersAssigned: noSuppliersAssigned,
               // Full booking details
               bookingDetails: {
                 eventType: booking.eventType || 'N/A',
@@ -678,7 +821,17 @@ export default function Dashboard() {
                 totalPrice: booking.totalPrice || 0,
                 status: booking.status || 'N/A',
                 specialRequest: booking.specialRequest || 'None',
-                suppliers: suppliersWithAvailability
+                suppliers: suppliersWithAvailability,
+                rescheduleInfo: needsRescheduleAction ? {
+                  originalDate: booking.rescheduleRequest.originalDate,
+                  newDate: booking.date,
+                  reason: booking.rescheduleRequest.reason,
+                  requestedAt: booking.rescheduleRequest.requestedAt
+                } : null,
+                declinedSuppliers: hasUnhandledDeclines ? bookingDeclinedSchedules.map(s => ({
+                  name: s.supplierName,
+                  declinedAt: s.actionDate
+                })) : []
               }
             });
           }
@@ -1075,7 +1228,7 @@ export default function Dashboard() {
                 }}>
                   <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
                   <p style={{ margin: 0, fontSize: '15px', fontWeight: 500 }}>No upcoming booking reminders</p>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '13px' }}>Reminders appear 7 days, 3 days, and 1 day before bookings</p>
+                  
                 </div>
               ) : (
                 notificationList.map((notification) => (
@@ -1140,11 +1293,13 @@ export default function Dashboard() {
                       </h4>
                       <p style={{
                         margin: '0 0 4px 0',
-                        fontSize: '13px',
-                        color: '#6b7280',
-                        lineHeight: 1.4
+                        fontSize: '12px',
+                        color: notification.wasRescheduled || notification.hasDeclinedSuppliers ? '#dc2626' : 
+                               notification.noSuppliersAssigned ? '#ea580c' : '#6b7280',
+                        lineHeight: 1.4,
+                        fontWeight: (notification.wasRescheduled || notification.hasDeclinedSuppliers || notification.noSuppliersAssigned) ? 600 : 400
                       }}>
-                        update your suppliers
+                        {notification.message}
                       </p>
                       <span style={{
                         fontSize: '11px',
@@ -1232,6 +1387,76 @@ export default function Dashboard() {
 
               {/* Modal Content */}
               <div style={{ padding: '28px' }}>
+                {/* Alert Banners */}
+                {(selectedNotification.wasRescheduled || selectedNotification.hasDeclinedSuppliers || selectedNotification.hasUnsetSuppliers) && (
+                  <div style={{ marginBottom: 24 }}>
+                    {selectedNotification.wasRescheduled && selectedNotification.bookingDetails.rescheduleInfo && (
+                      <div style={{
+                        padding: '16px',
+                        background: '#fef3c7',
+                        border: '2px solid #f59e0b',
+                        borderRadius: 8,
+                        marginBottom: 12
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: '20px' }}>⚠️</span>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#92400e' }}>
+                            BOOKING RESCHEDULED BY CUSTOMER
+                          </h4>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#78350f', lineHeight: 1.5 }}>
+                          Original Date: <strong>{new Date(selectedNotification.bookingDetails.rescheduleInfo.originalDate).toLocaleDateString()}</strong>
+                          <br />
+                          New Date: <strong>{new Date(selectedNotification.bookingDetails.rescheduleInfo.newDate).toLocaleDateString()}</strong>
+                          {selectedNotification.bookingDetails.rescheduleInfo.reason && (
+                            <>
+                              <br />
+                              Reason: {selectedNotification.bookingDetails.rescheduleInfo.reason}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {selectedNotification.hasDeclinedSuppliers && selectedNotification.bookingDetails.declinedSuppliers.length > 0 && (
+                      <div style={{
+                        padding: '16px',
+                        background: '#fee2e2',
+                        border: '2px solid #ef4444',
+                        borderRadius: 8,
+                        marginBottom: 12
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: '20px' }}>❌</span>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#991b1b' }}>
+                            SUPPLIERS DECLINED/CANCELLED
+                          </h4>
+                        </div>
+                        {selectedNotification.bookingDetails.declinedSuppliers.map((supplier, idx) => (
+                          <p key={idx} style={{ margin: '4px 0', fontSize: '14px', color: '#7f1d1d', lineHeight: 1.5 }}>
+                            • <strong>{supplier.name}</strong> declined on {new Date(supplier.declinedAt).toLocaleDateString()}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {selectedNotification.hasUnsetSuppliers && (
+                      <div style={{
+                        padding: '16px',
+                        background: '#dbeafe',
+                        border: '2px solid #3b82f6',
+                        borderRadius: 8
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '20px' }}>⏰</span>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1e40af' }}>
+                            ACTION REQUIRED: Set supplier schedules
+                          </h4>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Booking Information */}
                 <div style={{ marginBottom: 24 }}>
                   <h3 style={{ 
@@ -1411,7 +1636,7 @@ export default function Dashboard() {
                           gap: '16px'
                         }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                               <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
                                 {supplier.companyName || supplier.supplierName || supplier.supplier || 'Unknown Supplier'}
                               </p>
@@ -1426,6 +1651,27 @@ export default function Dashboard() {
                               }}>
                                 {(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '● Unavailable' : '● Available'}
                               </span>
+                              {supplier.scheduleStatus && (
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  background: supplier.scheduleStatus === 'accepted' ? '#dcfce7' : 
+                                             supplier.scheduleStatus === 'declined' ? '#fee2e2' : 
+                                             supplier.scheduleStatus === 'pending' ? '#fef3c7' : '#f3f4f6',
+                                  color: supplier.scheduleStatus === 'accepted' ? '#166534' : 
+                                         supplier.scheduleStatus === 'declined' ? '#991b1b' : 
+                                         supplier.scheduleStatus === 'pending' ? '#92400e' : '#6b7280',
+                                  border: `1px solid ${supplier.scheduleStatus === 'accepted' ? '#22c55e' : 
+                                                       supplier.scheduleStatus === 'declined' ? '#ef4444' : 
+                                                       supplier.scheduleStatus === 'pending' ? '#f59e0b' : '#d1d5db'}`
+                                }}>
+                                  {supplier.scheduleStatus === 'accepted' ? '✓ Time Set' : 
+                                   supplier.scheduleStatus === 'declined' ? '✗ Declined' : 
+                                   supplier.scheduleStatus === 'pending' ? '⏰ Pending' : 'Unknown'}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

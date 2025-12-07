@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const supplierScheduleBaseSchema = new mongoose.Schema({
+    bookingId: { type: String },
     title: { type: String, required: true },
     type: { type: String, required: true },
     person: { type: String, required: true },
