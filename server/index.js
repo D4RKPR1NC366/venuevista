@@ -268,6 +268,17 @@ app.get('/api/schedules/status/upcoming', async (req, res) => {
   }
 });
 
+// Get all upcoming schedules (for checking which bookings have been scheduled)
+app.get('/api/schedules/all/upcoming', async (req, res) => {
+  try {
+    const schedules = await SupplierUpcoming.find();
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching all upcoming schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch upcoming schedules' });
+  }
+});
+
 // Create upcoming schedules for suppliers (sent from admin dashboard)
 app.post('/api/schedules/upcoming/notify', async (req, res) => {
   try {

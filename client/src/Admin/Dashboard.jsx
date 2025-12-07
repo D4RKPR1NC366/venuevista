@@ -571,24 +571,28 @@ export default function Dashboard() {
   }, [selectedYear, branchFilter]); // Depends on selectedYear and branchFilter
 
   // Fetch bookings and generate notifications for upcoming events
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        // Fetch approved bookings
-        const approvedRes = await fetch('/api/bookings/approved');
-        const approved = await approvedRes.json();
+  const fetchNotifications = async () => {
+    try {
+      // Fetch approved bookings
+      const approvedRes = await fetch('/api/bookings/approved');
+      const approved = await approvedRes.json();
 
-        // Fetch current supplier availability
-        const suppliersRes = await fetch('/api/admin/suppliers/approved');
-        const currentSuppliers = await suppliersRes.json();
+      // Fetch current supplier availability
+      const suppliersRes = await fetch('/api/admin/suppliers/approved');
+      const currentSuppliers = await suppliersRes.json();
 
-        console.log('Total approved bookings:', approved.length);
-        console.log('Current suppliers:', currentSuppliers.length);
+      // Fetch all upcoming schedules to check which bookings have been scheduled
+      const upcomingSchedulesRes = await fetch('/api/schedules/all/upcoming');
+      const allUpcomingSchedules = await upcomingSchedulesRes.json();
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+      console.log('Total approved bookings:', approved.length);
+      console.log('Current suppliers:', currentSuppliers.length);
+      console.log('Upcoming schedules:', allUpcomingSchedules.length);
 
-        const notifications = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const notifications = [];
 
         approved.forEach(booking => {
           if (!booking.date) {
@@ -607,6 +611,25 @@ export default function Dashboard() {
           if (daysUntil > 0 && daysUntil <= 7) {
             // Get suppliers from various possible field names
             const suppliersData = booking.selectedProducts || booking.suppliers || booking.products || [];
+            
+            // Check if ALL suppliers for this booking still have pending upcoming schedules
+            const bookingUpcomingSchedules = allUpcomingSchedules.filter(schedule => 
+              schedule.bookingId === booking._id || schedule.bookingId === booking._id.toString()
+            );
+            
+            // Only skip if ALL suppliers still have upcoming schedules (none have responded)
+            // If any supplier has accepted/declined, the notification should reappear
+            const allSuppliersStillPending = suppliersData.length > 0 && 
+              bookingUpcomingSchedules.length === suppliersData.length;
+
+            if (allSuppliersStillPending) {
+              console.log('Skipping booking', booking._id, '- all suppliers still pending (', bookingUpcomingSchedules.length, 'of', suppliersData.length, ')');
+              return;
+            }
+            
+            if (bookingUpcomingSchedules.length > 0 && bookingUpcomingSchedules.length < suppliersData.length) {
+              console.log('Showing booking', booking._id, '- some suppliers responded (', bookingUpcomingSchedules.length, 'pending,', suppliersData.length - bookingUpcomingSchedules.length, 'responded)');
+            }
             const suppliersList = Array.isArray(suppliersData) && suppliersData.length > 0
               ? suppliersData.map(p => p.supplierName || p.supplier || p.name || 'Unknown Supplier').join(', ')
               : 'No suppliers assigned';
@@ -634,6 +657,7 @@ export default function Dashboard() {
 
             notifications.push({
               id: `${booking._id}-${daysUntil}`,
+              bookingId: booking._id,
               title: `Upcoming ${booking.eventType || 'Booking'} - ${timeText}`,
               message: `Booker: ${booking.name || 'Unknown'} | Branch: ${booking.branchLocation || 'Not specified'} | Suppliers: ${suppliersList}`,
               time: `${daysUntil} day${daysUntil > 1 ? 's' : ''} until event`,
@@ -670,6 +694,7 @@ export default function Dashboard() {
       }
     };
 
+  useEffect(() => {
     fetchNotifications();
   }, []);
 
@@ -1516,7 +1541,7 @@ export default function Dashboard() {
                     try {
                       // Send notifications to all suppliers
                       const notificationData = {
-                        bookingId: selectedNotification.id || 'unknown',
+                        bookingId: selectedNotification.bookingId || 'unknown',
                         eventType: selectedNotification.bookingDetails.eventType,
                         eventDate: selectedNotification.bookingDetails.eventDate,
                         branch: selectedNotification.bookingDetails.branchLocation,
@@ -1545,6 +1570,9 @@ export default function Dashboard() {
                       
                       alert('Notifications sent to all suppliers successfully!');
                       setShowNotificationModal(false);
+                      
+                      // Refetch notifications to update the list
+                      await fetchNotifications();
                     } catch (error) {
                       console.error('Error sending notifications:', error);
                       alert('Failed to send notifications: ' + error.message);
