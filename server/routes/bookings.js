@@ -63,6 +63,18 @@ const bookingBaseSchema = new mongoose.Schema({
     processedAt: { type: Date },
     adminNotes: { type: String }
   },
+  rescheduleRequest: {
+    status: { type: String, default: 'none' }, // 'none', 'pending', 'approved', 'rejected'
+    reason: { type: String },
+    proposedDate: { type: Date },
+    description: { type: String },
+    requestedBy: { type: String },
+    requestedAt: { type: Date },
+    processedBy: { type: String },
+    processedAt: { type: Date },
+    adminNotes: { type: String },
+    originalDate: { type: Date }
+  },
   createdAt: { type: Date, default: Date.now }
 }, { strict: false });
 
@@ -409,6 +421,206 @@ router.put('/:id/reset-cancellation', async (req, res) => {
     } catch (error) {
         console.error('Error resetting cancellation:', error);
         res.status(500).json({ message: 'Error resetting cancellation', error: error.message });
+    }
+});
+
+// ============= RESCHEDULE ENDPOINTS =============
+
+// Request booking reschedule
+router.post('/:id/reschedule-request', async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        const { reason, proposedDate, description, userEmail } = req.body;
+
+        if (!reason || !proposedDate || !description) {
+            return res.status(400).json({ message: 'Reason, proposed date, and description are required' });
+        }
+
+        // Find the booking
+        let booking = await PendingBooking.findById(bookingId);
+        if (!booking) {
+            booking = await ApprovedBooking.findById(bookingId);
+        }
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        const rescheduleData = {
+            rescheduleRequest: {
+                status: 'pending',
+                reason,
+                proposedDate: new Date(proposedDate),
+                description,
+                requestedBy: userEmail,
+                requestedAt: new Date(),
+                originalDate: booking.date
+            }
+        };
+
+        // Update the booking
+        let updatedBooking = await PendingBooking.findByIdAndUpdate(
+            bookingId,
+            rescheduleData,
+            { new: true }
+        );
+
+        if (!updatedBooking) {
+            updatedBooking = await ApprovedBooking.findByIdAndUpdate(
+                bookingId,
+                rescheduleData,
+                { new: true }
+            );
+        }
+
+        res.json({ message: 'Reschedule request submitted successfully', booking: updatedBooking });
+    } catch (error) {
+        console.error('Error requesting reschedule:', error);
+        res.status(500).json({ message: 'Error requesting reschedule', error: error.message });
+    }
+});
+
+// Get all bookings with pending reschedule requests (for admin)
+router.get('/reschedule-requests/pending', async (req, res) => {
+    try {
+        const pendingReschedules = await PendingBooking.find({ 'rescheduleRequest.status': 'pending' });
+        const approvedReschedules = await ApprovedBooking.find({ 'rescheduleRequest.status': 'pending' });
+        
+        res.json([...pendingReschedules, ...approvedReschedules]);
+    } catch (error) {
+        console.error('Error fetching reschedule requests:', error);
+        res.status(500).json({ message: 'Error fetching reschedule requests', error: error.message });
+    }
+});
+
+// Approve booking reschedule (updates date and notifies suppliers)
+router.put('/:id/reschedule-approve', async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        const { adminEmail, adminNotes } = req.body;
+
+        // Find the booking in Pending or Approved
+        let booking = await PendingBooking.findById(bookingId);
+        let sourceCollection = 'pending';
+        
+        if (!booking) {
+            booking = await ApprovedBooking.findById(bookingId);
+            sourceCollection = 'approved';
+        }
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        const oldDate = booking.date;
+        const newDate = booking.rescheduleRequest.proposedDate;
+
+        // Update reschedule request status and booking date
+        booking.rescheduleRequest.status = 'approved';
+        booking.rescheduleRequest.processedBy = adminEmail;
+        booking.rescheduleRequest.processedAt = new Date();
+        booking.rescheduleRequest.adminNotes = adminNotes || '';
+        booking.date = newDate; // Update the actual booking date
+
+        await booking.save();
+
+        // If booking is approved, also update the corresponding appointment date
+        if (sourceCollection === 'approved') {
+            try {
+                const calendarConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/scheduleCalendar', {
+                    useNewUrlParser: true,
+                    useUnifiedTopology: true
+                });
+
+                const Appointment = calendarConnection.model('Appointment', new mongoose.Schema({}, { strict: false }));
+                
+                const appointment = await Appointment.findOne({ bookingId: bookingId });
+                if (appointment) {
+                    appointment.date = typeof newDate === 'string' ? newDate : new Date(newDate).toISOString().split('T')[0];
+                    await appointment.save();
+                    console.log(`Updated appointment date for booking ${bookingId} to ${appointment.date}`);
+                }
+                
+                await calendarConnection.close();
+            } catch (appointmentError) {
+                console.error('Error updating appointment date:', appointmentError);
+                // Continue anyway - booking date is already updated
+            }
+        }
+
+        // Send notifications to assigned suppliers
+        if (booking.suppliers && booking.suppliers.length > 0) {
+            try {
+                const supplierNotifications = [];
+                for (const supplierId of booking.suppliers) {
+                    try {
+                        const supplier = await Supplier.findById(supplierId);
+                        
+                        if (supplier && supplier.email) {
+                            const notification = new Notification({
+                                title: `Booking Rescheduled - ${booking.eventType || 'Event'}`,
+                                type: 'Supplier',
+                                person: supplier.email,
+                                date: newDate ? new Date(newDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                location: booking.eventVenue || booking.branchLocation || 'N/A',
+                                description: `The booking "${booking.eventType || 'Event'}" (Ref: ${booking.referenceNumber || booking._id}) has been rescheduled. Old date: ${new Date(oldDate).toLocaleDateString()}. New date: ${new Date(newDate).toLocaleDateString()}. Reason: ${booking.rescheduleRequest.reason}. ${booking.rescheduleRequest.adminNotes ? 'Admin notes: ' + booking.rescheduleRequest.adminNotes : ''}`
+                            });
+                            await notification.save();
+                            supplierNotifications.push(supplier.email);
+                        }
+                    } catch (supplierError) {
+                        console.error(`Error notifying supplier ${supplierId}:`, supplierError);
+                    }
+                }
+                console.log(`Sent reschedule notifications to ${supplierNotifications.length} supplier(s):`, supplierNotifications);
+            } catch (notificationError) {
+                console.error('Error sending supplier notifications:', notificationError);
+            }
+        }
+
+        res.json({ message: 'Reschedule approved and booking date updated', booking });
+    } catch (error) {
+        console.error('Error approving reschedule:', error);
+        res.status(500).json({ message: 'Error approving reschedule', error: error.message });
+    }
+});
+
+// Reject booking reschedule
+router.put('/:id/reschedule-reject', async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        const { adminEmail, adminNotes } = req.body;
+
+        const rescheduleData = {
+            'rescheduleRequest.status': 'rejected',
+            'rescheduleRequest.processedBy': adminEmail,
+            'rescheduleRequest.processedAt': new Date(),
+            'rescheduleRequest.adminNotes': adminNotes || ''
+        };
+
+        // Try to find and update the booking
+        let updatedBooking = await PendingBooking.findByIdAndUpdate(
+            bookingId,
+            rescheduleData,
+            { new: true }
+        );
+
+        if (!updatedBooking) {
+            updatedBooking = await ApprovedBooking.findByIdAndUpdate(
+                bookingId,
+                rescheduleData,
+                { new: true }
+            );
+        }
+
+        if (!updatedBooking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        res.json({ message: 'Reschedule request rejected', booking: updatedBooking });
+    } catch (error) {
+        console.error('Error rejecting reschedule:', error);
+        res.status(500).json({ message: 'Error rejecting reschedule', error: error.message });
     }
 });
 

@@ -83,23 +83,30 @@ export default function AdminBooking() {
   const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [selectedCancellation, setSelectedCancellation] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
+  
+  // Reschedule states
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedReschedule, setSelectedReschedule] = useState(null);
 
   // Fetch bookings from backend
   const fetchBookings = async () => {
     try {
-      const [pendingRes, approvedRes, finishedRes, cancelRequestsRes, cancelledRes] = await Promise.all([
+      const [pendingRes, approvedRes, finishedRes, cancelRequestsRes, cancelledRes, rescheduleRequestsRes] = await Promise.all([
         fetch('/api/bookings/pending'),
         fetch('/api/bookings/approved'),
         fetch('/api/bookings/finished'),
         fetch('/api/bookings/cancellation-requests/pending'),
         fetch('/api/bookings/cancelled'),
+        fetch('/api/bookings/reschedule-requests/pending'),
       ]);
-      const [pending, approved, finished, cancelRequests, cancelled] = await Promise.all([
+      const [pending, approved, finished, cancelRequests, cancelled, rescheduleRequests] = await Promise.all([
         pendingRes.json(),
         approvedRes.json(),
         finishedRes.json(),
         cancelRequestsRes.json(),
         cancelledRes.json(),
+        rescheduleRequestsRes.json(),
       ]);
       // Add status to each booking
       const pendingWithStatus = pending.map(b => ({ ...b, status: 'pending' }));
@@ -108,10 +115,12 @@ export default function AdminBooking() {
       setBookings([...pendingWithStatus, ...approvedWithStatus, ...finishedWithStatus]);
       setCancellationRequests(cancelRequests);
       setCancelledBookings(cancelled);
+      setRescheduleRequests(rescheduleRequests);
     } catch (err) {
       setBookings([]);
       setCancellationRequests([]);
       setCancelledBookings([]);
+      setRescheduleRequests([]);
     }
   };
 
@@ -311,6 +320,69 @@ export default function AdminBooking() {
     } catch (error) {
       console.error('Error rejecting cancellation:', error);
       alert('Error rejecting cancellation');
+    }
+  };
+
+  // Reschedule request handlers
+  const handleReviewReschedule = (booking) => {
+    setSelectedReschedule(booking);
+    setAdminNotes('');
+    setShowRescheduleModal(true);
+  };
+
+  const handleApproveReschedule = async () => {
+    if (!selectedReschedule) return;
+    
+    try {
+      const adminEmail = localStorage.getItem('userEmail') || 'admin@goldust.com';
+      const response = await fetch(`/api/bookings/${selectedReschedule._id}/reschedule-approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminNotes })
+      });
+      
+      if (response.ok) {
+        alert('Reschedule approved! Booking date updated and suppliers notified.');
+        setShowRescheduleModal(false);
+        setSelectedReschedule(null);
+        setAdminNotes('');
+        fetchBookings();
+      } else {
+        alert('Failed to approve reschedule');
+      }
+    } catch (error) {
+      console.error('Error approving reschedule:', error);
+      alert('Error approving reschedule');
+    }
+  };
+
+  const handleRejectReschedule = async () => {
+    if (!selectedReschedule) return;
+    if (!adminNotes.trim()) {
+      alert('Please provide admin notes explaining why the reschedule is rejected');
+      return;
+    }
+    
+    try {
+      const adminEmail = localStorage.getItem('userEmail') || 'admin@goldust.com';
+      const response = await fetch(`/api/bookings/${selectedReschedule._id}/reschedule-reject`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminNotes })
+      });
+      
+      if (response.ok) {
+        alert('Reschedule request rejected');
+        setShowRescheduleModal(false);
+        setSelectedReschedule(null);
+        setAdminNotes('');
+        fetchBookings();
+      } else {
+        alert('Failed to reject reschedule');
+      }
+    } catch (error) {
+      console.error('Error rejecting reschedule:', error);
+      alert('Error rejecting reschedule');
     }
   };
 
@@ -541,6 +613,89 @@ export default function AdminBooking() {
                         style={{
                           padding: '10px 20px',
                           background: 'linear-gradient(90deg, #ff9800 0%, #f57c00 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.95rem',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Review Request
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Reschedule Requests Section */}
+          {rescheduleRequests.length > 0 && (
+            <div style={{ marginBottom: 36, padding: 20, background: '#e3f2fd', borderRadius: 12, border: '2px solid #2196f3' }}>
+              <h3 style={{ fontWeight: 700, fontSize: 22, marginBottom: 16, color: '#0d47a1', display: 'flex', alignItems: 'center', gap: 10 }}>
+                📅 Reschedule Requests 
+                <span style={{ 
+                  background: '#2196f3', 
+                  color: '#fff', 
+                  padding: '4px 12px', 
+                  borderRadius: 20, 
+                  fontSize: 16,
+                  fontWeight: 700 
+                }}>
+                  {rescheduleRequests.length}
+                </span>
+              </h3>
+              <ul style={{ listStyle: 'none', padding: 0, marginTop: 0 }}>
+                {rescheduleRequests.map(booking => (
+                  <li
+                    key={booking._id}
+                    style={{ 
+                      background: '#fff', 
+                      border: '2px solid #2196f3', 
+                      borderRadius: 10, 
+                      padding: 16, 
+                      marginBottom: 12,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
+                          {booking.eventType} - {booking.name}
+                        </div>
+                        {booking.referenceNumber && (
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginBottom: 8, fontFamily: 'monospace' }}>
+                            📋 Ref: {booking.referenceNumber}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
+                          <strong>Current Date:</strong> {booking.rescheduleRequest.originalDate ? formatPHTime(booking.rescheduleRequest.originalDate, 'MM/DD/YYYY') : 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#2196f3', marginBottom: 4, fontWeight: 600 }}>
+                          <strong>Proposed New Date:</strong> {booking.rescheduleRequest.proposedDate ? formatPHTime(booking.rescheduleRequest.proposedDate, 'MM/DD/YYYY') : 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
+                          <strong>Status:</strong> {booking.status}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#1976d2', marginBottom: 4, marginTop: 12 }}>
+                          <strong>Reschedule Reason:</strong> {booking.rescheduleRequest.reason}
+                        </div>
+                        {booking.rescheduleRequest.description && (
+                          <div style={{ fontSize: 14, color: '#666', marginTop: 4, fontStyle: 'italic' }}>
+                            "{booking.rescheduleRequest.description}"
+                          </div>
+                        )}
+                        <div style={{ fontSize: 13, color: '#999', marginTop: 8 }}>
+                          Requested: {new Date(booking.rescheduleRequest.requestedAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleReviewReschedule(booking)}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'linear-gradient(90deg, #2196f3 0%, #1976d2 100%)',
                           color: '#fff',
                           border: 'none',
                           borderRadius: 8,
@@ -1021,6 +1176,143 @@ export default function AdminBooking() {
                     }}
                   >
                     ✅ Approve Cancellation
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reschedule Review Modal */}
+          {showRescheduleModal && selectedReschedule && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.6)',
+              zIndex: 2147483649,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <div style={{
+                background: '#fff',
+                borderRadius: 12,
+                width: '90%',
+                maxWidth: 600,
+                maxHeight: '90vh',
+                overflow: 'auto',
+                padding: 30,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+              }}>
+                <h2 style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 20, color: '#0d47a1' }}>
+                  Review Reschedule Request
+                </h2>
+                
+                <div style={{ marginBottom: 20, padding: 15, background: '#f5f5f5', borderRadius: 8 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>
+                    {selectedReschedule.eventType} - {selectedReschedule.name}
+                  </div>
+                  {selectedReschedule.referenceNumber && (
+                    <div style={{ fontSize: '0.9rem', color: '#3b82f6', marginBottom: 8, fontFamily: 'monospace', fontWeight: 700 }}>
+                      📋 {selectedReschedule.referenceNumber}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: 4 }}>
+                    <strong>Current Date:</strong> {selectedReschedule.rescheduleRequest.originalDate ? formatPHTime(selectedReschedule.rescheduleRequest.originalDate, 'MM/DD/YYYY') : 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#2196f3', fontWeight: 600 }}>
+                    <strong>Proposed New Date:</strong> {selectedReschedule.rescheduleRequest.proposedDate ? formatPHTime(selectedReschedule.rescheduleRequest.proposedDate, 'MM/DD/YYYY') : 'N/A'}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20, padding: 15, background: '#e3f2fd', borderRadius: 8, border: '2px solid #2196f3' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0d47a1', marginBottom: 8 }}>
+                    Client's Reschedule Reason:
+                  </div>
+                  <div style={{ fontSize: '0.95rem', marginBottom: 8 }}>
+                    <strong>Reason:</strong> {selectedReschedule.rescheduleRequest.reason}
+                  </div>
+                  {selectedReschedule.rescheduleRequest.description && (
+                    <div style={{ fontSize: '0.95rem', fontStyle: 'italic', color: '#666' }}>
+                      "{selectedReschedule.rescheduleRequest.description}"
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.85rem', color: '#999', marginTop: 8 }}>
+                    Requested on: {new Date(selectedReschedule.rescheduleRequest.requestedAt).toLocaleString()}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, fontSize: '0.95rem' }}>
+                    Admin Notes {selectedReschedule.rescheduleRequest.status === 'rejected' && '(Required for rejection)'}:
+                  </label>
+                  <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Add notes about this decision (required if rejecting)..."
+                    style={{
+                      width: '100%',
+                      minHeight: 100,
+                      padding: 12,
+                      border: '2px solid #ddd',
+                      borderRadius: 8,
+                      fontSize: '0.95rem',
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => {
+                      setShowRescheduleModal(false);
+                      setSelectedReschedule(null);
+                      setAdminNotes('');
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#f5f5f5',
+                      border: '2px solid #ddd',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRejectReschedule}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#ff9800',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    ❌ Reject Request
+                  </button>
+                  <button
+                    onClick={handleApproveReschedule}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'linear-gradient(90deg, #2196f3 0%, #1976d2 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    ✅ Approve Reschedule
                   </button>
                 </div>
               </div>

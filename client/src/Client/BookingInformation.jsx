@@ -27,6 +27,14 @@ const BookingInformation = () => {
     reason: '',
     description: ''
   });
+
+  // Reschedule modal states
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleForm, setRescheduleForm] = useState({
+    reason: '',
+    proposedDate: '',
+    description: ''
+  });
   
   // Payment modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -54,6 +62,18 @@ const BookingInformation = () => {
     'Event Cancelled',
     'Personal Emergency',
     'Dissatisfied with Service',
+    'Other'
+  ];
+
+  // Reschedule reasons
+  const rescheduleReasons = [
+    'Venue Conflict',
+    'Weather Concerns',
+    'Guest Availability',
+    'Supplier Availability',
+    'Personal Reasons',
+    'Budget Adjustments',
+    'Better Date Available',
     'Other'
   ];
 
@@ -311,6 +331,38 @@ const BookingInformation = () => {
     } catch (err) {
       console.error('Error submitting cancellation:', err);
       alert('Failed to submit cancellation request. Please try again.');
+    }
+  };
+
+  const handleRequestReschedule = () => {
+    setRescheduleForm({ reason: '', proposedDate: '', description: '' });
+    setShowRescheduleModal(true);
+  };
+
+  const handleSubmitReschedule = async () => {
+    if (!rescheduleForm.reason || !rescheduleForm.proposedDate || !rescheduleForm.description.trim()) {
+      alert('Please provide a reason, proposed date, and description for rescheduling.');
+      return;
+    }
+
+    try {
+      const response = await api.post(`/bookings/${selectedBooking._id}/reschedule-request`, {
+        reason: rescheduleForm.reason,
+        proposedDate: rescheduleForm.proposedDate,
+        description: rescheduleForm.description,
+        userEmail: userEmail
+      });
+
+      if (response.status === 200) {
+        alert('Reschedule request submitted successfully! Admin will review your request.');
+        setShowRescheduleModal(false);
+        setRescheduleForm({ reason: '', proposedDate: '', description: '' });
+        await fetchBookings();
+        setShowModal(false);
+      }
+    } catch (err) {
+      console.error('Error submitting reschedule:', err);
+      alert('Failed to submit reschedule request. Please try again.');
     }
   };
 
@@ -763,12 +815,47 @@ const BookingInformation = () => {
                 )}
               </div>
 
-              {/* Cancellation Section */}
+              {/* Reschedule & Cancellation Section */}
               {selectedBooking && (
                 <div style={{ marginTop: 24, paddingTop: 24, borderTop: '2px dashed #ddd' }}>
                   <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: 12, padding: 10, background: '#f5f5f5', borderRadius: 6 }}>
-                    Debug Info - Status: {selectedBooking.status}, Cancellation Status: {selectedBooking.cancellationRequest?.status || 'none'}
+                    Debug Info - Status: {selectedBooking.status}, Cancellation Status: {selectedBooking.cancellationRequest?.status || 'none'}, Reschedule Status: {selectedBooking.rescheduleRequest?.status || 'none'}
                   </div>
+
+                  {/* Reschedule Button */}
+                  {(selectedBooking.status === 'Pending' || selectedBooking.status === 'Approved') && 
+                   selectedBooking.rescheduleRequest?.status !== 'pending' && 
+                   selectedBooking.rescheduleRequest?.status !== 'approved' && (
+                    <button
+                      onClick={handleRequestReschedule}
+                      style={{
+                        background: 'linear-gradient(90deg, #2196f3 0%, #1976d2 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '12px 24px',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        width: '100%',
+                        boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                        transition: 'all 0.2s',
+                        marginBottom: 12
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(33, 150, 243, 0.3)';
+                      }}
+                    >
+                      📅 Request Booking Reschedule
+                    </button>
+                  )}
+
+                  {/* Cancellation Button */}
                   {(selectedBooking.status === 'Pending' || selectedBooking.status === 'Approved') && 
                    selectedBooking.cancellationRequest?.status !== 'pending' && 
                    selectedBooking.cancellationRequest?.status !== 'approved' ? (
@@ -882,6 +969,83 @@ const BookingInformation = () => {
                   {selectedBooking.cancellationRequest.adminNotes && (
                     <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
                       <strong>Admin Notes:</strong> {selectedBooking.cancellationRequest.adminNotes}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show reschedule request details if exists */}
+              {selectedBooking?.rescheduleRequest?.status === 'pending' && (
+                <div style={{ 
+                  marginTop: 24, 
+                  padding: 20, 
+                  background: '#e3f2fd', 
+                  borderRadius: 12,
+                  border: '2px solid #2196f3'
+                }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1565c0', marginBottom: 12 }}>
+                    📅 Reschedule Request Pending
+                  </h3>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Reason:</strong> {selectedBooking.rescheduleRequest.reason}
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Proposed New Date:</strong> {new Date(selectedBooking.rescheduleRequest.proposedDate).toLocaleDateString()}
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Description:</strong> {selectedBooking.rescheduleRequest.description}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#888', fontStyle: 'italic', marginTop: 12 }}>
+                    Your reschedule request is being reviewed by the admin.
+                  </div>
+                </div>
+              )}
+
+              {selectedBooking?.rescheduleRequest?.status === 'rejected' && (
+                <div style={{ 
+                  marginTop: 24, 
+                  padding: 20, 
+                  background: '#ffebee', 
+                  borderRadius: 12,
+                  border: '2px solid #c62828'
+                }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1.1rem', color: '#c62828', marginBottom: 12 }}>
+                    ❌ Reschedule Request Denied
+                  </h3>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Your Reason:</strong> {selectedBooking.rescheduleRequest.reason}
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Proposed Date:</strong> {new Date(selectedBooking.rescheduleRequest.proposedDate).toLocaleDateString()}
+                  </div>
+                  {selectedBooking.rescheduleRequest.adminNotes && (
+                    <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                      <strong>Admin Notes:</strong> {selectedBooking.rescheduleRequest.adminNotes}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedBooking?.rescheduleRequest?.status === 'approved' && (
+                <div style={{ 
+                  marginTop: 24, 
+                  padding: 20, 
+                  background: '#e8f5e9', 
+                  borderRadius: 12,
+                  border: '2px solid #4caf50'
+                }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1.1rem', color: '#2e7d32', marginBottom: 12 }}>
+                    ✅ Reschedule Request Approved
+                  </h3>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Original Date:</strong> {new Date(selectedBooking.rescheduleRequest.originalDate).toLocaleDateString()}
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>New Date:</strong> {new Date(selectedBooking.rescheduleRequest.proposedDate).toLocaleDateString()}
+                  </div>
+                  {selectedBooking.rescheduleRequest.adminNotes && (
+                    <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                      <strong>Admin Notes:</strong> {selectedBooking.rescheduleRequest.adminNotes}
                     </div>
                   )}
                 </div>
@@ -1022,6 +1186,151 @@ const BookingInformation = () => {
                 onClick={handleSubmitCancellation}
               >
                 Submit Cancellation Request
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Reschedule Modal */}
+        {showRescheduleModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.6)',
+            zIndex: 2147483648,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 16,
+              padding: 32,
+              width: '90%',
+              maxWidth: 600,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+              maxHeight: '90vh',
+              overflow: 'auto'
+            }}>
+              {/* Header */}
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24}}>
+                <h2 style={{fontSize: '1.5rem', fontWeight: 700, color: '#1976d2', margin: 0}}>
+                  📅 Request Booking Reschedule
+                </h2>
+                <button 
+                  onClick={() => setShowRescheduleModal(false)} 
+                  style={{
+                    background: 'none', 
+                    border: 'none', 
+                    fontSize: 32, 
+                    cursor: 'pointer',
+                    color: '#999',
+                    lineHeight: 1,
+                    padding: 0
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Info Text */}
+              <p style={{color: '#666', marginBottom: 24, fontSize: '15px'}}>
+                Please provide a reason for rescheduling your booking and propose a new date. Our admin team will review your request.
+              </p>
+
+              {/* Reason Dropdown */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Reason for Rescheduling <span style={{color: '#1976d2'}}>*</span>
+                </label>
+                <select
+                  value={rescheduleForm.reason}
+                  onChange={(e) => setRescheduleForm(prev => ({ ...prev, reason: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                >
+                  <option value="">Select a reason</option>
+                  {rescheduleReasons.map(reason => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Proposed Date Picker */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Proposed New Date <span style={{color: '#1976d2'}}>*</span>
+                </label>
+                <input
+                  type="date"
+                  value={rescheduleForm.proposedDate}
+                  onChange={(e) => setRescheduleForm(prev => ({ ...prev, proposedDate: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              {/* Description Textarea */}
+              <div style={{marginBottom: 24}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Additional Details <span style={{color: '#1976d2'}}>*</span>
+                </label>
+                <textarea
+                  value={rescheduleForm.description}
+                  onChange={(e) => setRescheduleForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Please provide more details about your reschedule request..."
+                  rows={5}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              <button
+                style={{
+                  background: rescheduleForm.reason && rescheduleForm.proposedDate && rescheduleForm.description.trim()
+                    ? 'linear-gradient(90deg, #2196f3 0%, #1976d2 100%)' 
+                    : '#e0e0e0',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '12px 32px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: rescheduleForm.reason && rescheduleForm.proposedDate && rescheduleForm.description.trim() ? 'pointer' : 'not-allowed',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  color: '#fff'
+                }}
+                disabled={!rescheduleForm.reason || !rescheduleForm.proposedDate || !rescheduleForm.description.trim()}
+                onClick={handleSubmitReschedule}
+              >
+                Submit Reschedule Request
               </button>
             </div>
           </div>
