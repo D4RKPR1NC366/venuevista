@@ -8,6 +8,12 @@ import './dashboard.css';
 import * as XLSX from 'xlsx';
 
 export default function Dashboard() {
+  // Push notification state
+  const [showNotification, setShowNotification] = useState(true);
+  const [notificationList, setNotificationList] = useState([]);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+
   // Branch filter for revenue chart (UI only)
   const [branchFilter, setBranchFilter] = useState('all');
   // Most availed products/services
@@ -564,6 +570,90 @@ export default function Dashboard() {
       });
   }, [selectedYear, branchFilter]); // Depends on selectedYear and branchFilter
 
+  // Fetch bookings and generate notifications for upcoming events
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const [pendingRes, approvedRes, finishedRes] = await Promise.all([
+          fetch('/api/bookings/pending'),
+          fetch('/api/bookings/approved'),
+          fetch('/api/bookings/finished')
+        ]);
+
+        const [pending, approved, finished] = await Promise.all([
+          pendingRes.json(),
+          approvedRes.json(),
+          finishedRes.json()
+        ]);
+
+        const allBookings = [...pending, ...approved, ...finished];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const notifications = [];
+
+        allBookings.forEach(booking => {
+          if (!booking.date) return;
+
+          const bookingDate = new Date(booking.date);
+          bookingDate.setHours(0, 0, 0, 0);
+
+          const daysUntil = Math.ceil((bookingDate - today) / (1000 * 60 * 60 * 24));
+
+          // Create notifications for 7 days, 3 days, and 1 day before
+          if (daysUntil === 7 || daysUntil === 3 || daysUntil === 1) {
+            const suppliersList = booking.selectedProducts && Array.isArray(booking.selectedProducts)
+              ? booking.selectedProducts.map(p => p.supplierName || 'Unknown Supplier').join(', ')
+              : 'No suppliers assigned';
+
+            let timeText = '';
+            if (daysUntil === 7) timeText = '1 week before';
+            else if (daysUntil === 3) timeText = '3 days before';
+            else if (daysUntil === 1) timeText = '1 day before';
+
+            notifications.push({
+              id: `${booking._id}-${daysUntil}`,
+              title: `Upcoming ${booking.eventType || 'Booking'} - ${timeText}`,
+              message: `Booker: ${booking.name || 'Unknown'} | Branch: ${booking.branchLocation || 'Not specified'} | Suppliers: ${suppliersList}`,
+              time: `${daysUntil} day${daysUntil > 1 ? 's' : ''} until event`,
+              read: false,
+              bookingDate: booking.date,
+              daysUntil: daysUntil,
+              // Full booking details
+              bookingDetails: {
+                eventType: booking.eventType || 'N/A',
+                bookerName: booking.name || 'N/A',
+                bookerEmail: booking.email || 'N/A',
+                bookerContact: booking.contact || 'N/A',
+                branchLocation: booking.branchLocation || 'N/A',
+                eventVenue: booking.eventVenue || 'N/A',
+                eventDate: booking.date,
+                guestCount: booking.guestCount || 'N/A',
+                theme: booking.theme || 'N/A',
+                totalPrice: booking.totalPrice || 0,
+                status: booking.status || 'N/A',
+                specialRequest: booking.specialRequest || 'None',
+                suppliers: booking.selectedProducts && Array.isArray(booking.selectedProducts)
+                  ? booking.selectedProducts
+                  : []
+              }
+            });
+          }
+        });
+
+        // Sort by days until event (closest first)
+        notifications.sort((a, b) => a.daysUntil - b.daysUntil);
+
+        setNotificationList(notifications);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        setNotificationList([]);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
   useEffect(() => {
             // Fetch reviews summary
             fetch('/api/reviews')
@@ -868,6 +958,501 @@ export default function Dashboard() {
     <div className="admin-dashboard-layout">
       <Sidebar />
       <main className="admin-dashboard-main">
+        {/* Push Notification Popup */}
+        {showNotification && (
+          <div style={{
+            position: 'fixed',
+            top: 20,
+            right: 20,
+            width: 380,
+            maxHeight: 500,
+            background: '#fff',
+            borderRadius: 12,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            zIndex: 1000,
+            overflow: 'hidden',
+            animation: 'slideIn 0.3s ease-out'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#fff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '20px' }}>🔔</span>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Notifications</h3>
+                {notificationList.filter(n => !n.read).length > 0 && (
+                  <span style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    borderRadius: 12,
+                    padding: '2px 8px',
+                    fontSize: '12px',
+                    fontWeight: 700
+                  }}>
+                    {notificationList.filter(n => !n.read).length}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowNotification(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#fff',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: 0,
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Notification List */}
+            <div style={{
+              maxHeight: '70vh',
+              overflowY: 'auto',
+              padding: '8px 0',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+            className="notification-list-scroll">
+              {notificationList.length === 0 ? (
+                <div style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: '#9ca3af'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
+                  <p style={{ margin: 0, fontSize: '15px', fontWeight: 500 }}>No upcoming booking reminders</p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '13px' }}>Reminders appear 7 days, 3 days, and 1 day before bookings</p>
+                </div>
+              ) : (
+                notificationList.map((notification) => (
+                <div
+                  key={notification.id}
+                  style={{
+                    padding: '16px 20px',
+                    borderBottom: '1px solid #f0f0f0',
+                    cursor: 'pointer',
+                    background: notification.read ? '#fff' : '#f8f9ff',
+                    transition: 'background 0.2s',
+                    position: 'relative'
+                  }}
+                  onClick={() => {
+                    setSelectedNotification(notification);
+                    setShowNotificationModal(true);
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f5f7ff'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = notification.read ? '#fff' : '#f8f9ff'}
+                >
+                  {!notification.read && (
+                    <div style={{
+                      position: 'absolute',
+                      left: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 8,
+                      height: 8,
+                      background: '#3b82f6',
+                      borderRadius: '50%'
+                    }} />
+                  )}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    paddingLeft: notification.read ? 0 : 12
+                  }}>
+                    <div style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 8,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <span style={{ fontSize: '20px' }}>📬</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h4 style={{
+                        margin: '0 0 4px 0',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#1f2937',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {notification.title}
+                      </h4>
+                      <p style={{
+                        margin: '0 0 4px 0',
+                        fontSize: '13px',
+                        color: '#6b7280',
+                        lineHeight: 1.4,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {notification.message}
+                      </p>
+                      <span style={{
+                        fontSize: '11px',
+                        color: '#9ca3af',
+                        fontWeight: 500
+                      }}>
+                        {notification.time}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Notification Details Modal */}
+        {showNotificationModal && selectedNotification && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: 20
+          }}
+          onClick={() => setShowNotificationModal(false)}
+          >
+            <div style={{
+              background: '#fff',
+              borderRadius: 16,
+              maxWidth: 700,
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                padding: '24px 28px',
+                color: '#fff',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                position: 'relative'
+              }}>
+                <button
+                  onClick={() => setShowNotificationModal(false)}
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1
+                  }}
+                >
+                  ×
+                </button>
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 700 }}>
+                  {selectedNotification.title}
+                </h2>
+                <p style={{ margin: 0, opacity: 0.9, fontSize: '14px' }}>
+                  {selectedNotification.time}
+                </p>
+              </div>
+
+              {/* Modal Content */}
+              <div style={{ padding: '28px' }}>
+                {/* Booking Information */}
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ 
+                    margin: '0 0 16px 0', 
+                    fontSize: '18px', 
+                    fontWeight: 700,
+                    color: '#1f2937',
+                    borderBottom: '2px solid #667eea',
+                    paddingBottom: 8
+                  }}>
+                    📋 Booking Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Event Type
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.eventType}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Status
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500, textTransform: 'capitalize' }}>
+                        {selectedNotification.bookingDetails.status}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Event Date
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {new Date(selectedNotification.bookingDetails.eventDate).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Guest Count
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.guestCount} guests
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Booker Information */}
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ 
+                    margin: '0 0 16px 0', 
+                    fontSize: '18px', 
+                    fontWeight: 700,
+                    color: '#1f2937',
+                    borderBottom: '2px solid #667eea',
+                    paddingBottom: 8
+                  }}>
+                    👤 Booker Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Name
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.bookerName}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Contact
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.bookerContact}
+                      </p>
+                    </div>
+                    
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Email
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.bookerEmail}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location & Venue */}
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ 
+                    margin: '0 0 16px 0', 
+                    fontSize: '18px', 
+                    fontWeight: 700,
+                    color: '#1f2937',
+                    borderBottom: '2px solid #667eea',
+                    paddingBottom: 8
+                  }}>
+                    📍 Location & Venue
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Branch Location
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.branchLocation}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Event Venue
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.eventVenue}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Theme
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#1f2937', fontWeight: 500 }}>
+                        {selectedNotification.bookingDetails.theme}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Total Price
+                      </label>
+                      <p style={{ margin: 0, fontSize: '15px', color: '#10b981', fontWeight: 700 }}>
+                        ₱{selectedNotification.bookingDetails.totalPrice.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Suppliers List */}
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ 
+                    margin: '0 0 16px 0', 
+                    fontSize: '18px', 
+                    fontWeight: 700,
+                    color: '#1f2937',
+                    borderBottom: '2px solid #667eea',
+                    paddingBottom: 8
+                  }}>
+                    🏪 Assigned Suppliers
+                  </h3>
+                  
+                  {selectedNotification.bookingDetails.suppliers.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {selectedNotification.bookingDetails.suppliers.map((supplier, index) => (
+                        <div key={index} style={{
+                          padding: '12px 16px',
+                          background: '#f9fafb',
+                          borderRadius: 8,
+                          border: '1px solid #e5e7eb'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
+                                {supplier.supplierName || 'Unknown Supplier'}
+                              </p>
+                              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                                {supplier.productName || 'Product/Service'}
+                              </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 700, color: '#667eea' }}>
+                                ₱{(supplier.price || 0).toLocaleString()}
+                              </p>
+                              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                                Qty: {supplier.quantity || 1}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '15px', color: '#6b7280', fontStyle: 'italic' }}>
+                      No suppliers assigned yet
+                    </p>
+                  )}
+                </div>
+
+                {/* Special Requests */}
+                {selectedNotification.bookingDetails.specialRequest && selectedNotification.bookingDetails.specialRequest !== 'None' && (
+                  <div>
+                    <h3 style={{ 
+                      margin: '0 0 16px 0', 
+                      fontSize: '18px', 
+                      fontWeight: 700,
+                      color: '#1f2937',
+                      borderBottom: '2px solid #667eea',
+                      paddingBottom: 8
+                    }}>
+                      📝 Special Requests
+                    </h3>
+                    <p style={{ 
+                      margin: 0, 
+                      fontSize: '15px', 
+                      color: '#1f2937', 
+                      lineHeight: 1.6,
+                      padding: '12px 16px',
+                      background: '#fef3c7',
+                      borderRadius: 8,
+                      border: '1px solid #fbbf24'
+                    }}>
+                      {selectedNotification.bookingDetails.specialRequest}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '20px 28px',
+                borderTop: '1px solid #e5e7eb',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 12
+              }}>
+                <button
+                  onClick={() => setShowNotificationModal(false)}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h2 style={{ margin: 0 }}>Overview</h2>

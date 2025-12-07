@@ -139,3 +139,22 @@
   height: 220px;
   margin-top: 10px;
 }
+
+/* Push Notification Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Hide notification list scrollbar */
+.notification-list-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
