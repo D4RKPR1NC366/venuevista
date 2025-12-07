@@ -82,7 +82,7 @@ scheduleConnection.on('error', err => console.error('MongoDB scheduleCalendar co
 // Load Schedule model using the new connection
 const scheduleSchema = require('./models/Schedule').schema;
 const Schedule = scheduleConnection.model('Schedule', scheduleSchema);
-const { SupplierAcceptedSchedule, SupplierDeclinedSchedule } = require('./models/SupplierSchedule');
+const { SupplierAcceptedSchedule, SupplierDeclinedSchedule, SupplierUpcomingSchedule } = require('./models/SupplierSchedule');
 
 // Create a separate connection for notifications
 const notificationConnection = mongoose.createConnection(`${process.env.MONGODB_URI}/notification`, {
@@ -103,9 +103,10 @@ const Appointment = scheduleConnection.model('Appointment', appointmentSchema);
 const appointmentsRouter = require('./routes/appointments')(Appointment);
 app.use('/api/appointments', appointmentsRouter);
 
-// Initialize models for accepted, declined, and cancelled schedules
+// Initialize models for accepted, declined, cancelled, and upcoming schedules
 const SupplierAccepted = scheduleConnection.model('SupplierAcceptedSchedule', require('./models/SupplierSchedule').SupplierAcceptedSchedule.schema);
 const SupplierDeclined = scheduleConnection.model('SupplierDeclinedSchedule', require('./models/SupplierSchedule').SupplierDeclinedSchedule.schema);
+const SupplierUpcoming = scheduleConnection.model('SupplierUpcomingSchedule', require('./models/SupplierSchedule').SupplierUpcomingSchedule.schema);
 const SupplierCancelled = scheduleConnection.model('SupplierCancelledSchedule', scheduleSchema);
 
 // Schedules API endpoints now use the scheduleConnection
@@ -248,6 +249,158 @@ app.get('/api/schedules/status/cancelled', async (req, res) => {
   } catch (err) {
     console.error('Error fetching cancelled schedules:', err);
     res.status(500).json({ error: 'Failed to fetch cancelled schedules' });
+  }
+});
+
+// Get upcoming schedules for a supplier
+app.get('/api/schedules/status/upcoming', async (req, res) => {
+  try {
+    const { supplierId } = req.query;
+    console.log('Fetching upcoming schedules for supplier:', supplierId);
+    const schedules = supplierId 
+      ? await SupplierUpcoming.find({ supplierId })
+      : await SupplierUpcoming.find();
+    console.log('Found upcoming schedules:', schedules);
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching upcoming schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch upcoming schedules' });
+  }
+});
+
+// Create upcoming schedules for suppliers (sent from admin dashboard)
+app.post('/api/schedules/upcoming/notify', async (req, res) => {
+  try {
+    const { bookingId, eventType, eventDate, branch, venue, suppliers } = req.body;
+    console.log('Creating upcoming schedules for suppliers:', suppliers);
+    
+    // Get User model from authentication connection
+    const User = mongoose.connection.useDb('authentication').model('User', require('./models/User').schema);
+    
+    const createdSchedules = [];
+    for (const supplier of suppliers) {
+      // Look up supplier by ID to get their email
+      let supplierEmail = supplier.supplierId;
+      
+      // If supplierId looks like a MongoDB ObjectId (24 hex chars), look up the user
+      if (supplier.supplierId.match(/^[0-9a-fA-F]{24}$/)) {
+        try {
+          const supplierUser = await User.findById(supplier.supplierId);
+          if (supplierUser && supplierUser.email) {
+            supplierEmail = supplierUser.email;
+            console.log(`Found email for supplier ${supplier.supplierName}: ${supplierEmail}`);
+          }
+        } catch (lookupErr) {
+          console.error('Error looking up supplier:', lookupErr);
+        }
+      }
+      
+      const scheduleData = {
+        bookingId,
+        eventType,
+        eventDate,
+        branch,
+        venue,
+        supplierId: supplierEmail,
+        supplierName: supplier.supplierName,
+        scheduledTime: supplier.scheduledTime,
+        arriveEarly: supplier.arriveEarly || false
+      };
+      
+      console.log('Creating schedule with supplierId:', supplierEmail);
+      const schedule = await SupplierUpcoming.create(scheduleData);
+      createdSchedules.push(schedule);
+    }
+    
+    console.log('Created upcoming schedules:', createdSchedules.length);
+    res.status(201).json({ success: true, schedules: createdSchedules });
+  } catch (err) {
+    console.error('Error creating upcoming schedules:', err);
+    res.status(500).json({ error: 'Failed to create upcoming schedules' });
+  }
+});
+
+// Accept an upcoming schedule
+app.put('/api/schedules/upcoming/:id/accept', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { supplierId, supplierName } = req.body;
+    
+    // Find the upcoming schedule
+    const upcomingSchedule = await SupplierUpcoming.findById(id);
+    if (!upcomingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+    
+    // Create accepted schedule
+    const acceptedScheduleData = {
+      title: `${upcomingSchedule.eventType} - ${supplierName}`,
+      type: 'Supplier',
+      person: supplierId,
+      date: upcomingSchedule.eventDate,
+      location: upcomingSchedule.venue || upcomingSchedule.branch || '',
+      description: `Scheduled Time: ${upcomingSchedule.scheduledTime}${upcomingSchedule.arriveEarly ? '\nArrive 1 day early' : ''}`,
+      supplierId: supplierId,
+      supplierName: supplierName,
+      eventType: upcomingSchedule.eventType,
+      branchLocation: upcomingSchedule.branch,
+      status: 'accepted',
+      createdAt: new Date(),
+      actionDate: new Date()
+    };
+    
+    await SupplierAccepted.create(acceptedScheduleData);
+    
+    // Delete the upcoming schedule
+    await SupplierUpcoming.findByIdAndDelete(id);
+    
+    console.log(`Schedule ${id} accepted by ${supplierName}`);
+    res.json({ success: true, message: 'Schedule accepted' });
+  } catch (err) {
+    console.error('Error accepting schedule:', err);
+    res.status(500).json({ error: 'Failed to accept schedule' });
+  }
+});
+
+// Decline an upcoming schedule
+app.put('/api/schedules/upcoming/:id/decline', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { supplierId, supplierName } = req.body;
+    
+    // Find the upcoming schedule
+    const upcomingSchedule = await SupplierUpcoming.findById(id);
+    if (!upcomingSchedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+    
+    // Create declined schedule
+    const declinedScheduleData = {
+      title: `${upcomingSchedule.eventType} - ${supplierName}`,
+      type: 'Supplier',
+      person: supplierId,
+      date: upcomingSchedule.eventDate,
+      location: upcomingSchedule.venue || upcomingSchedule.branch || '',
+      description: `Scheduled Time: ${upcomingSchedule.scheduledTime}${upcomingSchedule.arriveEarly ? '\nArrive 1 day early' : ''}`,
+      supplierId: supplierId,
+      supplierName: supplierName,
+      eventType: upcomingSchedule.eventType,
+      branchLocation: upcomingSchedule.branch,
+      status: 'declined',
+      createdAt: new Date(),
+      actionDate: new Date()
+    };
+    
+    await SupplierDeclined.create(declinedScheduleData);
+    
+    // Delete the upcoming schedule
+    await SupplierUpcoming.findByIdAndDelete(id);
+    
+    console.log(`Schedule ${id} declined by ${supplierName}`);
+    res.json({ success: true, message: 'Schedule declined' });
+  } catch (err) {
+    console.error('Error declining schedule:', err);
+    res.status(500).json({ error: 'Failed to decline schedule' });
   }
 });
 

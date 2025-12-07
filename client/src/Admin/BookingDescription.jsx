@@ -356,6 +356,44 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
       .catch(err => console.error('Failed to fetch categories:', err));
   }, []);
 
+  // Update supplier availability status whenever booking or allSuppliers changes
+  React.useEffect(() => {
+    if (booking && booking.suppliers && allSuppliers.length > 0 && editData.suppliers && editData.suppliers.length > 0) {
+      console.log('Updating supplier availability...');
+      console.log('Current editData.suppliers:', editData.suppliers);
+      console.log('Available suppliers:', allSuppliers);
+      
+      // Update editData suppliers with current availability from allSuppliers
+      const updatedSuppliers = editData.suppliers.map(bookingSupplier => {
+        // Try multiple matching strategies
+        const currentSupplier = allSuppliers.find(s => 
+          s._id === bookingSupplier._id || 
+          s._id === bookingSupplier.supplierId ||
+          s.email === bookingSupplier.email ||
+          s.email === bookingSupplier.supplierEmail ||
+          s.companyName === bookingSupplier.companyName
+        );
+        
+        console.log(`Matching ${bookingSupplier.companyName || bookingSupplier.email}:`, currentSupplier ? 'Found' : 'Not found');
+        
+        if (currentSupplier) {
+          console.log(`Updating availability to: ${currentSupplier.isAvailable}`);
+          return {
+            ...bookingSupplier,
+            availability: currentSupplier.isAvailable ? 'available' : 'unavailable'
+          };
+        }
+        return bookingSupplier;
+      });
+      
+      console.log('Updated suppliers:', updatedSuppliers);
+      
+      if (JSON.stringify(updatedSuppliers) !== JSON.stringify(editData.suppliers)) {
+        setEditData(prev => ({ ...prev, suppliers: updatedSuppliers }));
+      }
+    }
+  }, [booking, allSuppliers, editData.suppliers]);
+
   // Handle payment proof file upload
   const handlePaymentProofUpload = (e) => {
     const file = e.target.files?.[0];
@@ -1125,6 +1163,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                           <input
                             type="checkbox"
                             checked={selectedSupplierIds.includes(supplier._id)}
+                            disabled={!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable'}
                             onChange={(e) => {
                               const isChecked = e.target.checked;
                               let newSelectedIds;
@@ -1146,13 +1185,27 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                               width: '18px',
                               height: '18px',
                               marginRight: '10px',
-                              cursor: 'pointer',
-                              accentColor: '#F3C13A'
+                              cursor: (!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? 'not-allowed' : 'pointer',
+                              accentColor: '#F3C13A',
+                              opacity: (!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? 0.5 : 1
                             }}
                           />
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>
-                              {supplier.companyName}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <div style={{ fontWeight: 600, fontSize: 14, color: '#222' }}>
+                                {supplier.companyName}
+                              </div>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '2px 8px',
+                                borderRadius: 12,
+                                background: (!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#fee2e2' : '#d1fae5',
+                                color: (!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#991b1b' : '#065f46',
+                                border: `1px solid ${(!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#ef4444' : '#10b981'}`
+                              }}>
+                                {(!supplier.isAvailable || supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '● Unavailable' : '● Available'}
+                              </span>
                             </div>
                             <div style={{ fontSize: 12, color: '#666' }}>
                               {supplier.email}
@@ -1222,8 +1275,21 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                         >
                           ✕
                         </button>
-                        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: '#222', paddingRight: 40 }}>
-                          {supplier.companyName || 'N/A'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, paddingRight: 40 }}>
+                          <div style={{ fontWeight: 700, fontSize: 16, color: '#222' }}>
+                            {supplier.companyName || 'N/A'}
+                          </div>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: (supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#fee2e2' : '#d1fae5',
+                            color: (supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#991b1b' : '#065f46',
+                            border: `1px solid ${(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#ef4444' : '#10b981'}`
+                          }}>
+                            {(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '● Unavailable' : '● Available'}
+                          </span>
                         </div>
                         <div style={{ fontSize: 13, color: '#666', marginBottom: 3 }}>
                           📧 {supplier.email || 'N/A'}
@@ -1257,8 +1323,21 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                       border: '1px solid #e0e0e0',
                       boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: '#222' }}>
-                        {supplier.companyName || 'N/A'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: '#222' }}>
+                          {supplier.companyName || 'N/A'}
+                        </div>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: 12,
+                          background: (supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#fee2e2' : '#d1fae5',
+                          color: (supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#991b1b' : '#065f46',
+                          border: `1px solid ${(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#ef4444' : '#10b981'}`
+                        }}>
+                          {(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '● Unavailable' : '● Available'}
+                        </span>
                       </div>
                       <div style={{ fontSize: 13, color: '#666', marginBottom: 3 }}>
                         📧 {supplier.email || 'N/A'}

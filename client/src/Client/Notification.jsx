@@ -7,6 +7,7 @@ const Notification = () => {
   const [acceptedNotifications, setAcceptedNotifications] = useState([]);
   const [declinedNotifications, setDeclinedNotifications] = useState([]);
   const [cancelledNotifications, setCancelledNotifications] = useState([]);
+  const [upcomingSchedules, setUpcomingSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('notifications');
   const [timeFilter, setTimeFilter] = useState('1week'); // '1week', '2weeks', '1month'
@@ -104,11 +105,12 @@ const Notification = () => {
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
         
         // Fetch all types of events: schedules, accepted schedules, bookings, appointments, and notifications
-        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, cancelledSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
+        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, cancelledSchedulesRes, upcomingSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
           fetch('/api/schedules'),
           fetch('/api/schedules/status/accepted'),
           userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
           userRole === 'supplier' ? fetch('/api/schedules/status/cancelled?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
+          userRole === 'supplier' ? fetch('/api/schedules/status/upcoming?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
           fetch('/api/bookings/pending'),
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
@@ -120,11 +122,19 @@ const Notification = () => {
         const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
         const declinedSchedules = declinedSchedulesRes.ok ? await declinedSchedulesRes.json() : [];
         const cancelledSchedules = cancelledSchedulesRes.ok ? await cancelledSchedulesRes.json() : [];
+        const upcomingSchedulesData = upcomingSchedulesRes.ok ? await upcomingSchedulesRes.json() : [];
         const pending = pendingRes.ok ? await pendingRes.json() : [];
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
         const appointments = appointmentsRes.ok ? await appointmentsRes.json() : [];
         const notificationsData = notificationsRes.ok ? await notificationsRes.json() : [];
+        
+        // Set upcoming schedules
+        if (userRole === 'supplier') {
+          console.log('Upcoming schedules fetched:', upcomingSchedulesData);
+          console.log('Supplier email for query:', userEmail);
+          setUpcomingSchedules(upcomingSchedulesData);
+        }
 
         console.log('Fetched data:', { schedules, acceptedSchedules, pending, approved, finished, appointments, notificationsData });
 
@@ -474,6 +484,20 @@ const Notification = () => {
             {userRole === 'supplier' && (
               <>
                 <button 
+                  onClick={() => setActiveTab('upcoming')}
+                  style={{
+                    padding: '8px 16px',
+                    background: activeTab === 'upcoming' ? '#2196F3' : '#f0f0f0',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: activeTab === 'upcoming' ? 'white' : 'black',
+                    fontWeight: activeTab === 'upcoming' ? 'bold' : 'normal'
+                  }}
+                >
+                  Upcoming Schedules
+                </button>
+                <button 
                   onClick={() => setActiveTab('accepted')}
                   style={{
                     padding: '8px 16px',
@@ -714,6 +738,147 @@ const Notification = () => {
                 )}
               </div>
             )))}
+          </div>
+        )}
+
+        {/* Upcoming Schedules Tab */}
+        {activeTab === 'upcoming' && userRole === 'supplier' && (
+          <div className="notification-list">
+            {upcomingSchedules.length === 0 ? (
+              <div>No upcoming schedules</div>
+            ) : (
+              upcomingSchedules.map((schedule) => (
+                <div key={schedule._id} className="notification-card" style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: '#e3f2fd',
+                  padding: '16px 20px',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  marginBottom: '12px',
+                  border: '2px solid #2196F3'
+                }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '8px', color: '#1565c0' }}>
+                      {schedule.eventType}
+                    </div>
+                    {schedule.description && (
+                      <div style={{ color: '#555', fontSize: '0.95rem', marginBottom: '6px' }}>
+                        {schedule.description}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '4px' }}>
+                      <strong>Date:</strong> {formatDate(schedule.eventDate)}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '4px' }}>
+                      <strong>Scheduled Time:</strong> {schedule.scheduledTime}
+                    </div>
+                    {schedule.arriveEarly && (
+                      <div style={{ 
+                        fontSize: '0.9rem', 
+                        color: '#e65100', 
+                        marginBottom: '4px',
+                        fontWeight: '600',
+                        padding: '4px 8px',
+                        background: '#fff3e0',
+                        borderRadius: '4px',
+                        display: 'inline-block'
+                      }}>
+                        ⚠️ Arrive 1 day early
+                      </div>
+                    )}
+                    {schedule.branch && (
+                      <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '4px' }}>
+                        <strong>Branch:</strong> {schedule.branch}
+                      </div>
+                    )}
+                    {schedule.venue && (
+                      <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '4px' }}>
+                        <strong>Venue:</strong> {schedule.venue}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/schedules/upcoming/${schedule._id}/accept`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              supplierId: userEmail,
+                              supplierName: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                            })
+                          });
+                          
+                          if (!response.ok) {
+                            throw new Error('Failed to accept schedule');
+                          }
+                          
+                          // Remove from upcoming and refresh
+                          setUpcomingSchedules(prev => prev.filter(s => s._id !== schedule._id));
+                          alert('Schedule accepted successfully!');
+                        } catch (error) {
+                          console.error('Error accepting schedule:', error);
+                          alert('Failed to accept schedule: ' + error.message);
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        background: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.95rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/schedules/upcoming/${schedule._id}/decline`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              supplierId: userEmail,
+                              supplierName: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                            })
+                          });
+                          
+                          if (!response.ok) {
+                            throw new Error('Failed to decline schedule');
+                          }
+                          
+                          // Remove from upcoming and refresh
+                          setUpcomingSchedules(prev => prev.filter(s => s._id !== schedule._id));
+                          alert('Schedule declined successfully!');
+                        } catch (error) {
+                          console.error('Error declining schedule:', error);
+                          alert('Failed to decline schedule: ' + error.message);
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        background: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.95rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 

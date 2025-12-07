@@ -574,10 +574,16 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
+        // Fetch approved bookings
         const approvedRes = await fetch('/api/bookings/approved');
         const approved = await approvedRes.json();
 
+        // Fetch current supplier availability
+        const suppliersRes = await fetch('/api/admin/suppliers/approved');
+        const currentSuppliers = await suppliersRes.json();
+
         console.log('Total approved bookings:', approved.length);
+        console.log('Current suppliers:', currentSuppliers.length);
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -613,6 +619,19 @@ export default function Dashboard() {
 
             console.log('Booking suppliers:', booking._id, suppliersData); // Debug log
 
+            // Update supplier data with current availability
+            const suppliersWithAvailability = Array.isArray(suppliersData) ? suppliersData.map(supplier => {
+              const currentSupplier = currentSuppliers.find(s => 
+                s._id === supplier._id || 
+                s.email === supplier.email || 
+                s.email === supplier.supplierEmail
+              );
+              return {
+                ...supplier,
+                availability: currentSupplier ? (currentSupplier.isAvailable ? 'available' : 'unavailable') : supplier.availability
+              };
+            }) : [];
+
             notifications.push({
               id: `${booking._id}-${daysUntil}`,
               title: `Upcoming ${booking.eventType || 'Booking'} - ${timeText}`,
@@ -635,7 +654,7 @@ export default function Dashboard() {
                 totalPrice: booking.totalPrice || 0,
                 status: booking.status || 'N/A',
                 specialRequest: booking.specialRequest || 'None',
-                suppliers: Array.isArray(suppliersData) ? suppliersData : []
+                suppliers: suppliersWithAvailability
               }
             });
           }
@@ -1367,11 +1386,42 @@ export default function Dashboard() {
                           gap: '16px'
                         }}>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
-                              {supplier.companyName || supplier.supplierName || supplier.supplier || 'Unknown Supplier'}
-                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
+                                {supplier.companyName || supplier.supplierName || supplier.supplier || 'Unknown Supplier'}
+                              </p>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                background: (supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#fee2e2' : '#d1fae5',
+                                color: (supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#991b1b' : '#065f46',
+                                border: `1px solid ${(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '#ef4444' : '#10b981'}`
+                              }}>
+                                {(supplier.availability === 'unavailable' || supplier.availability === 'Unavailable') ? '● Unavailable' : '● Available'}
+                              </span>
+                            </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <label style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '6px', 
+                              fontSize: '14px',
+                              color: '#1f2937',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              <input
+                                type="checkbox"
+                                onChange={(e) => {
+                                  supplier.arriveEarly = e.target.checked;
+                                }}
+                                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                              />
+                              <span>Arrive 1 day early</span>
+                            </label>
                             <input
                               type="time"
                               style={{
@@ -1389,33 +1439,6 @@ export default function Dashboard() {
                                 supplier.scheduledTime = e.target.value;
                               }}
                             />
-                            <button
-                              onClick={() => {
-                                // Send notification to supplier
-                                if (!supplier.scheduledTime) {
-                                  alert('Please set a time first');
-                                  return;
-                                }
-                                alert(`Notification will be sent to ${supplier.supplierName || 'supplier'} for ${supplier.scheduledTime}`);
-                                // TODO: Implement actual notification sending to supplier
-                              }}
-                              style={{
-                                padding: '8px 16px',
-                                borderRadius: 6,
-                                border: 'none',
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                color: '#fff',
-                                fontSize: '14px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                transition: 'transform 0.2s'
-                              }}
-                              onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                              onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                            >
-                              Send
-                            </button>
                           </div>
                         </div>
                       ))}
@@ -1469,6 +1492,67 @@ export default function Dashboard() {
                   style={{
                     padding: '10px 24px',
                     borderRadius: 8,
+                    border: '2px solid #d1d5db',
+                    background: '#fff',
+                    color: '#374151',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    // Validate all suppliers have scheduled times
+                    const suppliers = selectedNotification.bookingDetails.suppliers;
+                    const missingTimes = suppliers.filter(s => !s.scheduledTime);
+                    
+                    if (missingTimes.length > 0) {
+                      alert('Please set a time for all suppliers before sending');
+                      return;
+                    }
+                    
+                    try {
+                      // Send notifications to all suppliers
+                      const notificationData = {
+                        bookingId: selectedNotification.id || 'unknown',
+                        eventType: selectedNotification.bookingDetails.eventType,
+                        eventDate: selectedNotification.bookingDetails.eventDate,
+                        branch: selectedNotification.bookingDetails.branchLocation,
+                        venue: selectedNotification.bookingDetails.eventVenue,
+                        suppliers: suppliers.map(s => ({
+                          supplierId: s.email || s.supplierEmail || s._id || s.id || 'unknown',
+                          supplierName: s.companyName || s.supplierName || s.supplier || 'Unknown Supplier',
+                          scheduledTime: s.scheduledTime,
+                          arriveEarly: s.arriveEarly || false
+                        }))
+                      };
+                      
+                      console.log('Sending notification data:', notificationData);
+                      
+                      const response = await fetch('/api/schedules/upcoming/notify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(notificationData)
+                      });
+                      
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Server error:', errorData);
+                        throw new Error(errorData.error || 'Failed to send notifications');
+                      }
+                      
+                      alert('Notifications sent to all suppliers successfully!');
+                      setShowNotificationModal(false);
+                    } catch (error) {
+                      console.error('Error sending notifications:', error);
+                      alert('Failed to send notifications: ' + error.message);
+                    }
+                  }}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 8,
                     border: 'none',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     color: '#fff',
@@ -1478,7 +1562,7 @@ export default function Dashboard() {
                     boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
                   }}
                 >
-                  Close
+                  Send
                 </button>
               </div>
             </div>

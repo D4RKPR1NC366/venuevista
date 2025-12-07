@@ -332,15 +332,23 @@ export default function AdminBooking() {
   let filteredPending = bookings.filter(b => b.status === 'pending');
   let filteredApproved = bookings.filter(b => b.status === 'approved');
   let filteredFinished = bookings.filter(b => b.status === 'finished');
+  let filteredCancelled = cancelledBookings;
   if (filter === 'pending') {
     filteredApproved = [];
     filteredFinished = [];
+    filteredCancelled = [];
   } else if (filter === 'approved') {
     filteredPending = [];
     filteredFinished = [];
+    filteredCancelled = [];
   } else if (filter === 'finished') {
     filteredPending = [];
     filteredApproved = [];
+    filteredCancelled = [];
+  } else if (filter === 'cancelled') {
+    filteredPending = [];
+    filteredApproved = [];
+    filteredFinished = [];
   }
   // Branch filter
   const branchMatch = (branch, branchFilt) => {
@@ -354,6 +362,7 @@ export default function AdminBooking() {
   filteredPending = filteredPending.filter(b => branchMatch(b.branchLocation, branchFilter));
   filteredApproved = filteredApproved.filter(b => branchMatch(b.branchLocation, branchFilter));
   filteredFinished = filteredFinished.filter(b => branchMatch(b.branchLocation, branchFilter));
+  filteredCancelled = filteredCancelled.filter(b => branchMatch(b.branchLocation, branchFilter));
   
   // Filter by reference number search (exact or partial match)
   const refSearchTrimmed = refSearch.trim().toUpperCase();
@@ -365,6 +374,7 @@ export default function AdminBooking() {
     filteredPending = filteredPending.filter(matchesRef);
     filteredApproved = filteredApproved.filter(matchesRef);
     filteredFinished = filteredFinished.filter(matchesRef);
+    filteredCancelled = filteredCancelled.filter(matchesRef);
   }
   
   // Further filter by search (booking type or booker name)
@@ -378,6 +388,7 @@ export default function AdminBooking() {
     filteredPending = filteredPending.filter(matchesBooking);
     filteredApproved = filteredApproved.filter(matchesBooking);
     filteredFinished = filteredFinished.filter(matchesBooking);
+    filteredCancelled = filteredCancelled.filter(matchesBooking);
   }
 
   // Handler to mark an approved booking as finished
@@ -451,6 +462,7 @@ export default function AdminBooking() {
                 <option value="pending">Pending Only</option>
                 <option value="approved">Approved Only</option>
                 <option value="finished">Finished Only</option>
+                <option value="cancelled">Cancelled Only</option>
               </select>
               <label htmlFor="branch-filter" className="admin-booking-filter-label">Branch:</label>
               <select
@@ -852,7 +864,7 @@ export default function AdminBooking() {
             </div>
           )}
           {/* No bookings message if all are empty */}
-          {filteredPending.length === 0 && filteredApproved.length === 0 && filteredFinished.length === 0 && (
+          {filteredPending.length === 0 && filteredApproved.length === 0 && filteredFinished.length === 0 && filteredCancelled.length === 0 && (
             <div style={{ color: '#888', marginBottom: 16 }}>No bookings to show.</div>
           )}
           <BookingDescription
