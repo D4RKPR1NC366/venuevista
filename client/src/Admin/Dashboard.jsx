@@ -574,42 +574,44 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const [pendingRes, approvedRes, finishedRes] = await Promise.all([
-          fetch('/api/bookings/pending'),
-          fetch('/api/bookings/approved'),
-          fetch('/api/bookings/finished')
-        ]);
+        const approvedRes = await fetch('/api/bookings/approved');
+        const approved = await approvedRes.json();
 
-        const [pending, approved, finished] = await Promise.all([
-          pendingRes.json(),
-          approvedRes.json(),
-          finishedRes.json()
-        ]);
+        console.log('Total approved bookings:', approved.length);
 
-        const allBookings = [...pending, ...approved, ...finished];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const notifications = [];
 
-        allBookings.forEach(booking => {
-          if (!booking.date) return;
+        approved.forEach(booking => {
+          if (!booking.date) {
+            console.log('Booking without date:', booking._id);
+            return;
+          }
 
           const bookingDate = new Date(booking.date);
           bookingDate.setHours(0, 0, 0, 0);
 
           const daysUntil = Math.ceil((bookingDate - today) / (1000 * 60 * 60 * 24));
+          
+          console.log('Booking:', booking._id, 'Date:', booking.date, 'Days until:', daysUntil);
 
-          // Create notifications for 7 days, 3 days, and 1 day before
-          if (daysUntil === 7 || daysUntil === 3 || daysUntil === 1) {
-            const suppliersList = booking.selectedProducts && Array.isArray(booking.selectedProducts)
-              ? booking.selectedProducts.map(p => p.supplierName || 'Unknown Supplier').join(', ')
+          // Create notifications for bookings within the next 7 days
+          if (daysUntil > 0 && daysUntil <= 7) {
+            // Get suppliers from various possible field names
+            const suppliersData = booking.selectedProducts || booking.suppliers || booking.products || [];
+            const suppliersList = Array.isArray(suppliersData) && suppliersData.length > 0
+              ? suppliersData.map(p => p.supplierName || p.supplier || p.name || 'Unknown Supplier').join(', ')
               : 'No suppliers assigned';
 
             let timeText = '';
             if (daysUntil === 7) timeText = '1 week before';
             else if (daysUntil === 3) timeText = '3 days before';
             else if (daysUntil === 1) timeText = '1 day before';
+            else timeText = `${daysUntil} days before`;
+
+            console.log('Booking suppliers:', booking._id, suppliersData); // Debug log
 
             notifications.push({
               id: `${booking._id}-${daysUntil}`,
@@ -633,9 +635,7 @@ export default function Dashboard() {
                 totalPrice: booking.totalPrice || 0,
                 status: booking.status || 'N/A',
                 specialRequest: booking.specialRequest || 'None',
-                suppliers: booking.selectedProducts && Array.isArray(booking.selectedProducts)
-                  ? booking.selectedProducts
-                  : []
+                suppliers: Array.isArray(suppliersData) ? suppliersData : []
               }
             });
           }
@@ -1098,14 +1098,9 @@ export default function Dashboard() {
                         margin: '0 0 4px 0',
                         fontSize: '13px',
                         color: '#6b7280',
-                        lineHeight: 1.4,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical'
+                        lineHeight: 1.4
                       }}>
-                        {notification.message}
+                        update your suppliers
                       </p>
                       <span style={{
                         fontSize: '11px',
@@ -1362,28 +1357,65 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {selectedNotification.bookingDetails.suppliers.map((supplier, index) => (
                         <div key={index} style={{
-                          padding: '12px 16px',
+                          padding: '16px',
                           background: '#f9fafb',
                           borderRadius: 8,
-                          border: '1px solid #e5e7eb'
+                          border: '1px solid #e5e7eb',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '16px'
                         }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
-                                {supplier.supplierName || 'Unknown Supplier'}
-                              </p>
-                              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-                                {supplier.productName || 'Product/Service'}
-                              </p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 700, color: '#667eea' }}>
-                                ₱{(supplier.price || 0).toLocaleString()}
-                              </p>
-                              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                                Qty: {supplier.quantity || 1}
-                              </p>
-                            </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1f2937' }}>
+                              {supplier.companyName || supplier.supplierName || supplier.supplier || 'Unknown Supplier'}
+                            </p>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <input
+                              type="time"
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                border: '1px solid #d1d5db',
+                                fontSize: '14px',
+                                color: '#1f2937',
+                                backgroundColor: '#fff',
+                                outline: 'none',
+                                cursor: 'pointer'
+                              }}
+                              onChange={(e) => {
+                                // Store time for this supplier
+                                supplier.scheduledTime = e.target.value;
+                              }}
+                            />
+                            <button
+                              onClick={() => {
+                                // Send notification to supplier
+                                if (!supplier.scheduledTime) {
+                                  alert('Please set a time first');
+                                  return;
+                                }
+                                alert(`Notification will be sent to ${supplier.supplierName || 'supplier'} for ${supplier.scheduledTime}`);
+                                // TODO: Implement actual notification sending to supplier
+                              }}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: '#fff',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'transform 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                            >
+                              Send
+                            </button>
                           </div>
                         </div>
                       ))}
