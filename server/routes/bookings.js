@@ -78,6 +78,22 @@ const ApprovedBooking = bookingConnection.model('ApprovedBooking', bookingBaseSc
 const FinishedBooking = bookingConnection.model('FinishedBooking', bookingBaseSchema);
 const CancelledBooking = bookingConnection.model('CancelledBooking', bookingBaseSchema);
 
+// Create connection for notifications
+const notificationConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/notification', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+const notificationSchema = require('../models/Notification').schema;
+const Notification = notificationConnection.model('Notification', notificationSchema);
+
+// Create connection for authentication (to fetch supplier details)
+const authConnection = mongoose.createConnection('mongodb+srv://goldust:goldustadmin@goldust.9lkqckv.mongodb.net/authentication', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+const supplierSchema = require('../models/Supplier').schema;
+const Supplier = authConnection.model('Supplier', supplierSchema);
+
 // Update a booking
 router.put('/:id', async (req, res) => {
     try {
@@ -254,6 +270,59 @@ router.put('/:id/cancel-approve', async (req, res) => {
         } else {
             await ApprovedBooking.findByIdAndDelete(bookingId);
         }
+
+        // Send notifications to assigned suppliers
+        console.log('=== SUPPLIER NOTIFICATION DEBUG ===');
+        console.log('Booking suppliers array:', booking.suppliers);
+        console.log('Suppliers exists:', !!booking.suppliers);
+        console.log('Suppliers length:', booking.suppliers?.length);
+        console.log('Suppliers type:', typeof booking.suppliers);
+        console.log('Booking object keys:', Object.keys(booking.toObject()));
+        
+        if (booking.suppliers && booking.suppliers.length > 0) {
+            try {
+                console.log('Attempting to notify suppliers...');
+                // Fetch supplier details for each supplier ID
+                const supplierNotifications = [];
+                for (const supplierId of booking.suppliers) {
+                    try {
+                        console.log(`Looking up supplier ID: ${supplierId}`);
+                        console.log(`Supplier ID type: ${typeof supplierId}`);
+                        console.log(`Supplier ID toString: ${supplierId.toString()}`);
+                        
+                        const supplier = await Supplier.findById(supplierId);
+                        console.log(`Supplier found:`, supplier ? `${supplier.email} (${supplier._id})` : 'NULL');
+                        
+                        if (supplier && supplier.email) {
+                            // Create notification for this supplier
+                            const notification = new Notification({
+                                title: `Booking Cancelled - ${booking.eventType || 'Event'}`,
+                                type: 'Supplier',
+                                person: supplier.email,
+                                date: booking.date ? new Date(booking.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                location: booking.eventVenue || booking.branchLocation || 'N/A',
+                                description: `The booking "${booking.eventType || 'Event'}" (Ref: ${booking.referenceNumber || booking._id}) assigned to you has been cancelled. Reason: ${booking.cancellationRequest.reason}. ${booking.cancellationRequest.adminNotes ? 'Admin notes: ' + booking.cancellationRequest.adminNotes : ''}`
+                            });
+                            await notification.save();
+                            console.log(`✓ Notification saved for ${supplier.email}`);
+                            supplierNotifications.push(supplier.email);
+                        } else {
+                            console.log(`✗ Supplier not found or has no email for ID: ${supplierId}`);
+                        }
+                    } catch (supplierError) {
+                        console.error(`Error notifying supplier ${supplierId}:`, supplierError);
+                        // Continue with other suppliers even if one fails
+                    }
+                }
+                console.log(`Sent cancellation notifications to ${supplierNotifications.length} supplier(s):`, supplierNotifications);
+            } catch (notificationError) {
+                console.error('Error sending supplier notifications:', notificationError);
+                // Don't fail the cancellation if notifications fail
+            }
+        } else {
+            console.log('No suppliers to notify (suppliers array empty or undefined)');
+        }
+        console.log('=== END SUPPLIER NOTIFICATION DEBUG ===');
 
         res.json({ message: 'Cancellation approved and booking moved to cancelled', booking: cancelledBooking });
     } catch (error) {

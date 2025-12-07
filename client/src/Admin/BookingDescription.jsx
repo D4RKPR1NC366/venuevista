@@ -964,6 +964,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                       <DatePicker
                         value={parseDateString(editData.date)}
                         format="dd/MM/yyyy"
+                        disabled={true}
                         onChange={(newDate) => {
                           if (newDate) {
                             const day = newDate.getDate().toString().padStart(2, '0');
@@ -978,24 +979,29 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                           '& .MuiInputBase-root': {
                             height: '32px',
                             fontSize: '15px',
-                            backgroundColor: 'transparent',
+                            backgroundColor: '#f5f5f5',
+                            cursor: 'not-allowed',
                             '& fieldset': {
-                              borderColor: '#ccc',
+                              borderColor: '#ddd',
                             },
                             '&:hover fieldset': {
-                              borderColor: '#fedb71',
+                              borderColor: '#ddd',
                             },
                             '&.Mui-focused fieldset': {
-                              borderColor: '#fedb71',
+                              borderColor: '#ddd',
                             }
                           },
                           '& .MuiInputBase-input': {
                             padding: '4px 8px',
-                            color: '#222',
+                            color: '#999',
+                            cursor: 'not-allowed',
                           }
                         }}
                       />
                     </LocalizationProvider>
+                    <div style={{ fontSize: '0.8rem', color: '#999', marginLeft: 8, marginTop: 4, fontStyle: 'italic' }}>
+                      Date changes disabled - use reschedule functionality instead
+                    </div>
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
                     <span style={{ fontWeight: 700, color: '#000000ff' }}>Appointment Method:</span>
