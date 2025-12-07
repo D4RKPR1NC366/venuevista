@@ -78,27 +78,40 @@ import './booking.css';
 export default function AdminBooking() {
   // Bookings state from database
   const [bookings, setBookings] = useState([]);
+  const [cancellationRequests, setCancellationRequests] = useState([]);
+  const [cancelledBookings, setCancelledBookings] = useState([]);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [selectedCancellation, setSelectedCancellation] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
 
   // Fetch bookings from backend
   const fetchBookings = async () => {
     try {
-      const [pendingRes, approvedRes, finishedRes] = await Promise.all([
+      const [pendingRes, approvedRes, finishedRes, cancelRequestsRes, cancelledRes] = await Promise.all([
         fetch('/api/bookings/pending'),
         fetch('/api/bookings/approved'),
         fetch('/api/bookings/finished'),
+        fetch('/api/bookings/cancellation-requests/pending'),
+        fetch('/api/bookings/cancelled'),
       ]);
-      const [pending, approved, finished] = await Promise.all([
+      const [pending, approved, finished, cancelRequests, cancelled] = await Promise.all([
         pendingRes.json(),
         approvedRes.json(),
         finishedRes.json(),
+        cancelRequestsRes.json(),
+        cancelledRes.json(),
       ]);
       // Add status to each booking
       const pendingWithStatus = pending.map(b => ({ ...b, status: 'pending' }));
       const approvedWithStatus = approved.map(b => ({ ...b, status: 'approved' }));
       const finishedWithStatus = finished.map(b => ({ ...b, status: 'finished' }));
       setBookings([...pendingWithStatus, ...approvedWithStatus, ...finishedWithStatus]);
+      setCancellationRequests(cancelRequests);
+      setCancelledBookings(cancelled);
     } catch (err) {
       setBookings([]);
+      setCancellationRequests([]);
+      setCancelledBookings([]);
     }
   };
 
@@ -237,6 +250,70 @@ export default function AdminBooking() {
     }
     closeApproveModal();
   };
+
+  // Cancellation request handlers
+  const handleReviewCancellation = (booking) => {
+    setSelectedCancellation(booking);
+    setAdminNotes('');
+    setShowCancellationModal(true);
+  };
+
+  const handleApproveCancellation = async () => {
+    if (!selectedCancellation) return;
+    
+    try {
+      const adminEmail = localStorage.getItem('userEmail') || 'admin@goldust.com';
+      const response = await fetch(`/api/bookings/${selectedCancellation._id}/cancel-approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminNotes })
+      });
+      
+      if (response.ok) {
+        alert('Cancellation approved! Booking moved to cancelled.');
+        setShowCancellationModal(false);
+        setSelectedCancellation(null);
+        setAdminNotes('');
+        fetchBookings();
+      } else {
+        alert('Failed to approve cancellation');
+      }
+    } catch (error) {
+      console.error('Error approving cancellation:', error);
+      alert('Error approving cancellation');
+    }
+  };
+
+  const handleRejectCancellation = async () => {
+    if (!selectedCancellation) return;
+    if (!adminNotes.trim()) {
+      alert('Please provide admin notes explaining why the cancellation is rejected');
+      return;
+    }
+    
+    try {
+      const adminEmail = localStorage.getItem('userEmail') || 'admin@goldust.com';
+      const response = await fetch(`/api/bookings/${selectedCancellation._id}/cancel-reject`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminNotes })
+      });
+      
+      if (response.ok) {
+        alert('Cancellation request rejected');
+        setShowCancellationModal(false);
+        setSelectedCancellation(null);
+        setAdminNotes('');
+        fetchBookings();
+      } else {
+        alert('Failed to reject cancellation');
+      }
+    } catch (error) {
+      console.error('Error rejecting cancellation:', error);
+      alert('Error rejecting cancellation');
+    }
+  };
+
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'approved'
     const [branchFilter, setBranchFilter] = useState('all'); // 'all', 'maddela', 'latrinidad', 'stafe'
@@ -389,6 +466,167 @@ export default function AdminBooking() {
               </select>
             </div>
           </div>
+
+          {/* Cancellation Requests Section */}
+          {cancellationRequests.length > 0 && (
+            <div style={{ marginBottom: 36, padding: 20, background: '#fff3e0', borderRadius: 12, border: '2px solid #ff9800' }}>
+              <h3 style={{ fontWeight: 700, fontSize: 22, marginBottom: 16, color: '#e65100', display: 'flex', alignItems: 'center', gap: 10 }}>
+                ⚠️ Cancellation Requests 
+                <span style={{ 
+                  background: '#ff9800', 
+                  color: '#fff', 
+                  padding: '4px 12px', 
+                  borderRadius: 20, 
+                  fontSize: 16,
+                  fontWeight: 700 
+                }}>
+                  {cancellationRequests.length}
+                </span>
+              </h3>
+              <ul style={{ listStyle: 'none', padding: 0, marginTop: 0 }}>
+                {cancellationRequests.map(booking => (
+                  <li
+                    key={booking._id}
+                    style={{ 
+                      background: '#fff', 
+                      border: '2px solid #ff9800', 
+                      borderRadius: 10, 
+                      padding: 16, 
+                      marginBottom: 12,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
+                          {booking.eventType} - {booking.name}
+                        </div>
+                        {booking.referenceNumber && (
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginBottom: 8, fontFamily: 'monospace' }}>
+                            📋 Ref: {booking.referenceNumber}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
+                          <strong>Event Date:</strong> {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : 'N/A'}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
+                          <strong>Status:</strong> {booking.status}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#d32f2f', marginBottom: 4, marginTop: 12 }}>
+                          <strong>Cancellation Reason:</strong> {booking.cancellationRequest.reason}
+                        </div>
+                        {booking.cancellationRequest.description && (
+                          <div style={{ fontSize: 14, color: '#666', marginTop: 4, fontStyle: 'italic' }}>
+                            "{booking.cancellationRequest.description}"
+                          </div>
+                        )}
+                        <div style={{ fontSize: 13, color: '#999', marginTop: 8 }}>
+                          Requested: {new Date(booking.cancellationRequest.requestedAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleReviewCancellation(booking)}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'linear-gradient(90deg, #ff9800 0%, #f57c00 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.95rem',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Review Request
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Cancelled Bookings Section */}
+          {cancelledBookings.length > 0 && (
+            <div style={{ marginBottom: 36 }}>
+              <h3 style={{ fontWeight: 700, fontSize: 22, marginBottom: 16, color: '#c62828' }}>🚫 Cancelled Bookings</h3>
+              <ul style={{ listStyle: 'none', padding: 0, marginTop: 0 }}>
+                {cancelledBookings.map(booking => (
+                  <li
+                    key={booking._id}
+                    className="booking-card"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 64, padding: 10, opacity: 0.8 }}
+                  >
+                    <div
+                      style={{ flex: 1, cursor: 'pointer' }}
+                      onClick={() => handleOpenModal(booking)}
+                    >
+                      <div style={{ fontWeight: 500, fontSize: 18 }}>{booking.eventType || booking.title}</div>
+                      {booking.referenceNumber && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6', marginTop: 4, fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                          📋 Ref: {booking.referenceNumber}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 15, marginTop: 2, color: '#444' }}>Booker: {booking.name || 'N/A'}</div>
+                      <div style={{ fontSize: 14, marginTop: 4 }}>Date: {booking.date ? formatPHTime(booking.date, 'MM/DD/YYYY') : ''}</div>
+                      <div style={{ fontSize: 14, color: '#c62828', marginTop: 8, fontWeight: 600 }}>
+                        Cancellation Reason: {booking.cancellationRequest?.reason || 'N/A'}
+                      </div>
+                      {booking.cancellationRequest?.adminNotes && (
+                        <div style={{ fontSize: 13, color: '#666', marginTop: 4, fontStyle: 'italic' }}>
+                          Admin Notes: {booking.cancellationRequest.adminNotes}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ 
+                          fontSize: 14, 
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          borderRadius: 6,
+                          background: '#ffebee',
+                          color: '#c62828',
+                          border: '1px solid #c62828'
+                        }}>
+                          ❌ CANCELLED
+                        </div>
+                        <div style={{ 
+                          fontSize: 14, 
+                          fontWeight: 600,
+                          padding: '4px 12px',
+                          borderRadius: 6,
+                          background: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ffebee';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#e8f5e9';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#e3f2fd';
+                            return '#f5f5f5';
+                          })(),
+                          color: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '#ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '#22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '#3b82f6';
+                            return '#666';
+                          })(),
+                          border: (() => {
+                            const loc = (booking.eventVenue || '').toLowerCase();
+                            if (loc.includes('sta. fe') || loc.includes('sta fe') || loc.includes('stafe') || loc.includes('santa fe')) return '1px solid #ef4444';
+                            if (loc.includes('la trinidad') || loc.includes('latrinidad')) return '1px solid #22c55e';
+                            if (loc.includes('maddela') || loc.includes('quirino')) return '1px solid #3b82f6';
+                            return '1px solid #ddd';
+                          })()
+                        }}>
+                          📍 {booking.eventVenue || 'No location'}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Pending Bookings Section */}
           {filteredPending.length > 0 && (
             <div style={{ marginBottom: 36 }}>
@@ -639,6 +877,143 @@ export default function AdminBooking() {
               }
             }}
           />
+
+          {/* Cancellation Review Modal */}
+          {showCancellationModal && selectedCancellation && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0,0,0,0.6)',
+              zIndex: 2147483649,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <div style={{
+                background: '#fff',
+                borderRadius: 12,
+                width: '90%',
+                maxWidth: 600,
+                maxHeight: '90vh',
+                overflow: 'auto',
+                padding: 30,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+              }}>
+                <h2 style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 20, color: '#e65100' }}>
+                  Review Cancellation Request
+                </h2>
+                
+                <div style={{ marginBottom: 20, padding: 15, background: '#f5f5f5', borderRadius: 8 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>
+                    {selectedCancellation.eventType} - {selectedCancellation.name}
+                  </div>
+                  {selectedCancellation.referenceNumber && (
+                    <div style={{ fontSize: '0.9rem', color: '#3b82f6', marginBottom: 8, fontFamily: 'monospace', fontWeight: 700 }}>
+                      📋 {selectedCancellation.referenceNumber}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: 4 }}>
+                    <strong>Event Date:</strong> {selectedCancellation.date ? formatPHTime(selectedCancellation.date, 'MM/DD/YYYY') : 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                    <strong>Status:</strong> {selectedCancellation.status}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20, padding: 15, background: '#ffebee', borderRadius: 8, border: '2px solid #e53935' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#c62828', marginBottom: 8 }}>
+                    Client's Cancellation Reason:
+                  </div>
+                  <div style={{ fontSize: '0.95rem', marginBottom: 8 }}>
+                    <strong>Reason:</strong> {selectedCancellation.cancellationRequest.reason}
+                  </div>
+                  {selectedCancellation.cancellationRequest.description && (
+                    <div style={{ fontSize: '0.95rem', fontStyle: 'italic', color: '#666' }}>
+                      "{selectedCancellation.cancellationRequest.description}"
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.85rem', color: '#999', marginTop: 8 }}>
+                    Requested on: {new Date(selectedCancellation.cancellationRequest.requestedAt).toLocaleString()}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 8, fontSize: '0.95rem' }}>
+                    Admin Notes {selectedCancellation.cancellationRequest.status === 'rejected' && '(Required for rejection)'}:
+                  </label>
+                  <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Add notes about this decision (required if rejecting)..."
+                    style={{
+                      width: '100%',
+                      minHeight: 100,
+                      padding: 12,
+                      border: '2px solid #ddd',
+                      borderRadius: 8,
+                      fontSize: '0.95rem',
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => {
+                      setShowCancellationModal(false);
+                      setSelectedCancellation(null);
+                      setAdminNotes('');
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#f5f5f5',
+                      border: '2px solid #ddd',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRejectCancellation}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#ff9800',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    ❌ Reject Request
+                  </button>
+                  <button
+                    onClick={handleApproveCancellation}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'linear-gradient(90deg, #e53935 0%, #c62828 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.95rem'
+                    }}
+                  >
+                    ✅ Approve Cancellation
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

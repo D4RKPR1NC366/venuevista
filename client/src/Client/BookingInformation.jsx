@@ -21,6 +21,13 @@ const BookingInformation = () => {
   const [loading, setLoading] = useState(true);
   const [userReviews, setUserReviews] = useState([]);
   
+  // Cancellation modal states
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [cancellationForm, setCancellationForm] = useState({
+    reason: '',
+    description: ''
+  });
+  
   // Payment modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
@@ -38,20 +45,34 @@ const BookingInformation = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userEmail = user.email;
 
+  // Cancellation reasons
+  const cancellationReasons = [
+    'Change of Plans',
+    'Financial Constraints',
+    'Found Alternative Service',
+    'Event Postponed',
+    'Event Cancelled',
+    'Personal Emergency',
+    'Dissatisfied with Service',
+    'Other'
+  ];
+
   const fetchBookings = async () => {
     try {
-      // Fetch all bookings and filter by user email
-      const [pendingRes, approvedRes, finishedRes, reviewsRes] = await Promise.all([
+      // Fetch all bookings including cancelled and filter by user email
+      const [pendingRes, approvedRes, finishedRes, cancelledRes, reviewsRes] = await Promise.all([
         api.get('/bookings/pending'),
         api.get('/bookings/approved'),
         api.get('/bookings/finished'),
+        api.get('/bookings/cancelled'),
         api.get(`/reviews?email=${encodeURIComponent(userEmail)}`)
       ]);
       const pending = pendingRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Pending' }));
       const approved = approvedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Approved' }));
       const finished = finishedRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Finished' }));
+      const cancelled = cancelledRes.data.filter(b => b.email === userEmail).map(b => ({ ...b, status: 'Cancelled' }));
       setUserReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
-      setBookings([...pending, ...approved, ...finished]);
+      setBookings([...pending, ...approved, ...finished, ...cancelled]);
     } catch (err) {
       setBookings([]);
       setUserReviews([]);
@@ -262,6 +283,37 @@ const BookingInformation = () => {
     }
   };
 
+  const handleRequestCancellation = () => {
+    setCancellationForm({ reason: '', description: '' });
+    setShowCancellationModal(true);
+  };
+
+  const handleSubmitCancellation = async () => {
+    if (!cancellationForm.reason || !cancellationForm.description.trim()) {
+      alert('Please provide both a reason and description for cancellation.');
+      return;
+    }
+
+    try {
+      const response = await api.post(`/bookings/${selectedBooking._id}/cancel-request`, {
+        reason: cancellationForm.reason,
+        description: cancellationForm.description,
+        userEmail: userEmail
+      });
+
+      if (response.status === 200) {
+        alert('Cancellation request submitted successfully! Admin will review your request.');
+        setShowCancellationModal(false);
+        setCancellationForm({ reason: '', description: '' });
+        await fetchBookings();
+        setShowModal(false);
+      }
+    } catch (err) {
+      console.error('Error submitting cancellation:', err);
+      alert('Failed to submit cancellation request. Please try again.');
+    }
+  };
+
   return (
     <div className="booking-page">
   <ClientSidebar userType={JSON.parse(localStorage.getItem('user') || '{}').role === 'supplier' ? 'supplier' : 'client'} />
@@ -292,10 +344,40 @@ const BookingInformation = () => {
                       <h4>{booking.eventType || booking.title}</h4>
                       <div style={{fontSize: '1.05rem', color: '#666'}}>{booking.date ? new Date(booking.date).toLocaleDateString() : ''}</div>
                     </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 8}}>
-                      <span className="status">
+                    <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap'}}>
+                      <span className="status" style={{
+                        background: booking.status === 'Cancelled' ? '#ffebee' : '',
+                        color: booking.status === 'Cancelled' ? '#c62828' : '',
+                        border: booking.status === 'Cancelled' ? '1px solid #c62828' : ''
+                      }}>
                         Status: {booking.status}
                       </span>
+                      {booking.cancellationRequest?.status === 'pending' && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          background: '#fff3e0',
+                          color: '#e65100',
+                          border: '1px solid #ff9800',
+                          fontWeight: 600
+                        }}>
+                          Cancellation Pending
+                        </span>
+                      )}
+                      {booking.cancellationRequest?.status === 'rejected' && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          background: '#ffebee',
+                          color: '#c62828',
+                          border: '1px solid #e57373',
+                          fontWeight: 600
+                        }}>
+                          Cancellation Denied
+                        </span>
+                      )}
                       {booking.status === 'Finished' && (
                         hasReview ? (
                           <span style={{
@@ -680,6 +762,267 @@ const BookingInformation = () => {
                   </div>
                 )}
               </div>
+
+              {/* Cancellation Section */}
+              {selectedBooking && (
+                <div style={{ marginTop: 24, paddingTop: 24, borderTop: '2px dashed #ddd' }}>
+                  <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: 12, padding: 10, background: '#f5f5f5', borderRadius: 6 }}>
+                    Debug Info - Status: {selectedBooking.status}, Cancellation Status: {selectedBooking.cancellationRequest?.status || 'none'}
+                  </div>
+                  {(selectedBooking.status === 'Pending' || selectedBooking.status === 'Approved') && 
+                   selectedBooking.cancellationRequest?.status !== 'pending' && 
+                   selectedBooking.cancellationRequest?.status !== 'approved' ? (
+                  <button
+                    onClick={handleRequestCancellation}
+                    style={{
+                      background: 'linear-gradient(90deg, #e53935 0%, #d32f2f 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '12px 24px',
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      cursor: 'pointer',
+                      width: '100%',
+                      boxShadow: '0 2px 8px rgba(229, 57, 53, 0.3)',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(229, 57, 53, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(229, 57, 53, 0.3)';
+                    }}
+                  >
+                    🚫 Request Booking Cancellation
+                  </button>
+                  ) : (
+                    <div style={{ padding: 15, background: '#fff3cd', borderRadius: 8, color: '#856404' }}>
+                      <div style={{ marginBottom: 10 }}>
+                        Cannot request cancellation: {selectedBooking.cancellationRequest?.status === 'pending' ? 'Request already pending' : 
+                          selectedBooking.cancellationRequest?.status === 'approved' ? 'Already approved (but booking still here - data error)' :
+                          (selectedBooking.status !== 'Pending' && selectedBooking.status !== 'Approved') ? `Status is ${selectedBooking.status}` : 'Unknown reason'}
+                      </div>
+                      {selectedBooking.cancellationRequest?.status === 'approved' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`http://localhost:5000/bookings/${selectedBooking._id}/reset-cancellation`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' }
+                              });
+                              if (response.ok) {
+                                alert('Cancellation data reset! Please refresh the page.');
+                                window.location.reload();
+                              }
+                            } catch (error) {
+                              console.error('Error resetting:', error);
+                              alert('Error resetting cancellation data');
+                            }
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            background: '#dc3545',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          🔧 Fix This Data Error
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show cancellation request details if exists */}
+              {selectedBooking?.cancellationRequest?.status === 'pending' && (
+                <div style={{ 
+                  marginTop: 24, 
+                  padding: 20, 
+                  background: '#fff3e0', 
+                  borderRadius: 12,
+                  border: '2px solid #ff9800'
+                }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1.1rem', color: '#e65100', marginBottom: 12 }}>
+                    ⚠️ Cancellation Request Pending
+                  </h3>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Reason:</strong> {selectedBooking.cancellationRequest.reason}
+                  </div>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Description:</strong> {selectedBooking.cancellationRequest.description}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#888', fontStyle: 'italic', marginTop: 12 }}>
+                    Your cancellation request is being reviewed by the admin.
+                  </div>
+                </div>
+              )}
+
+              {selectedBooking?.cancellationRequest?.status === 'rejected' && (
+                <div style={{ 
+                  marginTop: 24, 
+                  padding: 20, 
+                  background: '#ffebee', 
+                  borderRadius: 12,
+                  border: '2px solid #c62828'
+                }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1.1rem', color: '#c62828', marginBottom: 12 }}>
+                    ❌ Cancellation Request Denied
+                  </h3>
+                  <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                    <strong>Your Reason:</strong> {selectedBooking.cancellationRequest.reason}
+                  </div>
+                  {selectedBooking.cancellationRequest.adminNotes && (
+                    <div style={{ fontSize: '0.95rem', color: '#666', marginBottom: 8 }}>
+                      <strong>Admin Notes:</strong> {selectedBooking.cancellationRequest.adminNotes}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cancellation Modal */}
+        {showCancellationModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 2147483649,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 32,
+              maxWidth: 600,
+              width: '90%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => setShowCancellationModal(false)}
+                style={{
+                  position: 'absolute', 
+                  top: 16, 
+                  right: 16, 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: 28, 
+                  cursor: 'pointer',
+                  color: '#999'
+                }}
+              >
+                ×
+              </button>
+              
+              <h2 style={{fontWeight: 800, fontSize: '1.5rem', marginBottom: 8, color: '#c62828'}}>
+                Request Booking Cancellation
+              </h2>
+              <p style={{fontSize: '0.9rem', color: '#666', marginBottom: 24}}>
+                Please provide the reason for your cancellation request. This will be reviewed by our admin team.
+              </p>
+
+              {/* Warning Message */}
+              <div style={{
+                background: '#fff3e0',
+                border: '2px solid #ff9800',
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 24
+              }}>
+                <div style={{fontWeight: 600, color: '#e65100', marginBottom: 8}}>⚠️ Important Notice:</div>
+                <ul style={{margin: 0, paddingLeft: 20, fontSize: '0.85rem', color: '#666'}}>
+                  <li>Cancellation requests are subject to admin approval</li>
+                  <li>Refunds will be processed according to our cancellation policy</li>
+                  <li>Processing may take 3-5 business days</li>
+                </ul>
+              </div>
+              
+              {/* Reason Dropdown */}
+              <div style={{marginBottom: 20}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Reason for Cancellation <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <select
+                  value={cancellationForm.reason}
+                  onChange={(e) => setCancellationForm(prev => ({ ...prev, reason: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                >
+                  <option value="">Select a reason</option>
+                  {cancellationReasons.map(reason => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description Textarea */}
+              <div style={{marginBottom: 24}}>
+                <label style={{display: 'block', marginBottom: 8, fontWeight: 600, color: '#555'}}>
+                  Additional Details <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <textarea
+                  value={cancellationForm.description}
+                  onChange={(e) => setCancellationForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Please provide more details about your cancellation request..."
+                  rows={5}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              <button
+                style={{
+                  background: cancellationForm.reason && cancellationForm.description.trim()
+                    ? 'linear-gradient(90deg, #e53935 0%, #d32f2f 100%)' 
+                    : '#e0e0e0',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '12px 32px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: cancellationForm.reason && cancellationForm.description.trim() ? 'pointer' : 'not-allowed',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  color: '#fff'
+                }}
+                disabled={!cancellationForm.reason || !cancellationForm.description.trim()}
+                onClick={handleSubmitCancellation}
+              >
+                Submit Cancellation Request
+              </button>
             </div>
           </div>
         )}

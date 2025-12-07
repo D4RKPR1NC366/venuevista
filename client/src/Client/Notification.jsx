@@ -6,9 +6,29 @@ const Notification = () => {
   const [notifications, setNotifications] = useState([]);
   const [acceptedNotifications, setAcceptedNotifications] = useState([]);
   const [declinedNotifications, setDeclinedNotifications] = useState([]);
+  const [cancelledNotifications, setCancelledNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('notifications');
   const [timeFilter, setTimeFilter] = useState('1week'); // '1week', '2weeks', '1month'
+
+  // Cancellation modal states
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedScheduleToCancel, setSelectedScheduleToCancel] = useState(null);
+  const [cancelForm, setCancelForm] = useState({
+    reason: '',
+    description: ''
+  });
+
+  // Schedule cancellation reasons
+  const scheduleCancellationReasons = [
+    'Personal Emergency',
+    'Conflicting Schedule',
+    'Resource Unavailability',
+    'Health Issues',
+    'Transportation Issues',
+    'Business Closure',
+    'Other'
+  ];
 
   // Get logged-in user info
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -84,10 +104,11 @@ const Notification = () => {
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
         
         // Fetch all types of events: schedules, accepted schedules, bookings, appointments, and notifications
-        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
+        const [schedulesRes, acceptedSchedulesRes, declinedSchedulesRes, cancelledSchedulesRes, pendingRes, approvedRes, finishedRes, appointmentsRes, notificationsRes] = await Promise.all([
           fetch('/api/schedules'),
           fetch('/api/schedules/status/accepted'),
           userRole === 'supplier' ? fetch('/api/schedules/status/declined?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
+          userRole === 'supplier' ? fetch('/api/schedules/status/cancelled?supplierId=' + userEmail) : Promise.resolve({ ok: false }),
           fetch('/api/bookings/pending'),
           fetch('/api/bookings/approved'),
           fetch('/api/bookings/finished'),
@@ -98,6 +119,7 @@ const Notification = () => {
         const schedules = schedulesRes.ok ? await schedulesRes.json() : [];
         const acceptedSchedules = acceptedSchedulesRes.ok ? await acceptedSchedulesRes.json() : [];
         const declinedSchedules = declinedSchedulesRes.ok ? await declinedSchedulesRes.json() : [];
+        const cancelledSchedules = cancelledSchedulesRes.ok ? await cancelledSchedulesRes.json() : [];
         const pending = pendingRes.ok ? await pendingRes.json() : [];
         const approved = approvedRes.ok ? await approvedRes.json() : [];
         const finished = finishedRes.ok ? await finishedRes.json() : [];
@@ -205,6 +227,12 @@ const Notification = () => {
             (ev.person === userEmail || ev.person === userName || ev.supplierId === userEmail)
           );
           setDeclinedNotifications(userDeclinedSchedules);
+
+          const userCancelledSchedules = cancelledSchedules.filter(ev => 
+            ev.type === 'Supplier' && 
+            (ev.person === userEmail || ev.person === userName || ev.supplierId === userEmail)
+          );
+          setCancelledNotifications(userCancelledSchedules);
         } else {
           // For customers: show all their events (schedules, accepted schedules, bookings, appointments)
           
@@ -373,6 +401,53 @@ const Notification = () => {
     }
   };
 
+  const handleRequestCancel = (schedule) => {
+    setSelectedScheduleToCancel(schedule);
+    setCancelForm({ reason: '', description: '' });
+    setShowCancelModal(true);
+  };
+
+  const handleSubmitCancellation = async () => {
+    if (!cancelForm.reason || !cancelForm.description.trim()) {
+      alert('Please provide both a reason and description for cancellation.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/schedules/${selectedScheduleToCancel._id}/cancel-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: cancelForm.reason,
+          description: cancelForm.description,
+          supplierEmail: userEmail
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to request cancellation');
+      }
+
+      alert('Cancellation request submitted successfully! Admin will review your request.');
+      setShowCancelModal(false);
+      setSelectedScheduleToCancel(null);
+      setCancelForm({ reason: '', description: '' });
+
+      // Refresh accepted schedules
+      const acceptedRes = await fetch('/api/schedules/status/accepted?supplierId=' + userEmail);
+      if (acceptedRes.ok) {
+        const acceptedData = await acceptedRes.json();
+        setAcceptedNotifications(acceptedData);
+      }
+    } catch (error) {
+      console.error('Error requesting cancellation:', error);
+      alert('Failed to request cancellation: ' + error.message);
+    }
+  };
+
   return (
     <div className="notification-page">
       <ClientSidebar />
@@ -425,6 +500,20 @@ const Notification = () => {
                   }}
                 >
                   Declined Schedules
+                </button>
+                <button 
+                  onClick={() => setActiveTab('cancelled')}
+                  style={{
+                    padding: '8px 16px',
+                    background: activeTab === 'cancelled' ? '#9e9e9e' : '#f0f0f0',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: activeTab === 'cancelled' ? 'white' : 'black',
+                    fontWeight: activeTab === 'cancelled' ? 'bold' : 'normal'
+                  }}
+                >
+                  Cancelled Schedules
                 </button>
               </>
             )}
@@ -641,14 +730,14 @@ const Notification = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  background: '#f1f8e9',
+                  background: notif.cancellationRequest?.status === 'pending' ? '#fff3e0' : '#f1f8e9',
                   padding: '16px 20px',
                   borderRadius: '8px',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   marginBottom: '12px',
-                  borderLeft: '4px solid #4CAF50'
+                  borderLeft: notif.cancellationRequest?.status === 'pending' ? '4px solid #ff9800' : '4px solid #4CAF50'
                 }}>
-                  <div>
+                  <div style={{flex: 1}}>
                     <h4 style={{marginBottom: '8px'}}>{notif.eventType || notif.title}</h4>
                     {notif.description && (
                       <p style={{color: '#666', marginBottom: '4px', whiteSpace: 'pre-line'}}>{notif.description}</p>
@@ -657,8 +746,65 @@ const Notification = () => {
                       <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
                     )}
                     <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {notif.date}</div>
+                    
+                    {/* Show cancellation request info if pending */}
+                    {notif.cancellationRequest?.status === 'pending' && (
+                      <div style={{marginTop: '12px', padding: '10px', background: '#fff', borderRadius: '6px', border: '1px solid #ff9800'}}>
+                        <div style={{fontWeight: '600', color: '#e65100', fontSize: '0.85rem', marginBottom: '4px'}}>
+                          ⚠️ Cancellation Pending Review
+                        </div>
+                        <div style={{fontSize: '0.8rem', color: '#666'}}>
+                          Reason: {notif.cancellationRequest.reason}
+                        </div>
+                      </div>
+                    )}
+
+                    {notif.cancellationRequest?.status === 'rejected' && (
+                      <div style={{marginTop: '12px', padding: '10px', background: '#ffebee', borderRadius: '6px', border: '1px solid #c62828'}}>
+                        <div style={{fontWeight: '600', color: '#c62828', fontSize: '0.85rem', marginBottom: '4px'}}>
+                          ❌ Cancellation Denied
+                        </div>
+                        {notif.cancellationRequest.adminNotes && (
+                          <div style={{fontSize: '0.8rem', color: '#666'}}>
+                            Admin: {notif.cancellationRequest.adminNotes}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div style={{color: '#4CAF50', fontWeight: '500'}}>Accepted</div>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', marginLeft: '16px'}}>
+                    {!notif.cancellationRequest || notif.cancellationRequest.status === 'none' || notif.cancellationRequest.status === 'rejected' ? (
+                      <button
+                        onClick={() => handleRequestCancel(notif)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#e53935',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: '600'
+                        }}
+                      >
+                        🚫 Request Cancel
+                      </button>
+                    ) : notif.cancellationRequest?.status === 'pending' ? (
+                      <div style={{
+                        padding: '8px 16px',
+                        background: '#fff3e0',
+                        color: '#e65100',
+                        borderRadius: '4px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        border: '1px solid #ff9800'
+                      }}>
+                        Cancellation Requested
+                      </div>
+                    ) : (
+                      <div style={{color: '#4CAF50', fontWeight: '500'}}>Accepted</div>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -699,6 +845,224 @@ const Notification = () => {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* Cancelled Schedules Tab */}
+        {activeTab === 'cancelled' && userRole === 'supplier' && (
+          <div className="notification-list">
+            {cancelledNotifications.length === 0 ? (
+              <div>No cancelled schedules</div>
+            ) : filterByTimeRange(cancelledNotifications).length === 0 ? (
+              <div>No cancelled schedules in this time range</div>
+            ) : (
+              filterByTimeRange(cancelledNotifications).map((notif) => (
+                <div key={notif._id} className="notification-card" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#f5f5f5',
+                  padding: '16px 20px',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  marginBottom: '12px',
+                  borderLeft: '4px solid #9e9e9e'
+                }}>
+                  <div style={{flex: 1}}>
+                    <h4 style={{marginBottom: '8px'}}>{notif.eventType || notif.title}</h4>
+                    {notif.description && (
+                      <p style={{color: '#666', marginBottom: '4px', whiteSpace: 'pre-line'}}>{notif.description}</p>
+                    )}
+                    {notif.location && (
+                      <div style={{color: '#888', fontSize: '0.97rem', marginBottom: '4px'}}>Location: {notif.location}</div>
+                    )}
+                    <div style={{fontSize: '0.9rem', color: '#888'}}>Date: {notif.date}</div>
+                    
+                    {/* Show cancellation details */}
+                    {notif.cancellationRequest && (
+                      <div style={{marginTop: '12px', padding: '10px', background: '#fff', borderRadius: '6px', border: '1px solid #9e9e9e'}}>
+                        <div style={{fontWeight: '600', color: '#616161', fontSize: '0.85rem', marginBottom: '4px'}}>
+                          Cancellation Details
+                        </div>
+                        <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '2px'}}>
+                          <strong>Reason:</strong> {notif.cancellationRequest.reason}
+                        </div>
+                        <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '2px'}}>
+                          <strong>Description:</strong> {notif.cancellationRequest.description}
+                        </div>
+                        {notif.cancellationRequest.adminNotes && (
+                          <div style={{fontSize: '0.8rem', color: '#666', marginTop: '4px', fontStyle: 'italic'}}>
+                            <strong>Admin Notes:</strong> {notif.cancellationRequest.adminNotes}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{color: '#9e9e9e', fontWeight: '500'}}>Cancelled</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Cancellation Request Modal */}
+        {showCancelModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 2147483647,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setSelectedScheduleToCancel(null);
+                  setCancelForm({ reason: '', description: '' });
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '28px',
+                  cursor: 'pointer',
+                  color: '#999'
+                }}
+              >
+                ×
+              </button>
+
+              <h2 style={{fontWeight: 800, fontSize: '1.5rem', marginBottom: '8px', color: '#c62828'}}>
+                Request Schedule Cancellation
+              </h2>
+              <p style={{fontSize: '0.9rem', color: '#666', marginBottom: '24px'}}>
+                Please provide the reason for cancelling this accepted schedule. The admin will review your request.
+              </p>
+
+              {/* Schedule Info */}
+              <div style={{
+                background: '#f5f5f5',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '24px'
+              }}>
+                <div style={{fontWeight: '600', fontSize: '1rem', marginBottom: '8px'}}>
+                  {selectedScheduleToCancel?.eventType || selectedScheduleToCancel?.title}
+                </div>
+                <div style={{fontSize: '0.85rem', color: '#666'}}>
+                  Date: {selectedScheduleToCancel?.date}
+                </div>
+                {selectedScheduleToCancel?.location && (
+                  <div style={{fontSize: '0.85rem', color: '#666'}}>
+                    Location: {selectedScheduleToCancel.location}
+                  </div>
+                )}
+              </div>
+
+              {/* Warning */}
+              <div style={{
+                background: '#fff3e0',
+                border: '2px solid #ff9800',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '24px'
+              }}>
+                <div style={{fontWeight: 600, color: '#e65100', marginBottom: '8px'}}>⚠️ Important:</div>
+                <ul style={{margin: 0, paddingLeft: '20px', fontSize: '0.85rem', color: '#666'}}>
+                  <li>Cancellation must be approved by admin</li>
+                  <li>Customer will be notified of your cancellation</li>
+                  <li>This may affect your reputation with the customer</li>
+                </ul>
+              </div>
+
+              {/* Reason Dropdown */}
+              <div style={{marginBottom: '20px'}}>
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: 600, color: '#555'}}>
+                  Reason for Cancellation <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <select
+                  value={cancelForm.reason}
+                  onChange={(e) => setCancelForm(prev => ({ ...prev, reason: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                >
+                  <option value="">Select a reason</option>
+                  {scheduleCancellationReasons.map(reason => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div style={{marginBottom: '24px'}}>
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: 600, color: '#555'}}>
+                  Additional Details <span style={{color: '#e53935'}}>*</span>
+                </label>
+                <textarea
+                  value={cancelForm.description}
+                  onChange={(e) => setCancelForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Please explain why you need to cancel this schedule..."
+                  rows={5}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '2px solid #e0e0e0',
+                    fontSize: '15px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    backgroundColor: '#fff',
+                    color: '#333'
+                  }}
+                />
+              </div>
+
+              <button
+                style={{
+                  background: cancelForm.reason && cancelForm.description.trim()
+                    ? 'linear-gradient(90deg, #e53935 0%, #d32f2f 100%)'
+                    : '#e0e0e0',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px 32px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: cancelForm.reason && cancelForm.description.trim() ? 'pointer' : 'not-allowed',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  color: '#fff'
+                }}
+                disabled={!cancelForm.reason || !cancelForm.description.trim()}
+                onClick={handleSubmitCancellation}
+              >
+                Submit Cancellation Request
+              </button>
+            </div>
           </div>
         )}
       </div>

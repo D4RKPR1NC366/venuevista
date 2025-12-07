@@ -103,9 +103,10 @@ const Appointment = scheduleConnection.model('Appointment', appointmentSchema);
 const appointmentsRouter = require('./routes/appointments')(Appointment);
 app.use('/api/appointments', appointmentsRouter);
 
-// Initialize models for accepted and declined schedules
+// Initialize models for accepted, declined, and cancelled schedules
 const SupplierAccepted = scheduleConnection.model('SupplierAcceptedSchedule', require('./models/SupplierSchedule').SupplierAcceptedSchedule.schema);
 const SupplierDeclined = scheduleConnection.model('SupplierDeclinedSchedule', require('./models/SupplierSchedule').SupplierDeclinedSchedule.schema);
+const SupplierCancelled = scheduleConnection.model('SupplierCancelledSchedule', scheduleSchema);
 
 // Schedules API endpoints now use the scheduleConnection
 app.get('/api/schedules', async (req, res) => {
@@ -145,6 +146,11 @@ app.delete('/api/schedules/:id', async (req, res) => {
     // If still not found, try declined schedules
     if (!deleted) {
       deleted = await SupplierDeclined.findByIdAndDelete(req.params.id);
+    }
+    
+    // If still not found, try cancelled schedules
+    if (!deleted) {
+      deleted = await SupplierCancelled.findByIdAndDelete(req.params.id);
     }
     
     if (!deleted) return res.status(404).json({ error: 'Schedule not found in any collection' });
@@ -226,6 +232,129 @@ app.get('/api/schedules/status/declined', async (req, res) => {
   } catch (err) {
     console.error('Error fetching declined schedules:', err);
     res.status(500).json({ error: 'Failed to fetch declined schedules' });
+  }
+});
+
+// Get cancelled schedules for a supplier
+app.get('/api/schedules/status/cancelled', async (req, res) => {
+  try {
+    const { supplierId } = req.query;
+    console.log('Fetching cancelled schedules for supplier:', supplierId);
+    const schedules = supplierId 
+      ? await SupplierCancelled.find({ supplierId })
+      : await SupplierCancelled.find();
+    console.log('Found cancelled schedules:', schedules);
+    res.json(schedules);
+  } catch (err) {
+    console.error('Error fetching cancelled schedules:', err);
+    res.status(500).json({ error: 'Failed to fetch cancelled schedules' });
+  }
+});
+
+// Request schedule cancellation (for accepted schedules)
+app.post('/api/schedules/:id/cancel-request', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason, description, supplierEmail } = req.body;
+
+    if (!reason || !description) {
+      return res.status(400).json({ error: 'Reason and description are required' });
+    }
+
+    // Find the schedule in accepted schedules
+    const schedule = await SupplierAccepted.findById(id);
+    
+    if (!schedule) {
+      return res.status(404).json({ error: 'Accepted schedule not found' });
+    }
+
+    // Update with cancellation request
+    schedule.cancellationRequest = {
+      status: 'pending',
+      reason,
+      description,
+      requestedBy: supplierEmail,
+      requestedAt: new Date()
+    };
+
+    await schedule.save();
+
+    res.json({ message: 'Cancellation request submitted successfully', schedule });
+  } catch (err) {
+    console.error('Error requesting schedule cancellation:', err);
+    res.status(500).json({ error: 'Failed to request cancellation' });
+  }
+});
+
+// Get schedules with pending cancellation requests (for admin)
+app.get('/api/schedules/cancellation-requests/pending', async (req, res) => {
+  try {
+    const pendingCancellations = await SupplierAccepted.find({ 'cancellationRequest.status': 'pending' });
+    res.json(pendingCancellations);
+  } catch (err) {
+    console.error('Error fetching schedule cancellation requests:', err);
+    res.status(500).json({ error: 'Failed to fetch cancellation requests' });
+  }
+});
+
+// Approve schedule cancellation (moves to cancelled collection)
+app.put('/api/schedules/:id/cancel-approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminEmail, adminNotes } = req.body;
+
+    // Find the schedule in accepted schedules
+    const schedule = await SupplierAccepted.findById(id);
+    
+    if (!schedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+
+    // Update cancellation request
+    schedule.cancellationRequest.status = 'approved';
+    schedule.cancellationRequest.processedBy = adminEmail;
+    schedule.cancellationRequest.processedAt = new Date();
+    schedule.cancellationRequest.adminNotes = adminNotes || '';
+    schedule.status = 'cancelled';
+
+    // Move to cancelled collection
+    const cancelledSchedule = new SupplierCancelled(schedule.toObject());
+    await cancelledSchedule.save();
+
+    // Remove from accepted collection
+    await SupplierAccepted.findByIdAndDelete(id);
+
+    res.json({ message: 'Cancellation approved and schedule moved to cancelled', schedule: cancelledSchedule });
+  } catch (err) {
+    console.error('Error approving schedule cancellation:', err);
+    res.status(500).json({ error: 'Failed to approve cancellation' });
+  }
+});
+
+// Reject schedule cancellation
+app.put('/api/schedules/:id/cancel-reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminEmail, adminNotes } = req.body;
+
+    // Find and update the schedule
+    const schedule = await SupplierAccepted.findById(id);
+    
+    if (!schedule) {
+      return res.status(404).json({ error: 'Schedule not found' });
+    }
+
+    schedule.cancellationRequest.status = 'rejected';
+    schedule.cancellationRequest.processedBy = adminEmail;
+    schedule.cancellationRequest.processedAt = new Date();
+    schedule.cancellationRequest.adminNotes = adminNotes || '';
+
+    await schedule.save();
+
+    res.json({ message: 'Cancellation request rejected', schedule });
+  } catch (err) {
+    console.error('Error rejecting schedule cancellation:', err);
+    res.status(500).json({ error: 'Failed to reject cancellation' });
   }
 });
 

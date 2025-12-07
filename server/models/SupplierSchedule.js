@@ -13,7 +13,17 @@ const supplierScheduleBaseSchema = new mongoose.Schema({
     branchLocation: { type: String },
     status: { type: String, enum: ['accepted', 'declined'], required: true },
     createdAt: { type: Date, default: Date.now },
-    actionDate: { type: Date, default: Date.now }
+    actionDate: { type: Date, default: Date.now },
+    cancellationRequest: {
+        status: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+        reason: { type: String },
+        description: { type: String },
+        requestedBy: { type: String },
+        requestedAt: { type: Date },
+        processedBy: { type: String },
+        processedAt: { type: Date },
+        adminNotes: { type: String }
+    }
 });
 
 const SupplierAcceptedSchedule = mongoose.model('SupplierAcceptedSchedule', supplierScheduleBaseSchema);
