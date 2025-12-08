@@ -142,6 +142,7 @@ margin-right: 100px;
     flex-wrap: wrap !important;
     justify-content: space-between !important;
     position: fixed !important;
+    min-height: auto !important;
   }
   
   .topbar.topbar-expanded {
@@ -155,25 +156,35 @@ margin-right: 100px;
     flex: 0 0 auto !important;
   }
   
+  .topbar-logo img {
+    height: 36px !important;
+    max-width: 200px !important;
+  }
+  
   .topbar-right {
     margin-right: 0 !important;
+    margin-left: auto !important;
     order: 2 !important;
     flex: 0 0 auto !important;
-    gap: 20px !important;
+    gap: 16px !important;
+    display: flex !important;
+    align-items: center !important;
   }
   
   .topbar-center {
-    gap: 16px !important;
+    gap: 8px !important;
     order: 3 !important;
     width: 100% !important;
     margin-top: 12px !important;
-    justify-content: space-around !important;
-    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    padding: 0 4px !important;
   }
   
   .topbar-link {
-    font-size: 13px !important;
+    font-size: 12px !important;
     white-space: nowrap !important;
+    padding: 4px 6px !important;
   }
   
   .topbar-link-sub {
@@ -189,27 +200,41 @@ margin-right: 100px;
 
 @media (max-width: 480px) {
   .topbar {
-    padding: 10px 12px !important;
+    padding: 10px 8px !important;
   }
   
   .topbar.topbar-expanded {
-    padding: 14px 12px !important;
+    padding: 12px 8px !important;
   }
   
   .topbar-logo {
-    font-size: 0.95rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .topbar-logo img {
+    height: 32px !important;
+    max-width: 160px !important;
   }
   
   .topbar-center {
-    gap: 8px !important;
-    font-size: 11px !important;
+    gap: 6px !important;
+    font-size: 10px !important;
+    justify-content: space-around !important;
   }
   
   .topbar-link {
-    font-size: 11px !important;
+    font-size: 10px !important;
+    padding: 3px 4px !important;
   }
   
   .topbar-right {
-    gap: 16px !important;
+    gap: 12px !important;
+  }
+  
+  /* Make sure cart and profile/signup are visible */
+  .topbar-right .topbar-link {
+    font-size: 11px !important;
+    display: flex !important;
+    align-items: center !important;
   }
 }

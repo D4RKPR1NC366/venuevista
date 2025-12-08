@@ -10,9 +10,27 @@ const otpStore = {};
 
 const app = express();
 
-// Configure CORS for production
+// Configure CORS for production and local network access
 const corsOptions = {
-  origin: process.env.CLIENT_URL || '*',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost, 127.0.0.1, and local network IPs
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://192.168.1.3:5173',
+      process.env.CLIENT_URL
+    ].filter(Boolean);
+    
+    // Allow any origin in development, or check allowedOrigins list
+    if (allowedOrigins.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -1956,8 +1974,8 @@ Promise.all([
   promoConnection.asPromise()
 ]).then(() => {
   console.log('All MongoDB connections established');
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on port ${PORT} on all network interfaces`);
   });
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);
