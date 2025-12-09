@@ -1054,7 +1054,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                     </div>
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
-                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Guest Count:</span>
+                    <span style={{ fontWeight: 700, color: '#000000ff' }}>Number of Pax:</span>
                     <input style={{ marginLeft: 8, color: '#222', fontSize: 15, borderRadius: 4, border: '1px solid #ccc', padding: '2px 8px', background: 'transparent' }} value={editData.guestCount || ''} onChange={handleChange('guestCount')} />
                   </div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}>
@@ -1069,7 +1069,7 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Event Venue:</span> <span style={{ color: '#222' }}>{editData.eventVenue || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Branch Location:</span> <span style={{ color: '#222' }}>{editData.branchLocation || 'Not specified'}</span></div>
                   {editData.theme && <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Theme:</span> <span style={{ color: '#222' }}>{editData.theme}</span></div>}
-                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Guest Count:</span> <span style={{ color: '#222' }}>{editData.guestCount || ''}</span></div>
+                  <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Number of Pax:</span> <span style={{ color: '#222' }}>{editData.guestCount || ''}</span></div>
                   <div style={{ marginBottom: 10, fontSize: 15 }}><span style={{ fontWeight: 700, color: '#000000ff' }}>Appointment Method:</span> <span style={{ color: '#222' }}>{editData.outsidePH === 'yes' ? 'Face to Face' : editData.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
                 </>
               )}

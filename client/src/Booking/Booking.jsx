@@ -246,7 +246,7 @@ const Booking = () => {
       if (!form.barangay) missing.push('Barangay');
       if (!form.branchLocation) missing.push('Branch Location');
       if (!form.eventType) missing.push('Event Type');
-      if (!form.guestCount) missing.push('Guest Count');
+      if (!form.guestCount) missing.push('Number of Pax');
       
       alert(`Please fill in the following required fields:\n• ${missing.join('\n• ')}`);
       return;
@@ -408,11 +408,11 @@ const Booking = () => {
                     </Select>
                   </FormControl>
                 </div>
-                <div className={`booking-label booking-label-guest ${!form.guestCount ? 'booking-label-highlight' : ''}`}>Guest Count</div>
+                <div className={`booking-label booking-label-guest ${!form.guestCount ? 'booking-label-highlight' : ''}`}>Number of Pax</div>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Enter Guest Count"
+                  label="Enter Number of Pax"
                   variant="outlined"
                   size="small"
                   value={form.guestCount}

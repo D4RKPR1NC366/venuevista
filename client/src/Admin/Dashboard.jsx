@@ -213,7 +213,7 @@ export default function Dashboard() {
         ['BOOKING DETAILS - ' + (filter === 'all' ? 'All Months' : months[filter]) + ' ' + selectedYear],
         ['Total Bookings:', filteredBookings.length],
         [],
-        ['Booking ID', 'Status', 'Client Name', 'Email', 'Contact', 'Event Type', 'Event Venue', 'Branch Location', 'Date', 'Guest Count', 'Theme', 'Total Price (PHP)', 'Special Request']
+        ['Booking ID', 'Status', 'Client Name', 'Email', 'Contact', 'Event Type', 'Event Venue', 'Branch Location', 'Date', 'Number of Pax', 'Theme', 'Total Price (PHP)', 'Special Request']
       ];
       
       if (filteredBookings.length > 0) {
@@ -239,7 +239,7 @@ export default function Dashboard() {
         bookingDetails.push([]);
         bookingDetails.push(['SUMMARY']);
         bookingDetails.push(['Total Revenue (PHP):', filteredBookings.reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0)]);
-        bookingDetails.push(['Average Guest Count:', Math.round(filteredBookings.reduce((sum, b) => sum + (Number(b.guestCount) || 0), 0) / filteredBookings.length)]);
+        bookingDetails.push(['Average Number of Pax:', Math.round(filteredBookings.reduce((sum, b) => sum + (Number(b.guestCount) || 0), 0) / filteredBookings.length)]);
       } else {
         bookingDetails.push(['No bookings found for the selected filter', '', '', '', '', '', '', '', '', '', '', '', '']);
       }

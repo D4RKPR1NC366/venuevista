@@ -71,7 +71,7 @@ const BookSummary = () => {
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Appointment Method :</span> <span style={{ color: '#111' }}>{booking?.outsidePH === 'yes' ? 'Face to Face' : booking?.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</span></div>
             </div>
             <div className="booking-summary-col">
-              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Guest Count :</span> <span style={{ color: '#111' }}>{booking?.guestCount || ""}</span></div>
+              <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Number of Pax :</span> <span style={{ color: '#111' }}>{booking?.guestCount || ""}</span></div>
               <div style={{ marginBottom: 12, color: '#111' }}><span style={{ fontWeight: 'bold' }}>Subtotal:</span> <span style={{ color: '#111' }}>PHP {subtotal}</span></div>
               {booking?.promoTitle && (
                 <div style={{ marginBottom: 12, color: '#388e3c', fontWeight: 'bold' }}>

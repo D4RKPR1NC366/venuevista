@@ -543,7 +543,7 @@ const BookingInformation = () => {
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Event Venue:</strong> {selectedBooking.eventVenue}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Branch Location:</strong> {selectedBooking.branchLocation || 'Not specified'}</div>
                     {selectedBooking.theme && <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Theme:</strong> {selectedBooking.theme}</div>}
-                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Guest Count:</strong> {selectedBooking.guestCount}</div>
+                    <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Number of Pax:</strong> {selectedBooking.guestCount}</div>
                     <div style={{marginBottom: 10, fontSize: '0.95rem'}}><strong>Appointment Method:</strong> {selectedBooking.outsidePH === 'yes' ? 'Face to Face' : selectedBooking.outsidePH === 'no' ? 'Virtual/Online' : 'Not specified'}</div>
                   </div>
                 </div>
