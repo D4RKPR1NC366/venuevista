@@ -389,6 +389,7 @@ export default function AdminBooking() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'approved'
     const [branchFilter, setBranchFilter] = useState('all'); // 'all', 'maddela', 'latrinidad', 'stafe'
+  const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'with-proof', 'without-proof'
   const [search, setSearch] = useState('');
   const [refSearch, setRefSearch] = useState('');
 
@@ -435,6 +436,29 @@ export default function AdminBooking() {
   filteredApproved = filteredApproved.filter(b => branchMatch(b.branchLocation, branchFilter));
   filteredFinished = filteredFinished.filter(b => branchMatch(b.branchLocation, branchFilter));
   filteredCancelled = filteredCancelled.filter(b => branchMatch(b.branchLocation, branchFilter));
+  
+  // Filter by payment proof
+  if (paymentFilter === 'with-proof') {
+    const hasProof = b => {
+      if (!b.paymentDetails) return false;
+      const proof = b.paymentDetails.paymentProof;
+      return proof && typeof proof === 'string' && proof.trim() !== '';
+    };
+    filteredPending = filteredPending.filter(hasProof);
+    filteredApproved = filteredApproved.filter(hasProof);
+    filteredFinished = filteredFinished.filter(hasProof);
+    filteredCancelled = filteredCancelled.filter(hasProof);
+  } else if (paymentFilter === 'without-proof') {
+    const noProof = b => {
+      if (!b.paymentDetails) return true;
+      const proof = b.paymentDetails.paymentProof;
+      return !proof || typeof proof !== 'string' || proof.trim() === '';
+    };
+    filteredPending = filteredPending.filter(noProof);
+    filteredApproved = filteredApproved.filter(noProof);
+    filteredFinished = filteredFinished.filter(noProof);
+    filteredCancelled = filteredCancelled.filter(noProof);
+  }
   
   // Filter by reference number search (exact or partial match)
   const refSearchTrimmed = refSearch.trim().toUpperCase();
@@ -547,6 +571,19 @@ export default function AdminBooking() {
                 <option value="maddela">Maddela, Quirino</option>
                 <option value="latrinidad">La Trinidad, Benguet</option>
                 <option value="stafe">Sta. Fe, Nueva Vizcaya</option>
+              </select>
+              <label htmlFor="payment-filter" className="admin-booking-filter-label" style={{ marginLeft: 8 }}>Payment:</label>
+              <select
+                id="payment-filter"
+                value={paymentFilter}
+                onChange={e => setPaymentFilter(e.target.value)}
+                className="admin-booking-filter-select"
+                style={{ background: '#f0fdf4', border: '2px solid #10b981' }}
+                title="Filter by payment proof status"
+              >
+                <option value="all">All Bookings</option>
+                <option value="with-proof">With Proof of Payment</option>
+                <option value="without-proof">Without Proof</option>
               </select>
             </div>
           </div>
@@ -715,11 +752,11 @@ export default function AdminBooking() {
           )}
 
           {/* Cancelled Bookings Section */}
-          {cancelledBookings.length > 0 && (
+          {filteredCancelled.length > 0 && (
             <div style={{ marginBottom: 36 }}>
               <h3 style={{ fontWeight: 700, fontSize: 22, marginBottom: 16, color: '#c62828' }}>🚫 Cancelled Bookings</h3>
               <ul style={{ listStyle: 'none', padding: 0, marginTop: 0 }}>
-                {cancelledBookings.map(booking => (
+                {filteredCancelled.map(booking => (
                   <li
                     key={booking._id}
                     className="booking-card"

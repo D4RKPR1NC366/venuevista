@@ -261,7 +261,8 @@ const BookingInformation = () => {
       const response = await api.put(`/bookings/${selectedBooking._id}`, {
         paymentDetails: {
           ...paymentForm,
-          paymentStatus: finalStatus
+          paymentStatus: finalStatus,
+          bookingReference: selectedBooking.referenceNumber // Include booking reference
         }
       });
       
@@ -725,6 +726,32 @@ const BookingInformation = () => {
                     border: '2px solid #4CAF50',
                     boxShadow: '0 2px 8px rgba(76, 175, 80, 0.15)'
                   }}>
+                    {selectedBooking.paymentDetails.bookingReference && (
+                      <div style={{
+                        background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                        color: '#fff',
+                        padding: '10px 14px',
+                        borderRadius: 8,
+                        marginBottom: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 2px 6px rgba(59,130,246,0.3)'
+                      }}>
+                        <span style={{fontSize: '13px', fontWeight: 600}}>📋 Booking Reference:</span>
+                        <span style={{
+                          fontSize: '15px',
+                          fontWeight: 800,
+                          fontFamily: 'monospace',
+                          letterSpacing: '1px',
+                          background: 'rgba(255,255,255,0.2)',
+                          padding: '2px 10px',
+                          borderRadius: 4
+                        }}>
+                          {selectedBooking.paymentDetails.bookingReference}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#555', marginBottom: 6 }}>Payment Status</div>
@@ -814,6 +841,41 @@ const BookingInformation = () => {
                   </div>
                 )}
               </div>
+
+              {/* Contract Picture Section */}
+              {selectedBooking.contractPicture && (
+                <div style={{ marginBottom: 24 }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: 16, color: '#222' }}>
+                    📄 Contract Document
+                  </h3>
+                  <div style={{ 
+                    background: '#f0f9ff', 
+                    borderRadius: 12, 
+                    padding: 20,
+                    border: '2px solid #3b82f6'
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e40af', marginBottom: 12 }}>
+                      Your Contract
+                    </div>
+                    <img 
+                      src={selectedBooking.contractPicture} 
+                      alt="Contract" 
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: '500px', 
+                        borderRadius: 8, 
+                        border: '2px solid #cbd5e1',
+                        objectFit: 'contain',
+                        display: 'block',
+                        margin: '0 auto'
+                      }} 
+                    />
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: 12, textAlign: 'center', fontStyle: 'italic' }}>
+                      Please review your contract document carefully
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Reschedule & Cancellation Section */}
               {selectedBooking && (
@@ -1595,7 +1657,35 @@ const BookingInformation = () => {
                 ×
               </button>
               
-              <h2 style={{fontWeight: 800, fontSize: '1.5rem', marginBottom: 20, color: '#333'}}>Payment Details</h2>
+              <h2 style={{fontWeight: 800, fontSize: '1.5rem', marginBottom: 8, color: '#333'}}>Payment Details</h2>
+              
+              {/* Booking Reference Number */}
+              {selectedBooking?.referenceNumber && (
+                <div style={{
+                  background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                  color: '#fff',
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 2px 8px rgba(59,130,246,0.3)'
+                }}>
+                  <span style={{fontSize: '14px', fontWeight: 600}}>📋 Booking Reference:</span>
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: 800,
+                    fontFamily: 'monospace',
+                    letterSpacing: '1px',
+                    background: 'rgba(255,255,255,0.2)',
+                    padding: '2px 10px',
+                    borderRadius: 4
+                  }}>
+                    {selectedBooking.referenceNumber}
+                  </span>
+                </div>
+              )}
               
               {/* Mode of Payment */}
               <div style={{marginBottom: 20}}>

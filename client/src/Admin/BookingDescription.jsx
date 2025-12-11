@@ -1477,6 +1477,32 @@ export default function BookingDescription({ open, onClose, booking, onSave }) {
                 border: '2px solid #4CAF50',
                 boxShadow: '0 2px 8px rgba(76, 175, 80, 0.15)'
               }}>
+                {editData.paymentDetails.bookingReference && (
+                  <div style={{
+                    background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                    color: '#fff',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    marginBottom: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    boxShadow: '0 2px 6px rgba(59,130,246,0.3)'
+                  }}>
+                    <span style={{fontSize: 13, fontWeight: 600}}>📋 Payment for Booking:</span>
+                    <span style={{
+                      fontSize: 15,
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      letterSpacing: '1px',
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '2px 10px',
+                      borderRadius: 4
+                    }}>
+                      {editData.paymentDetails.bookingReference}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#555', marginBottom: 4 }}>Payment Status</div>

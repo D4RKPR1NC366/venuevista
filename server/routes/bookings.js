@@ -36,7 +36,8 @@ const bookingBaseSchema = new mongoose.Schema({
         paymentDate: String,
         transactionReference: String,
         paymentProof: String,
-        paymentNotes: String
+        paymentNotes: String,
+        bookingReference: String // Booking reference number for payment tracking
     },
     products: [
         {
@@ -150,7 +151,8 @@ router.put('/:id', async (req, res) => {
                 paymentDate: updateData.paymentDetails.paymentDate || '',
                 transactionReference: updateData.paymentDetails.transactionReference || '',
                 paymentProof: updateData.paymentDetails.paymentProof || '',
-                paymentNotes: updateData.paymentDetails.paymentNotes || ''
+                paymentNotes: updateData.paymentDetails.paymentNotes || '',
+                bookingReference: updateData.paymentDetails.bookingReference || ''
             };
         }
 
